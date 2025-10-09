@@ -12,8 +12,10 @@ shell-snapshots/
 todos/
 
 # Session Notes (may contain sensitive data, company IP)
+# But allow templates to be version controlled
 session-notes/
 **/session-notes/
+!templates/session-notes/
 
 # Project-specific tracking (kept local)
 projects/
