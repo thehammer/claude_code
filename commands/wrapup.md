@@ -1,0 +1,1 @@
+It's time to wrap up for the day. Follow the instructions in `~/.claude/WRAPUP.md`.

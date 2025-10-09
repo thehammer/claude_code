@@ -1,0 +1,39 @@
+# Credentials and Secrets
+credentials/.env
+credentials/services/*.json
+
+# Debug Output
+debug/
+
+# Shell Snapshots (may contain sensitive command history)
+shell-snapshots/
+
+# TODO Lists (may contain internal company information)
+todos/
+
+# Session Notes (may contain sensitive data, company IP)
+session-notes/
+**/session-notes/
+
+# Project-specific tracking (kept local)
+projects/
+
+# IDE-specific files
+ide/
+*.local.*
+
+# macOS
+.DS_Store
+
+# Statsig local cache
+statsig/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Temporary files
+*.tmp
+.*.swp
+.*.swo
