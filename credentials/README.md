@@ -84,8 +84,9 @@ ls -la ~/.claude/credentials/
 - **Write:** Create PRs, add comments, approve, merge, trigger workflows
 
 ### Slack
-- **Read:** List channels
+- **Read:** Search messages, list channels, view channel history
 - **Write:** Post messages to channels (for deployment notifications, etc.)
+- **Note:** Requires bot token with appropriate OAuth scopes (see Slack setup below)
 
 ## Feature Flags
 
@@ -117,6 +118,37 @@ Claude will:
 3. Confirm with you before write operations (unless you disabled prompts)
 4. Show you the API call being made
 5. Report the results
+
+## Slack Setup Details
+
+The Slack bot token requires specific OAuth scopes to work with the integration functions:
+
+**Required scopes for reading:**
+- `channels:read` - List public channels
+- `groups:read` - List private channels bot is in
+- `channels:history` - Read public channel history
+- `groups:history` - Read private channel history
+- `im:read` - List DMs
+- `im:history` - Read DM history
+- `mpim:read` - List group DMs
+- `mpim:history` - Read group DM history
+- `users:read` - Read user information
+- `search:read` - Search messages (requires user token, not bot token)
+
+**Current scopes for writing:**
+- `chat:write` - Post messages to channels
+- `chat:write.public` - Post to channels without joining
+
+**To add scopes:**
+1. Go to https://api.slack.com/apps
+2. Select your app
+3. Go to "OAuth & Permissions"
+4. Scroll to "Scopes" → "Bot Token Scopes"
+5. Click "Add an OAuth Scope" and add the required scopes above
+6. Click "Reinstall to Workspace" at the top
+7. Copy the new bot token and update `SLACK_BOT_TOKEN` in `.env`
+
+**Note:** The `search.messages` API requires a user token, not a bot token. Consider this when implementing search functionality.
 
 ## Revoking Access
 

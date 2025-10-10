@@ -7,12 +7,18 @@ When the user says it's time to wrap up:
 1. **Check Open Pull Requests Status**
 
 If Bitbucket integration is configured, list current open PRs:
+
+**Step 1:** Load integrations
 ```bash
-source ~/.claude/lib/integrations.sh && curl -s -u "${BITBUCKET_USERNAME}:${BITBUCKET_ACCESS_TOKEN}" \
-  -H "Accept: application/json" \
-  "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/portal_dev/pullrequests?state=OPEN" | \
-  python3 -c "import sys, json; data=json.load(sys.stdin); my_prs = [pr for pr in data.get('values', []) if pr['author']['nickname'] == 'Hammer']; print(f'\nYou have {len(my_prs)} open PRs:'); [print(f'  - PR #{pr[\"id\"]}: {pr[\"title\"]} ({\"DRAFT\" if pr.get(\"draft\") else \"Ready for review\"})') for pr in my_prs] if my_prs else print('  No open PRs')"
+source ~/.claude/lib/integrations.sh
 ```
+
+**Step 2:** List your PRs
+```bash
+bitbucket_list_prs "portal_dev"
+```
+
+Parse and format the results to show your open PRs with their status.
 
 Include PR status in session notes.
 
@@ -40,6 +46,34 @@ Include PR status in session notes.
    - Archive stale ideas if needed
    - This keeps the ideas backlog fresh and actionable
 
+7. **Commit changes to ~/.claude repository** (for clauding sessions):
+   - Check git status in ~/.claude
+   - If there are changes to configuration files:
+     ```bash
+     cd ~/.claude
+     git add .
+     git status
+     ```
+   - Show Hammer what files changed
+   - Create commit with descriptive message about what was improved
+   - Push to remote if desired
+   - Example:
+     ```bash
+     git commit -m "Add command safety policy and fuzzy session type matching
+
+     - Created COMMAND_SAFETY.md with 4-tier safety categorization
+     - Updated PERMISSIONS.md to reference safety categories
+     - Updated SESSION_START.md to infer session types intelligently
+     - Updated WRAPUP.md to commit config changes
+
+     🤖 Generated with Claude Code
+
+     Co-Authored-By: Claude <noreply@anthropic.com>"
+     git push origin master
+     ```
+
 ---
 
-**Note**: Session notes are project-specific and stored in each project's `.claude/session-notes/` directory.
+**Note**:
+- Session notes are project-specific and stored in each project's `.claude/session-notes/` directory
+- Configuration changes should be committed to `~/.claude/.git` for version control

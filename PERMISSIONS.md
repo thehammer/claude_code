@@ -2,6 +2,16 @@
 
 This document lists commands that are safe to pre-approve for Claude Code to streamline workflows.
 
+## Command Safety Policy
+
+**See [COMMAND_SAFETY.md](COMMAND_SAFETY.md) for complete safety categorization and policy.**
+
+**TL;DR:**
+- 🟢 **Green (Local Read):** Can pre-approve - reads local files or remote data
+- 🟡 **Yellow (Local Write):** Can pre-approve - modifies local files only
+- 🟠 **Orange (Remote Read):** Confirm first - pulls from remote
+- 🔴 **Red (Remote Write):** ALWAYS confirm - modifies remote systems
+
 ## How to Pre-Approve Commands
 
 When Claude asks for permission to run a command, you can:
@@ -9,6 +19,8 @@ When Claude asks for permission to run a command, you can:
 2. Click "Yes, and don't ask again" - Pre-approve this command pattern
 
 Once pre-approved, Claude can run similar commands without asking each time.
+
+**Golden Rule:** Only pre-approve commands that don't modify anything outside this computer.
 
 ## Currently Pre-Approved
 
@@ -180,21 +192,25 @@ If Claude Code supports a config file, add patterns there:
 
 ## Security Considerations
 
-### Safe to Pre-Approve
-✅ **Read operations** - `cat`, `grep`, `find`, `Read` tool
+### Safe to Pre-Approve (🟢 Green + 🟡 Yellow)
+✅ **Read operations** - `cat`, `grep`, `find`, `Read` tool, API reads
 ✅ **Status checks** - `git status`, `docker ps`, API status calls
 ✅ **Helper functions** - Custom functions that wrap safe operations
 ✅ **Source scripts** - Loading scripts from `~/.claude/lib/`
+✅ **Local writes** - `git commit`, `Edit` tool, local file operations
+✅ **Test operations** - Running tests, local database migrations
 
-### Require Confirmation
-⚠️ **Write operations** - File edits, git commits (review before approving)
-⚠️ **API writes** - Creating issues, posting messages (review the action)
-⚠️ **Infrastructure changes** - Deployment, database operations
+### Confirm Each Time (🟠 Orange)
+⚠️ **Remote reads that modify local state** - `git pull`, `composer update`, `npm update`
 
-### Never Auto-Approve
-❌ **Destructive operations** - `rm -rf`, `DROP DATABASE`, force push
-❌ **Production changes** - Deployments, schema changes in prod
+### NEVER Auto-Approve (🔴 Red)
+❌ **Remote writes** - `git push`, creating PRs, posting to Slack, creating Jira tickets
+❌ **Destructive operations** - `rm -rf`, `DROP DATABASE`, `git push --force`
+❌ **Production changes** - Deployments, production database operations
 ❌ **Credential exposure** - Commands that echo full tokens
+
+**Policy for Remote-Changing Operations:**
+Claude MUST show you what will be changed on the remote system and wait for explicit "yes" confirmation before executing any 🔴 Red operation.
 
 ---
 

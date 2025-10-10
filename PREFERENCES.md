@@ -48,6 +48,18 @@
 - Use conventional commit messages with context
 - **Branch naming**: Use format `hammer/<branch-description>` (e.g., `hammer/fix-basecommand-bug`)
 
+### Remote-Changing Operations
+- **ALWAYS confirm before executing** operations that modify remote systems
+- Show what will be changed BEFORE executing (commits, PR details, messages, etc.)
+- Wait for explicit "yes" confirmation
+- See [~/.claude/COMMAND_SAFETY.md](~/.claude/COMMAND_SAFETY.md) for complete policy
+- Examples requiring confirmation:
+  - `git push` - Show commits being pushed
+  - Creating PRs - Show PR title, description, commits
+  - Posting to Slack - Show message content and channel
+  - Creating/updating Jira tickets - Show ticket details
+  - Any API write operations
+
 ### Task Management
 - Use TodoWrite for multi-step tasks (3+ steps)
 - Mark todos as in_progress before starting work

@@ -738,6 +738,171 @@ function datadog_export_dashboard() {
 }
 
 # ==============================================================================
+# Helper Functions - Slack
+# ==============================================================================
+
+# Test if Slack credentials are configured
+function slack_is_configured() {
+    if [ -z "$SLACK_BOT_TOKEN" ]; then
+        return 1
+    fi
+    return 0
+}
+
+# Test Slack API connection
+# Usage: slack_whoami
+function slack_whoami() {
+    if ! slack_is_configured; then
+        echo "Error: Slack credentials not configured"
+        return 1
+    fi
+
+    curl -s -X GET "https://slack.com/api/auth.test" \
+        -H "Authorization: Bearer ${SLACK_BOT_TOKEN}"
+}
+
+# List conversations (channels, DMs, etc.)
+# Usage: slack_list_conversations [types] [limit]
+# Types: public_channel,private_channel,mpim,im (comma-separated, default: public_channel)
+# Limit: max results per page (default: 100)
+function slack_list_conversations() {
+    local types=${1:-"public_channel"}
+    local limit=${2:-100}
+
+    if ! slack_is_configured; then
+        echo "Error: Slack credentials not configured"
+        return 1
+    fi
+
+    curl -s -X GET "https://slack.com/api/conversations.list" \
+        -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+        -d "types=${types}" \
+        -d "limit=${limit}" \
+        -d "exclude_archived=true"
+}
+
+# Get conversation history
+# Usage: slack_get_history <channel_id> [limit] [oldest] [latest]
+# channel_id: Required - Channel/DM ID
+# limit: Number of messages (default: 100, max: 200)
+# oldest: Unix timestamp - earliest message
+# latest: Unix timestamp - latest message
+function slack_get_history() {
+    local channel_id=$1
+    local limit=${2:-100}
+    local oldest=$3
+    local latest=$4
+
+    if [ -z "$channel_id" ]; then
+        echo "Usage: slack_get_history <channel_id> [limit] [oldest] [latest]"
+        echo "Example: slack_get_history \"C1234567890\" 50"
+        return 1
+    fi
+
+    if ! slack_is_configured; then
+        echo "Error: Slack credentials not configured"
+        return 1
+    fi
+
+    local params="channel=${channel_id}&limit=${limit}"
+    [ -n "$oldest" ] && params="${params}&oldest=${oldest}"
+    [ -n "$latest" ] && params="${params}&latest=${latest}"
+
+    curl -s -X GET "https://slack.com/api/conversations.history?${params}" \
+        -H "Authorization: Bearer ${SLACK_BOT_TOKEN}"
+}
+
+# Search for messages
+# Usage: slack_search_messages <query> [count] [page]
+# query: Search query (supports 'in:channel_name', 'from:@user', etc.)
+# count: Results per page (default: 20, max: 100)
+# page: Page number (default: 1, max: 100)
+function slack_search_messages() {
+    local query=$1
+    local count=${2:-20}
+    local page=${3:-1}
+
+    if [ -z "$query" ]; then
+        echo "Usage: slack_search_messages <query> [count] [page]"
+        echo "Example: slack_search_messages \"error in:#engineering\" 50"
+        echo ""
+        echo "Query modifiers:"
+        echo "  in:channel_name  - Search in specific channel"
+        echo "  from:@user       - Messages from specific user"
+        echo "  after:YYYY-MM-DD - Messages after date"
+        echo "  before:YYYY-MM-DD - Messages before date"
+        return 1
+    fi
+
+    if ! slack_is_configured; then
+        echo "Error: Slack credentials not configured"
+        return 1
+    fi
+
+    # URL encode the query
+    local encoded_query=$(echo -n "$query" | jq -sRr @uri)
+
+    curl -s -X GET "https://slack.com/api/search.messages" \
+        -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+        -d "query=${encoded_query}" \
+        -d "count=${count}" \
+        -d "page=${page}" \
+        -d "highlight=true"
+}
+
+# Find channel ID by name
+# Usage: slack_find_channel <channel_name>
+function slack_find_channel() {
+    local channel_name=$1
+
+    if [ -z "$channel_name" ]; then
+        echo "Usage: slack_find_channel <channel_name>"
+        echo "Example: slack_find_channel \"engineering\""
+        return 1
+    fi
+
+    if ! slack_is_configured; then
+        echo "Error: Slack credentials not configured"
+        return 1
+    fi
+
+    # Remove # prefix if present
+    channel_name=${channel_name#"#"}
+
+    slack_list_conversations "public_channel,private_channel" 200 | jq -r \
+        --arg name "$channel_name" \
+        '.channels[] | select(.name == $name) | {id: .id, name: .name, is_private: .is_private, num_members: .num_members}'
+}
+
+# Get recent messages from a channel by name
+# Usage: slack_get_channel_messages <channel_name> [limit]
+function slack_get_channel_messages() {
+    local channel_name=$1
+    local limit=${2:-50}
+
+    if [ -z "$channel_name" ]; then
+        echo "Usage: slack_get_channel_messages <channel_name> [limit]"
+        echo "Example: slack_get_channel_messages \"engineering\" 20"
+        return 1
+    fi
+
+    # Get channel ID
+    local channel_info=$(slack_find_channel "$channel_name")
+    if [ -z "$channel_info" ] || [ "$channel_info" = "null" ]; then
+        echo "Error: Channel not found or bot doesn't have access"
+        return 1
+    fi
+
+    local channel_id=$(echo "$channel_info" | jq -r '.id')
+    if [ -z "$channel_id" ] || [ "$channel_id" = "null" ]; then
+        echo "Error: Could not extract channel ID"
+        return 1
+    fi
+
+    slack_get_history "$channel_id" "$limit"
+}
+
+# ==============================================================================
 # Auto-run on source
 # ==============================================================================
 
@@ -896,10 +1061,15 @@ function parse_time_to_unix() {
     fi
     
     # Try to parse as ISO date (macOS uses -j, Linux uses -d)
+    # Note: TZ environment variable affects the interpretation
+    # Example: TZ='America/Chicago' parse_time_to_unix "2025-10-07 02:50:00"
     if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS date -j respects TZ environment variable
         date -j -f "%Y-%m-%d %H:%M:%S" "$time_str" +%s 2>/dev/null || \
         date -j -f "%Y-%m-%d" "$time_str" +%s 2>/dev/null
     else
+        # Linux: Use -d for parsing (does NOT respect TZ, always UTC)
+        # For timezone-aware parsing on Linux, would need different approach
         date -u -d "$time_str" +%s 2>/dev/null
     fi
 }

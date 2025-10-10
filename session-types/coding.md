@@ -19,17 +19,24 @@ Summarize:
 
 ### 2. Open Pull Requests
 Check for context on related work:
+
+**Step 1:** Load integrations
 ```bash
-source ~/.claude/lib/integrations.sh && bitbucket_list_prs "portal_dev" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-my_prs = [pr for pr in data.get('values', []) if pr['author']['nickname'] == 'Hammer']
-print(f'You have {len(my_prs)} open PRs:')
-for pr in my_prs:
-    state = 'DRAFT' if pr.get('draft') else 'Ready'
-    print(f'  - PR #{pr[\"id\"]}: {pr[\"title\"]} ({state})')
-"
+source ~/.claude/lib/integrations.sh
 ```
+
+**Step 2:** List your PRs
+```bash
+bitbucket_list_prs "portal_dev"
+```
+
+**Step 3:** Filter and format (use python3 or jq)
+```bash
+# This will be done in a separate command to keep it simple
+python3 -c "import sys, json; data=json.load(sys.stdin); my_prs=[pr for pr in data.get('values',[]) if pr['author']['nickname']=='Hammer']; print(f'You have {len(my_prs)} open PRs:'); [print(f'  - PR #{pr[\"id\"]}: {pr[\"title\"]} ({\"DRAFT\" if pr.get(\"draft\") else \"Ready\"})') for pr in my_prs]"
+```
+
+**Note:** These should be run as separate commands, not chained with `&&` or `|`, to allow each pattern to be pre-approved individually.
 
 ### 3. Recent Session Notes
 Look in `.claude/session-notes/coding/` for most recent note to understand:
