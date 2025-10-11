@@ -1074,3 +1074,45 @@ function parse_time_to_unix() {
     fi
 }
 
+# Sentry: Search for individual events (not grouped issues)
+# Usage: sentry_search_events <org> <project> <start_time> <end_time> [limit] [query]
+# Times can be: "now-1h", "now-24h", or ISO timestamps
+# Example: sentry_search_events carefeed portal_dev "now-1h" "now" 10
+sentry_search_events() {
+    local org="$1"
+    local project="$2"
+    local start_time="$3"
+    local end_time="$4"
+    local limit="${5:-50}"
+    local query="${6:-}"
+
+    if [ -z "$org" ] || [ -z "$project" ] || [ -z "$start_time" ] || [ -z "$end_time" ]; then
+        echo "Usage: sentry_search_events <org> <project> <start_time> <end_time> [limit] [query]"
+        echo "Times: 'now-1h', 'now-24h', or ISO timestamps"
+        return 1
+    fi
+
+    # Parse times
+    local start_ts=$(parse_time_to_unix "$start_time")
+    local end_ts=$(parse_time_to_unix "$end_time")
+
+    if [ -z "$start_ts" ] || [ -z "$end_ts" ]; then
+        echo "Error: Could not parse timestamps"
+        return 1
+    fi
+
+    # Convert to ISO format for Sentry API
+    local start_iso=$(date -u -r "$start_ts" +"%Y-%m-%dT%H:%M:%S")
+    local end_iso=$(date -u -r "$end_ts" +"%Y-%m-%dT%H:%M:%S")
+
+    # Build query params
+    local query_param=""
+    if [ -n "$query" ]; then
+        query_param="&query=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$query'))")"
+    fi
+
+    curl -s -H "Authorization: Bearer ${SENTRY_API_TOKEN}" \
+        "https://sentry.io/api/0/projects/${org}/${project}/events/?full=true&start=${start_iso}&end=${end_iso}${query_param}" \
+        | jq ".[0:${limit}]"
+}
+
