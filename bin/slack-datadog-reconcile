@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+# Slack-Datadog Error Reconciliation Wrapper
+#
+# Usage:
+#   slack-datadog-reconcile [timeframe] [service]
+#
+# Examples:
+#   slack-datadog-reconcile 1h
+#   slack-datadog-reconcile 6h /ecs/portal_dev
+#   slack-datadog-reconcile 12h
+
+# Source the reconciliation library
+source ~/.claude/lib/integrations.sh
+source ~/.claude/lib/slack-datadog-reconcile.sh
+
+# Run the reconciliation
+slack_datadog_reconcile "$@"

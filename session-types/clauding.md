@@ -90,9 +90,18 @@ Then ask: "What would you like to improve?" with options:
 2. **Improve Integration:**
    - Review existing helper functions
    - Add new functionality
+   - Refactor for better error handling, features, or interface
    - Update INTEGRATIONS.md docs
    - Test integration
    - Document usage patterns
+
+2b. **Create New Helper:**
+   - Identify repeated patterns or complex inline code
+   - Write helper function in `~/.claude/lib/integrations.sh` (or new file if large)
+   - Add error handling and input validation
+   - Document parameters and return values in comments
+   - Test with various inputs
+   - Use in next session to verify
 
 3. **Optimize Startup:**
    - Measure current token usage

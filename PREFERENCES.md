@@ -6,6 +6,7 @@
 ## User Information
 - **Name**: Hammer
 - **Communication Style**: Professional but friendly - use name when it feels natural
+- **Timezone**: America/Chicago (Central Time) - Use CT for all time displays
 
 ## Communication Preferences
 
@@ -23,6 +24,9 @@
 - Prefer existing patterns in the codebase
 - Test changes before considering them complete
 - **Always look for opportunities to create tests** - whenever building or modifying functionality, proactively suggest and create tests that verify behavioral correctness
+- **Fix helpers, integrations, and tools at the source** - When you discover a problem with a helper function, integration, or tool and find the solution, update the source code (in `~/.claude/lib/` or wherever it lives) so it works correctly next time, not just for the current use
+- **Proactively create and refactor helpers** - When you find yourself doing something repeatedly or writing complex inline code, create a helper function in `~/.claude/lib/integrations.sh` or the appropriate location. Refactor existing helpers when you see opportunities to improve them (better error handling, more features, cleaner interface)
+- **Method visibility ordering** - In classes, always organize methods with public methods first, followed by protected methods, then private methods. This makes the public API immediately visible at the top of the class
 
 ### Documentation
 - Keep session notes updated throughout work
@@ -47,6 +51,7 @@
 - Don't force push to main/master
 - Use conventional commit messages with context
 - **Branch naming**: Use format `hammer/<branch-description>` (e.g., `hammer/fix-basecommand-bug`)
+- **Creating PRs**: Always use API access (Bitbucket API via `bitbucket_create_pr` or similar) instead of opening browser, unless API fails
 
 ### Remote-Changing Operations
 - **ALWAYS confirm before executing** operations that modify remote systems

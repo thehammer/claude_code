@@ -14,6 +14,7 @@ Hi Claude! When the user asks you to read this file at the start of a session, f
 - `analysis` - Understanding codebase, evaluating architecture, research
 - `planning` - Task prioritization, roadmap planning, feature breakdown
 - `presenting` - Creating PRs, writing docs, generating summaries
+- `learning` - Understanding technologies, patterns, concepts, experiments
 - `clauding` - Improving Claude configuration and workflows
 
 **Validate and infer session type:**
@@ -25,6 +26,7 @@ Hi Claude! When the user asks you to read this file at the start of a session, f
      - `analyze`, `analysis`, `research`, `explore` → `analysis`
      - `plan`, `planning`, `roadmap`, `todo` → `planning`
      - `present`, `presenting`, `pr`, `docs`, `documentation` → `presenting`
+     - `learn`, `learning`, `study`, `tutorial`, `education` → `learning`
      - `claude`, `clauding`, `config`, `configuration` → `clauding`
    - If inference is obvious (clear match), use the inferred type and inform the user
    - If inference is ambiguous or unclear, list available types and offer to:
@@ -89,6 +91,12 @@ This applies to preferences, session notes, and TODOs.
 - ✅ Existing documentation
 - ⏭️ Skip: Deep integration pre-loading
 
+### For `learning` sessions:
+- ✅ Recent learning session notes
+- ✅ IDEAS.md (for learning topics)
+- ✅ Minimal project context (only if learning project-specific patterns)
+- ⏭️ Skip: Git status/history, PRs, commits, integrations (unless learning them)
+
 ### For `clauding` sessions:
 - ✅ Global configuration files only
 - ✅ Integration status check
@@ -125,6 +133,7 @@ Session notes are organized by type:
 - `.claude/session-notes/analysis/YYYY-MM-DD.md`
 - `.claude/session-notes/planning/YYYY-MM-DD.md`
 - `.claude/session-notes/presenting/YYYY-MM-DD.md`
+- `.claude/session-notes/learning/YYYY-MM-DD.md`
 
 **Templates available:**
 - `~/.claude/templates/session-notes/{type}.md`
@@ -137,6 +146,20 @@ Session notes are organized by type:
 - Update session notes in type-specific folder as we make progress
 - Document any bugs or issues discovered
 - Keep the user informed of progress
+- **Fix helpers/integrations/tools at the source** when problems are found:
+  - If a helper function in `~/.claude/lib/` has a bug, fix the source file
+  - If an integration doesn't work, update it to work correctly
+  - Don't just work around issues - fix them permanently for future sessions
+  - Test the fix to ensure it works
+- **Proactively create and refactor helpers**:
+  - If you're writing complex inline bash/code multiple times, create a helper function
+  - Add new helper functions to `~/.claude/lib/integrations.sh` or appropriate location
+  - When using existing helpers, look for refactoring opportunities:
+    - Better error handling and validation
+    - More features or flexibility
+    - Cleaner, more maintainable interface
+    - Better documentation in comments
+  - Update helper when you enhance it, don't create wrapper scripts
 - **Update `.claude/TODO.md`** or type-specific TODO when discovering:
   - New tasks that span multiple sessions
   - Technical debt or future improvements
@@ -167,6 +190,7 @@ Each session type has a target token budget for startup:
 
 - `clauding`: ~5K tokens (85% savings - no project context)
 - `planning`: ~8K tokens (75% savings - focus on TODOs)
+- `learning`: ~8K tokens (75% savings - focused on topic)
 - `analysis`: ~10K tokens (70% savings - minimal external context)
 - `debugging`: ~12K tokens (65% savings - focused on errors)
 - `presenting`: ~12K tokens (60% savings - recent work only)

@@ -1,0 +1,12 @@
+#!/bin/bash
+#
+# CLI wrapper for Slack-Sentry reconciliation study
+#
+# Usage:
+#   slack-sentry-reconcile [timeframe]
+#
+# Examples:
+#   slack-sentry-reconcile 1h
+#   slack-sentry-reconcile 24h
+
+exec ~/.claude/studies/slack-sentry-reconcile.sh "$@"

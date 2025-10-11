@@ -155,16 +155,40 @@ function bitbucket_list_prs() {
 # Create a pull request
 # Usage: bitbucket_create_pr "portal_dev" "feature-branch" "master" "PR Title" "PR Description"
 function bitbucket_create_pr() {
-    local repo=$1
-    local source_branch=$2
-    local dest_branch=$3
-    local title=$4
-    local description=$5
+    # Support two call signatures:
+    # 1. bitbucket_create_pr <source_branch> <dest_branch> <title> [description]  (auto-detect repo)
+    # 2. bitbucket_create_pr <repo> <source_branch> <dest_branch> <title> [description]  (explicit repo)
+
+    local repo source_branch dest_branch title description
+
+    if [ $# -eq 4 ] || [ $# -eq 3 ]; then
+        # Auto-detect repo from git remote
+        local remote_url=$(git config --get remote.origin.url 2>/dev/null)
+        if [ -z "$remote_url" ]; then
+            echo "Error: Not in a git repository or no origin remote configured"
+            return 1
+        fi
+        # Extract repo name from URL (works for both SSH and HTTPS)
+        repo=$(echo "$remote_url" | sed -E 's|.*/([^/]+)(\.git)?$|\1|')
+        source_branch=$1
+        dest_branch=$2
+        title=$3
+        description=$4
+    else
+        # Explicit repo provided
+        repo=$1
+        source_branch=$2
+        dest_branch=$3
+        title=$4
+        description=$5
+    fi
+
     local bitbucket_token="${BITBUCKET_ACCESS_TOKEN:-$BITBUCKET_APP_PASSWORD}"
 
-    if [ -z "$repo" ] || [ -z "$source_branch" ] || [ -z "$dest_branch" ] || [ -z "$title" ]; then
-        echo "Usage: bitbucket_create_pr <repo> <source_branch> <dest_branch> <title> [description]"
-        echo "Example: bitbucket_create_pr \"portal_dev\" \"feature/new-feature\" \"master\" \"Add new feature\" \"Description here\""
+    if [ -z "$source_branch" ] || [ -z "$dest_branch" ] || [ -z "$title" ]; then
+        echo "Usage: bitbucket_create_pr <source_branch> <dest_branch> <title> [description]"
+        echo "   or: bitbucket_create_pr <repo> <source_branch> <dest_branch> <title> [description]"
+        echo "Example: bitbucket_create_pr \"feature/new-feature\" \"master\" \"Add new feature\" \"Description here\""
         return 1
     fi
 
@@ -176,7 +200,7 @@ function bitbucket_create_pr() {
     # Escape quotes in description for JSON
     local escaped_description=$(echo "$description" | jq -Rs .)
 
-    curl -s -X POST \
+    local response=$(curl -s -w "\n%{http_code}" -X POST \
         -u "${BITBUCKET_USERNAME}:${bitbucket_token}" \
         -H "Content-Type: application/json" \
         -d "{
@@ -194,7 +218,132 @@ function bitbucket_create_pr() {
             \"description\": ${escaped_description},
             \"close_source_branch\": false
         }" \
-        "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pullrequests"
+        "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pullrequests")
+
+    local http_code=$(echo "$response" | tail -n 1)
+    local body=$(echo "$response" | sed '$d')
+
+    if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+        echo "✅ Pull request created successfully!"
+        echo "$body" | jq -r '"PR #\(.id): \(.title)\nURL: \(.links.html.href)"'
+        return 0
+    else
+        echo "❌ Failed to create pull request (HTTP $http_code)"
+        echo "$body" | jq -r '.error.message // .error // .'
+        return 1
+    fi
+}
+
+# Update an existing pull request
+# Usage: bitbucket_update_pr <pr_id> <title> [description]
+#    or: bitbucket_update_pr <repo> <pr_id> <title> [description]
+function bitbucket_update_pr() {
+    local repo pr_id title description
+
+    if [ $# -eq 2 ] || [ $# -eq 3 ]; then
+        # Auto-detect repo from git remote
+        local remote_url=$(git config --get remote.origin.url 2>/dev/null)
+        if [ -z "$remote_url" ]; then
+            echo "Error: Not in a git repository or no origin remote configured"
+            return 1
+        fi
+        repo=$(echo "$remote_url" | sed -E 's|.*/([^/]+)(\.git)?$|\1|')
+        pr_id=$1
+        title=$2
+        description=$3
+    else
+        # Explicit repo provided
+        repo=$1
+        pr_id=$2
+        title=$3
+        description=$4
+    fi
+
+    local bitbucket_token="${BITBUCKET_ACCESS_TOKEN:-$BITBUCKET_APP_PASSWORD}"
+
+    if [ -z "$pr_id" ]; then
+        echo "Usage: bitbucket_update_pr <pr_id> [title] [description]"
+        echo "   or: bitbucket_update_pr <repo> <pr_id> [title] [description]"
+        echo "Example: bitbucket_update_pr 3866 \"New title\" \"New description\""
+        return 1
+    fi
+
+    if ! bitbucket_is_configured; then
+        echo "Error: Bitbucket credentials not configured"
+        return 1
+    fi
+
+    # Build JSON payload with only provided fields
+    local json_data="{"
+    local first=true
+
+    if [ -n "$title" ]; then
+        json_data+="\"title\": $(echo "$title" | jq -Rs .)"
+        first=false
+    fi
+
+    if [ -n "$description" ]; then
+        [ "$first" = false ] && json_data+=", "
+        json_data+="\"description\": $(echo "$description" | jq -Rs .)"
+    fi
+
+    json_data+="}"
+
+    local response=$(curl -s -w "\n%{http_code}" -X PUT \
+        -u "${BITBUCKET_USERNAME}:${bitbucket_token}" \
+        -H "Content-Type: application/json" \
+        -d "$json_data" \
+        "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pullrequests/${pr_id}")
+
+    local http_code=$(echo "$response" | tail -n 1)
+    local body=$(echo "$response" | sed '$d')
+
+    if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+        echo "✅ Pull request #${pr_id} updated successfully!"
+        echo "$body" | jq -r '"PR #\(.id): \(.title)\nURL: \(.links.html.href)"'
+        return 0
+    else
+        echo "❌ Failed to update pull request (HTTP $http_code)"
+        echo "$body" | jq -r '.error.message // .error // .'
+        return 1
+    fi
+}
+
+# Get details of a pull request
+# Usage: bitbucket_get_pr <pr_id>
+#    or: bitbucket_get_pr <repo> <pr_id>
+function bitbucket_get_pr() {
+    local repo pr_id
+
+    if [ $# -eq 1 ]; then
+        # Auto-detect repo from git remote
+        local remote_url=$(git config --get remote.origin.url 2>/dev/null)
+        if [ -z "$remote_url" ]; then
+            echo "Error: Not in a git repository or no origin remote configured"
+            return 1
+        fi
+        repo=$(echo "$remote_url" | sed -E 's|.*/([^/]+)(\.git)?$|\1|')
+        pr_id=$1
+    else
+        repo=$1
+        pr_id=$2
+    fi
+
+    local bitbucket_token="${BITBUCKET_ACCESS_TOKEN:-$BITBUCKET_APP_PASSWORD}"
+
+    if [ -z "$pr_id" ]; then
+        echo "Usage: bitbucket_get_pr <pr_id>"
+        echo "   or: bitbucket_get_pr <repo> <pr_id>"
+        return 1
+    fi
+
+    if ! bitbucket_is_configured; then
+        echo "Error: Bitbucket credentials not configured"
+        return 1
+    fi
+
+    curl -s -u "${BITBUCKET_USERNAME}:${bitbucket_token}" \
+        "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pullrequests/${pr_id}"
 }
 
 # ==============================================================================
