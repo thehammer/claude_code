@@ -14,11 +14,36 @@ This document lists commands that are safe to pre-approve for Claude Code to str
 
 ## How to Pre-Approve Commands
 
+### Method 1: Interactive Approval (Quick)
 When Claude asks for permission to run a command, you can:
 1. Click "Yes" - Approve this one time
 2. Click "Yes, and don't ask again" - Pre-approve this command pattern
 
 Once pre-approved, Claude can run similar commands without asking each time.
+
+### Method 2: Settings File (Persistent & Complete)
+**RECOMMENDED:** Configure permissions in `~/.claude/settings.json`
+
+This file provides **persistent, global permissions** that work across all projects and sessions.
+
+**See [SETTINGS.md](SETTINGS.md) for complete configuration guide.**
+
+**Quick start:**
+```json
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Read(//**)",
+      "Bash(git status:*)",
+      "Bash(source:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)"
+    ]
+  }
+}
+```
 
 **Golden Rule:** Only pre-approve commands that don't modify anything outside this computer.
 

@@ -8,6 +8,18 @@
 - **Communication Style**: Professional but friendly - use name when it feels natural
 - **Timezone**: America/Chicago (Central Time) - Use CT for all time displays
 
+## Notifications
+- **Slack User ID**: (Pending - need im:write scope on hammers_app bot)
+- **Slack Notification Channel**: #local-testing (temporary until DMs work)
+- **Preferred notification method**: Slack DM (once im:write scope added)
+- **Current method**: Slack channel or macOS notification
+- **Fallback**: macOS notification
+- **When to notify**:
+  - Tasks taking longer than 5 minutes
+  - When explicitly requested ("notify me when done")
+  - Critical errors during long operations
+  - Never for quick operations (<1 minute)
+
 ## Communication Preferences
 
 ### Style

@@ -1265,3 +1265,205 @@ sentry_search_events() {
         | jq ".[0:${limit}]"
 }
 
+# ============================================================================
+# Slack Notification Functions
+# ============================================================================
+
+function slack_send_dm() {
+    local user_id="$1"
+    local message="$2"
+
+    if [[ -z "$SLACK_BOT_TOKEN" ]]; then
+        echo "Error: SLACK_BOT_TOKEN not set. Configure in ~/.claude/credentials/.env"
+        return 1
+    fi
+
+    if [[ -z "$user_id" ]]; then
+        echo "Error: user_id required"
+        echo "Usage: slack_send_dm <user_id> <message>"
+        return 1
+    fi
+
+    if [[ -z "$message" ]]; then
+        echo "Error: message required"
+        return 1
+    fi
+
+    # Open DM channel with user
+    local response=$(curl -s -X POST https://slack.com/api/conversations.open \
+        -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{\"users\": \"$user_id\"}")
+
+    local ok=$(echo "$response" | jq -r '.ok')
+    if [[ "$ok" != "true" ]]; then
+        echo "Error opening DM channel: $(echo "$response" | jq -r '.error')"
+        return 1
+    fi
+
+    local channel_id=$(echo "$response" | jq -r '.channel.id')
+
+    # Send message to DM channel
+    response=$(curl -s -X POST https://slack.com/api/chat.postMessage \
+        -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"channel\": \"$channel_id\",
+            \"text\": \"$message\",
+            \"unfurl_links\": false,
+            \"unfurl_media\": false
+        }")
+
+    ok=$(echo "$response" | jq -r '.ok')
+    if [[ "$ok" != "true" ]]; then
+        echo "Error sending message: $(echo "$response" | jq -r '.error')"
+        return 1
+    fi
+
+    echo "Message sent to user $user_id"
+    return 0
+}
+
+function slack_post_message() {
+    local channel="$1"
+    local message="$2"
+
+    if [[ -z "$SLACK_BOT_TOKEN" ]]; then
+        echo "Error: SLACK_BOT_TOKEN not set. Configure in ~/.claude/credentials/.env"
+        return 1
+    fi
+
+    if [[ -z "$channel" ]]; then
+        echo "Error: channel required"
+        echo "Usage: slack_post_message <channel> <message>"
+        echo "Example: slack_post_message '#deployments' 'Deploy complete'"
+        return 1
+    fi
+
+    if [[ -z "$message" ]]; then
+        echo "Error: message required"
+        return 1
+    fi
+
+    # Remove # prefix if present
+    channel="${channel#\#}"
+
+    local response=$(curl -s -X POST https://slack.com/api/chat.postMessage \
+        -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"channel\": \"$channel\",
+            \"text\": \"$message\",
+            \"unfurl_links\": false,
+            \"unfurl_media\": false
+        }")
+
+    local ok=$(echo "$response" | jq -r '.ok')
+    if [[ "$ok" != "true" ]]; then
+        echo "Error posting message: $(echo "$response" | jq -r '.error')"
+        return 1
+    fi
+
+    echo "Message posted to #$channel"
+    return 0
+}
+
+function slack_notify_completion() {
+    local task_description="$1"
+    local status="$2"  # "success" or "failure"
+    local duration="$3"
+    local details="$4"
+    local user_id="${5:-$SLACK_USER_ID}"  # Use configured user ID if not provided
+
+    if [[ -z "$user_id" ]]; then
+        echo "Error: No user_id provided and SLACK_USER_ID not set in PREFERENCES.md"
+        echo "Run 'slack_whoami' to get your user ID, then add to ~/.claude/PREFERENCES.md"
+        return 1
+    fi
+
+    local emoji
+    local status_text
+    if [[ "$status" == "success" ]]; then
+        emoji="✅"
+        status_text="Complete"
+    else
+        emoji="❌"
+        status_text="Failed"
+    fi
+
+    local message="$emoji *Task $status_text*
+
+$task_description
+
+*Duration:* $duration
+*Status:* $status_text"
+
+    if [[ -n "$details" ]]; then
+        message="$message
+
+$details"
+    fi
+
+    slack_send_dm "$user_id" "$message"
+}
+
+function slack_notify_progress() {
+    local task_description="$1"
+    local progress="$2"  # e.g., "45%", "3 of 10 files"
+    local current_step="$3"
+    local time_elapsed="$4"
+    local user_id="${5:-$SLACK_USER_ID}"
+
+    if [[ -z "$user_id" ]]; then
+        echo "Error: No user_id provided and SLACK_USER_ID not set"
+        return 1
+    fi
+
+    local message="⏳ *Progress Update*
+
+$task_description
+
+*Status:* In Progress ($progress)
+*Time elapsed:* $time_elapsed
+
+Currently: $current_step"
+
+    slack_send_dm "$user_id" "$message"
+}
+
+function macos_notify() {
+    local title="$1"
+    local message="$2"
+
+    osascript -e "display notification \"$message\" with title \"$title\""
+}
+
+function notify_user() {
+    local task="$1"
+    local status="${2:-success}"
+    local duration="${3:-unknown}"
+    local details="${4:-}"
+
+    # Try Slack first
+    if slack_is_configured; then
+        slack_notify_completion "$task" "$status" "$duration" "$details"
+        return $?
+    fi
+
+    # Fallback to macOS notification
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        local title
+        if [[ "$status" == "success" ]]; then
+            title="✅ Task Complete"
+        else
+            title="❌ Task Failed"
+        fi
+        macos_notify "$title" "$task"
+        return 0
+    fi
+
+    # Ultimate fallback: terminal bell
+    echo -e "\a"
+    echo "$task - $status"
+}
+

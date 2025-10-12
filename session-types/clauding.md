@@ -11,6 +11,8 @@ Read core config files from `~/.claude/`:
 - `SESSION_START.md` - Startup orchestration
 - `WRAPUP.md` - Session end procedures
 - `INTEGRATIONS.md` - Integration documentation
+- `SETTINGS.md` - Settings file configuration (permissions, etc.)
+- `settings.json` - Active settings configuration
 - `session-types/*.md` - Session type definitions
 
 ### 2. Recent Clauding Notes

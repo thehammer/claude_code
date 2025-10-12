@@ -124,15 +124,30 @@ See [`~/.claude/credentials/README.md`](credentials/README.md) for setup instruc
 - Post messages to channels
 - Send deployment notifications
 - Share updates to team channels
+- **Send direct messages to notify you when tasks complete**
+- Send progress updates for long-running tasks
 
 **Example usage:**
 ```
 "Post a deployment notification to #deployments"
 "Send a summary of these changes to #engineering"
 "Notify the team about this incident in #alerts"
+"Notify me when the tests finish"
+"Let me know when this completes"
+"Ping me when the build is ready"
 ```
 
-**Configuration:** `~/.claude/credentials/services/slack.json` (if created)
+**Helper functions:**
+- `slack_send_dm <user_id> <message>` - Send direct message
+- `slack_post_message <channel> <message>` - Post to channel
+- `slack_notify_completion <task> <status> <duration> <details>` - Formatted completion notification
+- `slack_notify_progress <task> <progress> <step> <time>` - Progress update
+- `notify_user <task> <status> <duration> <details>` - Smart notification (tries Slack, falls back to macOS)
+
+**Configuration:**
+- `~/.claude/credentials/services/slack.json` - API credentials
+- `~/.claude/PREFERENCES.md` - Set your Slack User ID for notifications
+- See [NOTIFICATIONS.md](NOTIFICATIONS.md) for complete notification setup
 
 **Note:** The project already has a Slack service interface (`app/Services/Slack/`). This integration extends it for Claude's use.
 

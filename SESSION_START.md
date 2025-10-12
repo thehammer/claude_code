@@ -15,6 +15,7 @@ Hi Claude! When the user asks you to read this file at the start of a session, f
 - `planning` - Task prioritization, roadmap planning, feature breakdown
 - `presenting` - Creating PRs, writing docs, generating summaries
 - `learning` - Understanding technologies, patterns, concepts, experiments
+- `personal` - Side projects, hobbies, personal automation, fun coding
 - `clauding` - Improving Claude configuration and workflows
 
 **Validate and infer session type:**
@@ -27,6 +28,7 @@ Hi Claude! When the user asks you to read this file at the start of a session, f
      - `plan`, `planning`, `roadmap`, `todo` → `planning`
      - `present`, `presenting`, `pr`, `docs`, `documentation` → `presenting`
      - `learn`, `learning`, `study`, `tutorial`, `education` → `learning`
+     - `personal`, `side`, `hobby`, `fun`, `home` → `personal`
      - `claude`, `clauding`, `config`, `configuration` → `clauding`
    - If inference is obvious (clear match), use the inferred type and inform the user
    - If inference is ambiguous or unclear, list available types and offer to:
@@ -97,6 +99,12 @@ This applies to preferences, session notes, and TODOs.
 - ✅ Minimal project context (only if learning project-specific patterns)
 - ⏭️ Skip: Git status/history, PRs, commits, integrations (unless learning them)
 
+### For `personal` sessions:
+- ✅ Recent personal session notes (global ~/.claude/session-notes/personal/)
+- ✅ IDEAS.md or PERSONAL_PROJECTS.md
+- ✅ Personal project files only (if applicable)
+- ⏭️ Skip: ALL work context, work integrations, work git repos, work Slack
+
 ### For `clauding` sessions:
 - ✅ Global configuration files only
 - ✅ Integration status check
@@ -124,8 +132,9 @@ source ~/.claude/lib/integrations.sh
 
 Session notes are organized by type:
 
-**Global (rare, mainly for clauding):**
+**Global (clauding and personal):**
 - `~/.claude/session-notes/clauding/YYYY-MM-DD.md`
+- `~/.claude/session-notes/personal/YYYY-MM-DD.md`
 
 **Project (most sessions):**
 - `.claude/session-notes/coding/YYYY-MM-DD.md`
@@ -146,6 +155,7 @@ Session notes are organized by type:
 - Update session notes in type-specific folder as we make progress
 - Document any bugs or issues discovered
 - Keep the user informed of progress
+- **Watch for notification requests**: If user says "notify me when done", "let me know when finished", "ping me when ready", etc., send a Slack DM when the task completes using `notify_user` or `slack_notify_completion` functions (see [NOTIFICATIONS.md](NOTIFICATIONS.md))
 - **Fix helpers/integrations/tools at the source** when problems are found:
   - If a helper function in `~/.claude/lib/` has a bug, fix the source file
   - If an integration doesn't work, update it to work correctly
@@ -189,6 +199,7 @@ When the user says it's time to wrap up, follow instructions in `~/.claude/WRAPU
 Each session type has a target token budget for startup:
 
 - `clauding`: ~5K tokens (85% savings - no project context)
+- `personal`: ~5K tokens (85% savings - no work context)
 - `planning`: ~8K tokens (75% savings - focus on TODOs)
 - `learning`: ~8K tokens (75% savings - focused on topic)
 - `analysis`: ~10K tokens (70% savings - minimal external context)
