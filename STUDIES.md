@@ -16,68 +16,46 @@ Studies differ from regular tools in that they:
 
 #### 1. Slack-Sentry Reconciliation
 **Location**: `~/.claude/studies/slack-sentry-reconcile.sh`
-**Purpose**: Compare errors in Slack #system-alerts with Sentry issues to validate error capture coverage
+**CLI**: `slack-sentry-reconcile [timeframe]`
+**Purpose**: Compare errors in Slack #system-alerts with Sentry issues to validate error capture coverage for portal_dev
 
 **Usage**:
 ```bash
-~/.claude/studies/slack-sentry-reconcile [timeframe]
-
-# Examples
-~/.claude/studies/slack-sentry-reconcile 1h
-~/.claude/studies/slack-sentry-reconcile 24h
+slack-sentry-reconcile 1h
+slack-sentry-reconcile 24h
 ```
 
 **What it does**:
 - Fetches Slack alerts from #system-alerts channel
+- **Detects system source** (portal_dev vs family-portal) based on error patterns
 - Retrieves corresponding Sentry issues from the same timeframe
-- Matches alerts to issues based on error messages and timestamps
-- Reports match rate and identifies gaps
+- Matches portal_dev alerts to Sentry issues based on error messages and timestamps
+- Reports match rate and identifies portal_dev gaps
+- **Filters out family-portal errors** (Sentry not yet implemented for family-portal)
+
+**System Detection**:
+- `portal_dev`: Errors from the main portal application
+- `family-portal`: Errors from family portal (excluded from Sentry matching)
+- `unknown`: Errors that couldn't be classified
 
 **When to use**:
-- Validating that exceptions are being captured by Sentry
-- Investigating missing error tracking
+- Validating that portal_dev exceptions are being captured by Sentry
+- Investigating missing error tracking for portal_dev
 - Understanding error handler coverage
 
 **Example output**:
 ```
 Slack vs Sentry - Last 24h
-Match Rate: 91% (10/11 matched)
-Missing from Sentry: 1 alert
+portal_dev: 8 alerts, family-portal: 3 alerts
+Match Rate: 87.5% (7/8 portal_dev matched)
+⚠️  1 portal_dev alert missing from Sentry
+ℹ️  family-portal alerts excluded (Sentry not yet implemented): 3
 ```
 
----
-
-#### 2. Slack-Datadog Reconciliation
-**Location**: `~/.claude/bin/slack-datadog-reconcile`
-**Purpose**: Compare Slack alerts with Datadog logs to identify log ingestion gaps
-
-**Usage**:
-```bash
-slack-datadog-reconcile [timeframe] [service]
-
-# Examples
-slack-datadog-reconcile 6h
-slack-datadog-reconcile 24h /ecs/portal_dev
-slack-datadog-reconcile 12h /ecs/jobrunner
-```
-
-**What it does**:
-- Fetches Slack error alerts
-- Queries Datadog logs (status:error) for the service
-- Matches based on error message snippets and file:line patterns
-- Reports matched/unmatched alerts with direct links
-
-**When to use**:
-- Investigating Datadog log ingestion issues
-- Finding gaps in log coverage
-- Validating that errors are making it to Datadog
-- Understanding why logs might be missing
-
-**Important**: Slack and Datadog use different ingestion paths:
-- **Slack**: Laravel exception handler → Slack webhook
-- **Datadog**: Container stdout/stderr → ECS logs → Datadog agent
-
-Lower match rates are expected compared to Slack-Sentry reconciliation.
+**Important Notes**:
+- Only flags portal_dev unmatched alerts as issues
+- family-portal alerts are informational only
+- Both systems share the same #system-alerts Slack channel
 
 ---
 
@@ -270,8 +248,7 @@ study_compare run1-id run2-id
 
 ```bash
 # Error & Observability
-~/.claude/studies/slack-sentry-reconcile    # Compare Slack alerts vs Sentry
-slack-datadog-reconcile                      # Compare Slack alerts vs Datadog logs
+slack-sentry-reconcile                       # Compare Slack alerts vs Sentry (portal_dev only)
 
 # Performance (Future)
 # TBD

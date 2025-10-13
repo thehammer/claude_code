@@ -88,8 +88,24 @@ alerts=$(echo "$slack_json" | jq -r --arg from "$from_ts" --arg to "$to_ts" '
          timestamp: (.ts | tonumber),
          time: (.ts | tonumber | strftime("%Y-%m-%d %H:%M:%S")),
          raw_message: ((.attachments[0].text // .attachments[0].fallback) | split("\n")[0]),
+         full_text: (.attachments[0].text // .attachments[0].fallback // ""),
          message: ((.attachments[0].text // .attachments[0].fallback) | split("\n")[0] | split(":")[1:] | join(":") | ltrimstr(" ") | .[0:80]),
-         level: (.attachments[0].fields[0].value // "UNKNOWN")
+         level: (.attachments[0].fields[0].value // "UNKNOWN"),
+         # Detect system based on error patterns
+         system: (
+             (.attachments[0].text // .attachments[0].fallback // "") as $text |
+             if ($text | test("App\\\\\\\\Http\\\\\\\\Controllers\\\\\\\\Clinical\\\\\\\\"; "")) or
+                ($text | test("App\\\\\\\\Services\\\\\\\\Inertia\\\\\\\\"; "")) or
+                ($text | test("App\\\\\\\\Features\\\\\\\\Clinical\\\\\\\\"; ""))
+             then "family-portal"
+             elif ($text | test("/var/www/html")) or
+                  ($text | test("^0:App\\\\\\\\")) or
+                  ($text | test("App\\\\\\\\Http\\\\\\\\Controllers\\\\\\\\Frontend")) or
+                  ($text | test("App\\\\\\\\Services\\\\\\\\"))
+             then "portal_dev"
+             else "unknown"
+             end
+         )
      } |
      select(.level == "CRITICAL" or .level == "ERROR") |
      # Filter out Laravel internal dontReport exceptions
@@ -109,7 +125,16 @@ alerts=$(echo "$slack_json" | jq -r --arg from "$from_ts" --arg to "$to_ts" '
 ')
 
 slack_count=$(echo "$alerts" | jq 'length')
-echo "  → Found $slack_count Slack alerts"
+portal_dev_count=$(echo "$alerts" | jq '[.[] | select(.system == "portal_dev")] | length')
+family_portal_count=$(echo "$alerts" | jq '[.[] | select(.system == "family-portal")] | length')
+unknown_count=$(echo "$alerts" | jq '[.[] | select(.system == "unknown")] | length')
+
+echo "  → Found $slack_count Slack alerts total"
+echo "    • portal_dev: $portal_dev_count"
+echo "    • family-portal: $family_portal_count"
+if [ "$unknown_count" -gt 0 ]; then
+    echo "    • unknown: $unknown_count"
+fi
 
 # Save Slack alerts as artifact
 echo "$alerts" | study_save_artifact "slack-alerts.json"
@@ -150,10 +175,10 @@ echo "========================================================================"
 echo ""
 
 # Show Slack alerts
-echo "Slack Alerts ($slack_count):"
+echo "Slack Alerts ($slack_count total, $portal_dev_count portal_dev, $family_portal_count family-portal):"
 echo "------------------------------------------------------------------------"
 if [ "$slack_count" -gt 0 ]; then
-    echo "$alerts" | jq -r '.[] | "[\(.time)] \(.message)"'
+    echo "$alerts" | jq -r '.[] | "[\(.time)] [\(.system)] \(.message)"'
 else
     echo "  (none)"
 fi
@@ -238,6 +263,7 @@ if [ "$slack_count" -gt 0 ] && [ "$sentry_count" -gt 0 ]; then
     matched_count=$(echo "$matches" | jq '[.[] | select(.matched)] | length')
     unmatched_count=$(echo "$matches" | jq '[.[] | select(.matched == false)] | length')
     match_rate=$(echo "scale=1; $matched_count * 100 / $slack_count" | bc)
+    match_rate_int=$(echo "$match_rate" | cut -d. -f1)
 
     echo "Match Rate: ${match_rate}% ($matched_count/$slack_count)"
     echo ""
@@ -249,11 +275,19 @@ if [ "$slack_count" -gt 0 ] && [ "$sentry_count" -gt 0 ]; then
             "✓ [\(.time)] \(.message[0:60])\n  → Sentry: https://carefeed.sentry.io/issues/\(.sentry_match.id)/\n"'
     fi
 
-    # Show unmatched alerts
-    if [ "$unmatched_count" -gt 0 ]; then
-        echo "Unmatched Alerts (in Slack but NOT in Sentry):"
-        echo "$matches" | jq -r '.[] | select(.matched == false) |
-            "✗ [\(.time)] \(.message)\n  Slack: https://carefeed-hq.slack.com/archives/'$SLACK_CHANNEL_ID'/p\(.ts | gsub("\\."; ""))\n"'
+    # Show unmatched alerts - only portal_dev (family-portal doesn't have Sentry yet)
+    portal_dev_unmatched=$(echo "$matches" | jq '[.[] | select(.matched == false and .system == "portal_dev")] | length')
+    family_portal_unmatched=$(echo "$matches" | jq '[.[] | select(.matched == false and .system == "family-portal")] | length')
+
+    if [ "$portal_dev_unmatched" -gt 0 ]; then
+        echo "⚠️  Unmatched portal_dev Alerts (in Slack but NOT in Sentry):"
+        echo "$matches" | jq -r '.[] | select(.matched == false and .system == "portal_dev") |
+            "✗ [\(.time)] \(.message)\n  Slack: https://carefeed.slack.com/archives/'$SLACK_CHANNEL_ID'/p\(.ts | gsub("\\."; ""))\n"'
+    fi
+
+    if [ "$family_portal_unmatched" -gt 0 ]; then
+        echo "ℹ️  family-portal Alerts (expected - Sentry not yet implemented): $family_portal_unmatched"
+        echo ""
     fi
 
     # Save reconciliation results
@@ -281,32 +315,47 @@ echo "FINDINGS"
 echo "========================================================================"
 echo ""
 
-if [ "$slack_count" -eq 0 ] && [ "$sentry_count" -eq 0 ]; then
-    finding="✓ No errors detected - system is healthy"
+if [ "$portal_dev_count" -eq 0 ] && [ "$sentry_count" -eq 0 ]; then
+    finding="✓ No portal_dev errors detected - system is healthy"
     status="healthy"
     echo "$finding"
-elif [ "$slack_count" -eq 0 ]; then
-    finding="⚠ Sentry has $sentry_count issues but Slack has no alerts - Slack webhook may not be working"
+    if [ "$family_portal_count" -gt 0 ]; then
+        echo "  ℹ️  Note: $family_portal_count family-portal alerts excluded (Sentry not yet implemented)"
+    fi
+elif [ "$portal_dev_count" -eq 0 ]; then
+    finding="⚠ Sentry has $sentry_count issues but Slack has no portal_dev alerts"
     status="warning"
     echo "$finding"
 elif [ "$sentry_count" -eq 0 ]; then
-    finding="⚠ Slack has $slack_count alerts but Sentry has no issues - Sentry may not be capturing exceptions"
+    finding="⚠ Slack has $portal_dev_count portal_dev alerts but Sentry has no issues - Sentry may not be capturing exceptions"
     status="warning"
     echo "$finding"
-elif [ "$matched_count" -eq "$slack_count" ]; then
-    finding="✓ Perfect correlation: All Slack alerts matched to Sentry issues - Both systems capturing correctly"
+    if [ "$family_portal_count" -gt 0 ]; then
+        echo "  ℹ️  Note: $family_portal_count family-portal alerts excluded (Sentry not yet implemented)"
+    fi
+elif [ "$portal_dev_unmatched" -eq 0 ]; then
+    finding="✓ Perfect correlation: All portal_dev alerts matched to Sentry issues - Both systems capturing correctly"
     status="healthy"
     echo "$finding"
-elif [ "$match_rate" -ge 80 ]; then
-    finding="✓ Good correlation: ${match_rate}% match rate - Most errors captured by both systems"
+    if [ "$family_portal_count" -gt 0 ]; then
+        echo "  ℹ️  Note: $family_portal_count family-portal alerts excluded (Sentry not yet implemented)"
+    fi
+elif [ "$match_rate_int" -ge 80 ]; then
+    finding="✓ Good correlation: ${match_rate}% match rate (${portal_dev_unmatched} portal_dev unmatched)"
     status="healthy"
     echo "$finding"
-    echo "  Review unmatched alerts above for investigation"
+    echo "  Review unmatched portal_dev alerts above for investigation"
+    if [ "$family_portal_count" -gt 0 ]; then
+        echo "  ℹ️  Note: $family_portal_count family-portal alerts excluded (Sentry not yet implemented)"
+    fi
 else
-    finding="⚠ Poor correlation: ${match_rate}% match rate - Significant gaps between Slack and Sentry"
+    finding="⚠ Poor correlation: ${match_rate}% match rate (${portal_dev_unmatched} portal_dev unmatched)"
     status="warning"
     echo "$finding"
-    echo "  Investigate unmatched alerts and error handling configuration"
+    echo "  Investigate unmatched portal_dev alerts and error handling configuration"
+    if [ "$family_portal_count" -gt 0 ]; then
+        echo "  ℹ️  Note: $family_portal_count family-portal alerts excluded (Sentry not yet implemented)"
+    fi
 fi
 
 # Complete study tracking
