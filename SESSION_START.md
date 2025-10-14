@@ -62,7 +62,9 @@ This applies to preferences, session notes, and TODOs.
 
 ### For `coding` sessions:
 - ✅ Git status and recent commits
-- ✅ Open PRs
+- ✅ Open PRs (identify merged PRs)
+- ✅ Jira tickets assigned to user (for Carefeed projects)
+- ✅ Update Jira status for merged PRs (to "Done")
 - ✅ Recent coding session notes
 - ✅ Project preferences
 - ⏭️ Skip: Detailed integration pre-loading (load on-demand)

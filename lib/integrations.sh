@@ -1467,3 +1467,12 @@ function notify_user() {
     echo "$task - $status"
 }
 
+# ==============================================================================
+# Load Project-Specific Helpers
+# ==============================================================================
+
+# Source Carefeed-specific helpers
+if [ -f ~/.claude/lib/carefeed.sh ]; then
+    source ~/.claude/lib/carefeed.sh
+fi
+

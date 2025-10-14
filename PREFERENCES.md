@@ -62,7 +62,19 @@
 - **NEVER push directly to master** - Always work on a branch
 - Don't force push to main/master
 - Use conventional commit messages with context
-- **Branch naming**: Use format `hammer/<branch-description>` (e.g., `hammer/fix-basecommand-bug`)
+- **Branch naming**:
+  - **Default personal pattern**: `hammer/<branch-description>` (e.g., `hammer/fix-basecommand-bug`)
+  - **Project-specific patterns**: Check `.claude/preferences/PREFERENCES.md` for project conventions
+  - **Carefeed projects**: Use `{type}/{JIRA-KEY}-{description}` (e.g., `feature/CORE-1234-add-auth`)
+- **Commit messages**:
+  - **Default**: Conventional commits with scope
+  - **Carefeed projects**: Include Jira key (e.g., `feat(auth): CORE-1234: add two-factor auth`)
+- **Jira ticket workflow**:
+  - **When Jira ticket needed**: Always ask "Do you have a Jira ticket for this, or would you like me to create one?"
+  - **When creating tickets**: Infer project, type, priority, and description from context
+  - **If ambiguous**: Ask for clarification (which project? what priority?)
+  - **Show ticket details** before creating for confirmation
+  - **After creation**: Use the ticket key for branch/commit/PR
 - **Creating PRs**: Always use API access (Bitbucket API via `bitbucket_create_pr` or similar) instead of opening browser, unless API fails
 
 ### Remote-Changing Operations
