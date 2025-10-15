@@ -92,6 +92,61 @@ function jira_whoami() {
         "https://carefeed.atlassian.net/rest/api/3/myself"
 }
 
+# Create a new Jira issue
+# Usage: jira_create_issue "CORE" "Bug" "Fix static method call" "Description text" "P2" "Portal" "Production"
+function jira_create_issue() {
+    local project=$1
+    local issue_type=$2
+    local summary=$3
+    local description=$4
+    local priority=${5:-"P2"}
+    local component=${6:-"Portal"}  # customfield_10135 - Carefeed Component
+    local environment=${7:-"Production"}  # customfield_10275 - Environment
+
+    if ! jira_is_configured; then
+        echo "Error: Jira credentials not configured"
+        return 1
+    fi
+
+    # Build JSON payload using jq for proper JSON construction
+    local json_payload=$(jq -n \
+        --arg project "$project" \
+        --arg issuetype "$issue_type" \
+        --arg summary "$summary" \
+        --arg description "$description" \
+        --arg priority "$priority" \
+        --arg component "$component" \
+        --arg environment "$environment" \
+        '{
+            fields: {
+                project: { key: $project },
+                summary: $summary,
+                description: {
+                    type: "doc",
+                    version: 1,
+                    content: [{
+                        type: "paragraph",
+                        content: [{
+                            type: "text",
+                            text: $description
+                        }]
+                    }]
+                },
+                issuetype: { name: $issuetype },
+                priority: { name: $priority },
+                customfield_10135: { value: $component },
+                customfield_10275: [{ value: $environment }]
+            }
+        }')
+
+    curl -s -u "${ATLASSIAN_EMAIL}:${ATLASSIAN_API_TOKEN}" \
+        -H "Accept: application/json" \
+        -H "Content-Type: application/json" \
+        -X POST \
+        -d "${json_payload}" \
+        "https://carefeed.atlassian.net/rest/api/3/issue"
+}
+
 # ==============================================================================
 # Helper Functions - Confluence
 # ==============================================================================
@@ -1465,6 +1520,492 @@ function notify_user() {
     # Ultimate fallback: terminal bell
     echo -e "\a"
     echo "$task - $status"
+}
+
+# ==============================================================================
+# Helper Functions - AWS
+# ==============================================================================
+
+# AWS Account Configuration
+# Production: 535508986415
+# Non-Production: 635039533305
+# Shared Services: 851765305742
+#
+# Available profiles:
+# - prod-developers / prod-readonly
+# - nonprod-developers / nonprod-readonly
+# - shared-developers / shared-readonly
+
+# Check if AWS SSO session is active for a profile
+# Usage: aws_is_authenticated "prod-developers"
+function aws_is_authenticated() {
+    local profile="${1:-prod-developers}"
+    aws sts get-caller-identity --profile "$profile" &>/dev/null
+}
+
+# Login to AWS SSO (interactive)
+# Uses the 'hammer' SSO session which covers all accounts
+# Usage: aws_login
+function aws_login() {
+    echo "🔐 Logging into AWS SSO..."
+    aws sso login --sso-session hammer
+
+    if [ $? -eq 0 ]; then
+        echo "✅ AWS SSO login successful"
+        echo ""
+        echo "Available profiles:"
+        aws_list_profiles
+    else
+        echo "❌ AWS SSO login failed"
+        return 1
+    fi
+}
+
+# Get current AWS identity for a profile
+# Usage: aws_whoami "prod-developers"
+function aws_whoami() {
+    local profile="${1:-prod-developers}"
+
+    if ! aws_is_authenticated "$profile"; then
+        echo "❌ Not authenticated for profile: $profile"
+        echo "Run: aws_login"
+        return 1
+    fi
+
+    local identity=$(aws sts get-caller-identity --profile "$profile" 2>/dev/null)
+
+    if [ $? -eq 0 ]; then
+        echo "AWS Identity for profile: $profile"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "$identity" | jq -r '
+            "Account: \(.Account)",
+            "User/Role: \(.Arn | split("/")[-1])",
+            "ARN: \(.Arn)"
+        '
+    else
+        echo "❌ Failed to get identity for profile: $profile"
+        return 1
+    fi
+}
+
+# Smart AWS command wrapper - auto-login if needed
+# Usage: aws_exec "prod-developers" s3 ls
+function aws_exec() {
+    local profile="$1"
+    shift
+
+    if [ -z "$profile" ]; then
+        echo "❌ Error: Profile required"
+        echo "Usage: aws_exec <profile> <aws-command>"
+        echo ""
+        echo "Available profiles:"
+        aws_list_profiles
+        return 1
+    fi
+
+    # Check authentication
+    if ! aws_is_authenticated "$profile"; then
+        echo "⚠️  Not authenticated for profile: $profile"
+        echo "Running AWS SSO login..."
+        aws sso login --sso-session hammer
+
+        if [ $? -ne 0 ]; then
+            echo "❌ AWS SSO login failed"
+            return 1
+        fi
+    fi
+
+    # Execute AWS command with profile
+    aws --profile "$profile" "$@"
+}
+
+# List available AWS profiles (semantic names only)
+# Usage: aws_list_profiles
+function aws_list_profiles() {
+    echo "Production Account (535508986415):"
+    echo "  • prod-developers"
+    echo "  • prod-readonly"
+    echo ""
+    echo "Non-Production Account (635039533305):"
+    echo "  • nonprod-developers"
+    echo "  • nonprod-readonly"
+    echo ""
+    echo "Shared Services Account (851765305742):"
+    echo "  • shared-developers"
+    echo "  • shared-readonly"
+}
+
+# Interactive profile selector
+# Usage: profile=$(aws_select_profile)
+function aws_select_profile() {
+    local profiles=(
+        "prod-developers"
+        "prod-readonly"
+        "nonprod-developers"
+        "nonprod-readonly"
+        "shared-developers"
+        "shared-readonly"
+    )
+
+    echo "Select AWS profile:"
+    echo ""
+    PS3="Enter choice (1-6): "
+    select profile in "${profiles[@]}"; do
+        if [ -n "$profile" ]; then
+            echo "$profile"
+            return 0
+        else
+            echo "Invalid selection"
+        fi
+    done
+}
+
+# Get account name from profile
+# Usage: aws_get_account_name "prod-developers"
+function aws_get_account_name() {
+    local profile="$1"
+
+    case "$profile" in
+        prod-*)
+            echo "Production"
+            ;;
+        nonprod-*)
+            echo "Non-Production"
+            ;;
+        shared-*)
+            echo "Shared Services"
+            ;;
+        *)
+            echo "Unknown"
+            ;;
+    esac
+}
+
+# Get account ID from profile
+# Usage: aws_get_account_id "prod-developers"
+function aws_get_account_id() {
+    local profile="$1"
+
+    case "$profile" in
+        prod-*)
+            echo "535508986415"
+            ;;
+        nonprod-*)
+            echo "635039533305"
+            ;;
+        shared-*)
+            echo "851765305742"
+            ;;
+        *)
+            echo ""
+            return 1
+            ;;
+    esac
+}
+
+# Check AWS SSO session status
+# Usage: aws_status
+function aws_status() {
+    echo "AWS SSO Session Status"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+
+    local has_active_session=false
+
+    # Check each profile
+    for profile in prod-developers nonprod-developers shared-developers; do
+        if aws_is_authenticated "$profile"; then
+            if [ "$has_active_session" = false ]; then
+                echo "✅ Active SSO session found"
+                echo ""
+                has_active_session=true
+            fi
+
+            local account_name=$(aws_get_account_name "$profile")
+            local account_id=$(aws_get_account_id "$profile")
+            echo "  • $profile ($account_name - $account_id) ✓"
+        fi
+    done
+
+    if [ "$has_active_session" = false ]; then
+        echo "❌ No active SSO session"
+        echo ""
+        echo "Run: aws_login"
+    fi
+}
+
+# ==============================================================================
+# Helper Functions - 1Password / Environment Variables
+# ==============================================================================
+
+# Invoke 1Password Lambda to update environment files in S3
+# Usage: onepass_deploy_env "nonprod-developers" "admin-portal-dev"
+function onepass_deploy_env() {
+    local aws_profile="$1"
+    local config_name="$2"
+
+    if [ -z "$aws_profile" ] || [ -z "$config_name" ]; then
+        echo "❌ Error: Missing required arguments"
+        echo "Usage: onepass_deploy_env <aws-profile> <config-name>"
+        echo ""
+        echo "Examples:"
+        echo "  onepass_deploy_env nonprod-developers admin-portal-dev"
+        echo "  onepass_deploy_env prod-developers admin-portal-production"
+        echo ""
+        echo "Available configs:"
+        echo "  admin-portal-dev, admin-portal-production"
+        echo "  queue-dev, queue-production"
+        echo "  scheduler-dev, scheduler-production"
+        return 1
+    fi
+
+    local config_file="tools/1password/${config_name}-1pass.json"
+
+    if [ ! -f "$config_file" ]; then
+        echo "❌ Error: Config file not found: $config_file"
+        return 1
+    fi
+
+    echo "🔐 Deploying environment variables for: $config_name"
+    echo "Using config: $config_file"
+    echo ""
+
+    aws_exec "$aws_profile" lambda invoke \
+        --function-name 1password-env-writer \
+        /tmp/1pass-response.json \
+        --payload file://"$config_file" \
+        --cli-binary-format raw-in-base64-out
+
+    echo ""
+    echo "Lambda response:"
+    cat /tmp/1pass-response.json | jq -C '.'
+
+    # Check if successful
+    if jq -e '.statusCode==200 and .errorMessage==null' /tmp/1pass-response.json >/dev/null 2>&1; then
+        echo ""
+        echo "✅ Successfully deployed $config_name environment variables"
+        rm /tmp/1pass-response.json
+        return 0
+    else
+        echo ""
+        echo "❌ Lambda execution failed for $config_name"
+        echo "See response above for details"
+        return 1
+    fi
+}
+
+# Deploy all dev environment variables
+# Usage: onepass_deploy_all_dev
+function onepass_deploy_all_dev() {
+    echo "🔐 Deploying all DEV environment variables..."
+    echo ""
+
+    local configs=("admin-portal-dev" "queue-dev" "scheduler-dev")
+    local failed=0
+
+    for config in "${configs[@]}"; do
+        if ! onepass_deploy_env "nonprod-developers" "$config"; then
+            ((failed++))
+        fi
+        echo ""
+    done
+
+    if [ $failed -eq 0 ]; then
+        echo "✅ All dev environment variables deployed successfully"
+        return 0
+    else
+        echo "❌ $failed deployment(s) failed"
+        return 1
+    fi
+}
+
+# Deploy all production environment variables
+# Usage: onepass_deploy_all_prod
+function onepass_deploy_all_prod() {
+    echo "🔐 Deploying all PRODUCTION environment variables..."
+    echo "⚠️  WARNING: This will update production environment variables!"
+    echo ""
+    read -p "Are you sure you want to continue? (yes/no): " confirm
+
+    if [ "$confirm" != "yes" ]; then
+        echo "Aborted."
+        return 1
+    fi
+
+    local configs=("admin-portal-production" "queue-production" "scheduler-production")
+    local failed=0
+
+    for config in "${configs[@]}"; do
+        if ! onepass_deploy_env "prod-developers" "$config"; then
+            ((failed++))
+        fi
+        echo ""
+    done
+
+    if [ $failed -eq 0 ]; then
+        echo "✅ All production environment variables deployed successfully"
+        return 0
+    else
+        echo "❌ $failed deployment(s) failed"
+        return 1
+    fi
+}
+
+# Download environment file from S3
+# Usage: onepass_download_env "nonprod-developers" "portal.env"
+function onepass_download_env() {
+    local aws_profile="$1"
+    local filename="$2"
+    local output_file="${3:-.env.downloaded}"
+
+    if [ -z "$aws_profile" ] || [ -z "$filename" ]; then
+        echo "❌ Error: Missing required arguments"
+        echo "Usage: onepass_download_env <aws-profile> <filename> [output-file]"
+        echo ""
+        echo "Examples:"
+        echo "  onepass_download_env nonprod-developers portal.env .env.staging"
+        echo "  onepass_download_env prod-developers queue.env .env.prod-queue"
+        return 1
+    fi
+
+    # Determine S3 bucket based on profile
+    local bucket
+    case "$aws_profile" in
+        nonprod-*|*-dev*)
+            bucket="cf-staging-env-files"
+            ;;
+        prod-*|*-production*)
+            bucket="cf-production-env-files"
+            ;;
+        *)
+            echo "❌ Error: Cannot determine S3 bucket from profile: $aws_profile"
+            return 1
+            ;;
+    esac
+
+    echo "📥 Downloading $filename from S3..."
+    echo "Bucket: $bucket"
+    echo "Output: $output_file"
+    echo ""
+
+    if aws_exec "$aws_profile" s3 cp "s3://$bucket/$filename" "$output_file"; then
+        echo ""
+        echo "✅ Downloaded to: $output_file"
+        echo ""
+        echo "⚠️  Remember to add this file to .gitignore!"
+        echo "⚠️  Never commit environment files to git!"
+        return 0
+    else
+        echo ""
+        echo "❌ Failed to download $filename"
+        return 1
+    fi
+}
+
+# View environment file from S3 without downloading
+# Usage: onepass_view_env "nonprod-developers" "portal.env"
+function onepass_view_env() {
+    local aws_profile="$1"
+    local filename="$2"
+
+    if [ -z "$aws_profile" ] || [ -z "$filename" ]; then
+        echo "❌ Error: Missing required arguments"
+        echo "Usage: onepass_view_env <aws-profile> <filename>"
+        echo ""
+        echo "Examples:"
+        echo "  onepass_view_env nonprod-developers portal.env"
+        echo "  onepass_view_env prod-developers queue.env"
+        return 1
+    fi
+
+    # Determine S3 bucket based on profile
+    local bucket
+    case "$aws_profile" in
+        nonprod-*|*-dev*)
+            bucket="cf-staging-env-files"
+            ;;
+        prod-*|*-production*)
+            bucket="cf-production-env-files"
+            ;;
+        *)
+            echo "❌ Error: Cannot determine S3 bucket from profile: $aws_profile"
+            return 1
+            ;;
+    esac
+
+    echo "📄 Viewing $filename from S3 bucket: $bucket"
+    echo ""
+
+    aws_exec "$aws_profile" s3 cp "s3://$bucket/$filename" - | less
+}
+
+# Check if environment file exists in S3 and show metadata
+# Usage: onepass_check_env "nonprod-developers" "portal.env"
+function onepass_check_env() {
+    local aws_profile="$1"
+    local filename="$2"
+
+    if [ -z "$aws_profile" ] || [ -z "$filename" ]; then
+        echo "❌ Error: Missing required arguments"
+        echo "Usage: onepass_check_env <aws-profile> <filename>"
+        return 1
+    fi
+
+    # Determine S3 bucket based on profile
+    local bucket
+    case "$aws_profile" in
+        nonprod-*|*-dev*)
+            bucket="cf-staging-env-files"
+            ;;
+        prod-*|*-production*)
+            bucket="cf-production-env-files"
+            ;;
+        *)
+            echo "❌ Error: Cannot determine S3 bucket from profile: $aws_profile"
+            return 1
+            ;;
+    esac
+
+    echo "🔍 Checking $filename in S3..."
+    echo ""
+
+    aws_exec "$aws_profile" s3 ls "s3://$bucket/$filename" --human-readable
+}
+
+# List all environment files in S3
+# Usage: onepass_list_env_files "nonprod-developers"
+function onepass_list_env_files() {
+    local aws_profile="$1"
+
+    if [ -z "$aws_profile" ]; then
+        echo "❌ Error: Missing AWS profile"
+        echo "Usage: onepass_list_env_files <aws-profile>"
+        echo ""
+        echo "Examples:"
+        echo "  onepass_list_env_files nonprod-developers"
+        echo "  onepass_list_env_files prod-developers"
+        return 1
+    fi
+
+    # Determine S3 bucket based on profile
+    local bucket
+    case "$aws_profile" in
+        nonprod-*|*-dev*)
+            bucket="cf-staging-env-files"
+            ;;
+        prod-*|*-production*)
+            bucket="cf-production-env-files"
+            ;;
+        *)
+            echo "❌ Error: Cannot determine S3 bucket from profile: $aws_profile"
+            return 1
+            ;;
+    esac
+
+    echo "📂 Environment files in $bucket:"
+    echo ""
+
+    aws_exec "$aws_profile" s3 ls "s3://$bucket/" --human-readable
 }
 
 # ==============================================================================

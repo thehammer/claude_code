@@ -352,6 +352,123 @@ Use integrations to check on work status:
 ### "Permission denied"
 → Token may not have required scopes/permissions
 
+---
+
+### ☁️ AWS - Cloud Infrastructure
+
+**What Claude can do:**
+- Check authentication status across accounts
+- Execute AWS CLI commands with proper profile
+- Auto-login when SSO session expires
+- Query resources across Production, Non-Production, and Shared Services accounts
+
+**Account Setup:**
+- **Production** (535508986415): prod-developers, prod-readonly
+- **Non-Production** (635039533305): nonprod-developers, nonprod-readonly
+- **Shared Services** (851765305742): shared-developers, shared-readonly
+
+**Helper Functions:**
+```bash
+aws_login                           # Login to AWS SSO (covers all accounts)
+aws_status                          # Check authentication status
+aws_whoami "prod-developers"        # Show current identity for profile
+aws_exec "prod-developers" s3 ls   # Execute AWS command (auto-login if needed)
+aws_list_profiles                   # List all available profiles
+aws_select_profile                  # Interactive profile selector
+aws_get_account_name "prod-developers"  # Get account name from profile
+aws_get_account_id "prod-developers"    # Get account ID from profile
+```
+
+**Example usage:**
+```
+"Check what S3 buckets are in production"
+→ Claude runs: aws_exec "prod-developers" s3 ls
+
+"Show me the EC2 instances in non-production"
+→ Claude runs: aws_exec "nonprod-developers" ec2 describe-instances
+
+"What AWS account am I authenticated to?"
+→ Claude runs: aws_whoami "prod-developers"
+```
+
+**Authentication:**
+- Uses AWS SSO with shared "hammer" session
+- One login covers all 6 profiles (3 accounts × 2 roles)
+- Sessions last 8-12 hours typically
+- Auto-relogin prompts when expired
+
+**Profile Naming Convention:**
+- `{environment}-{role}`
+- Examples: `prod-developers`, `nonprod-readonly`, `shared-developers`
+- Semantic names instead of account IDs for easier tooling
+
+**Configuration:** `~/.aws/config` (managed via AWS CLI)
+
+**Safety:**
+- Read operations: Safe, no confirmation needed
+- Write operations: Should be confirmed, especially in production
+- Destructive operations: Should require explicit confirmation
+
+---
+
+### 🔐 1Password - Environment Variable Management
+
+**What Claude can do:**
+- Deploy environment variables from 1Password to S3
+- Download/view environment files from S3
+- Check environment file status and timestamps
+- List all environment files in S3 buckets
+
+**How it works:**
+1. Environment variables stored in 1Password (specific format required)
+2. AWS Lambda reads from 1Password, writes to S3
+3. ECS containers load `.env` files from S3 at startup
+
+**Helper Functions:**
+```bash
+onepass_deploy_env "nonprod-developers" "admin-portal-dev"  # Deploy single config
+onepass_deploy_all_dev                                       # Deploy all dev configs
+onepass_deploy_all_prod                                      # Deploy all prod configs (confirms first)
+onepass_download_env "nonprod-developers" "portal.env"      # Download to local file
+onepass_view_env "nonprod-developers" "portal.env"          # View without downloading
+onepass_check_env "nonprod-developers" "portal.env"         # Check file metadata
+onepass_list_env_files "nonprod-developers"                 # List all env files
+```
+
+**Example usage:**
+```
+"Deploy the latest environment variables to dev"
+→ Claude runs: onepass_deploy_all_dev
+
+"Check when portal.env was last updated in staging"
+→ Claude runs: onepass_check_env "nonprod-developers" "portal.env"
+
+"Show me the current SENTRY_DSN value in dev"
+→ Claude runs: onepass_view_env "nonprod-developers" "portal.env" | grep SENTRY_DSN
+```
+
+**1Password Entry Format (CRITICAL):**
+- **Entry Type:** Login (not Secure Note or Password)
+- **Title:** Variable name (e.g., `SENTRY_DSN`)
+- **Username:** Variable name (e.g., `SENTRY_DSN`)
+- **Password:** Variable value (e.g., `https://abc123@sentry.io/456`)
+- **Tags:** Service tags (e.g., `admin-portal-dev`, `queue-production`)
+
+**Configuration:**
+- Local: `tools/1password/*.json` files
+- Lambda: `1password-env-writer` in AWS
+- S3 Buckets: `cf-staging-env-files`, `cf-production-env-files`
+
+**Documentation:** See project-specific `.claude/ENVIRONMENT_VARIABLES.md` for complete details
+
+**Safety:**
+- Read operations (download/view): Safe, no confirmation needed
+- Deploy dev: Requires AWS authentication, affects dev only
+- Deploy production: Requires explicit "yes" confirmation
+- Never commits `.env` files to git
+
+---
+
 ## Future Integration Ideas
 
 Ideas for additional integrations (see `~/.claude/IDEAS.md` for details):
@@ -374,6 +491,8 @@ Ideas for additional integrations (see `~/.claude/IDEAS.md` for details):
 | **Slack** | Channels | Messages | - | - |
 | **Sentry** | Issues, events | - | - | - |
 | **Datadog** | Logs, metrics | - | - | - |
+| **AWS** | Resources, status | Resources | Config changes | Deletions |
+| **1Password** | Env files, status | - | Deploy vars | - |
 
 **Legend:**
 - **Read** - Safe, no confirmation needed
@@ -382,4 +501,4 @@ Ideas for additional integrations (see `~/.claude/IDEAS.md` for details):
 
 ---
 
-**Last Updated:** 2025-10-07
+**Last Updated:** 2025-10-14
