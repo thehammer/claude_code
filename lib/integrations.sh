@@ -93,7 +93,8 @@ function jira_whoami() {
 }
 
 # Create a new Jira issue
-# Usage: jira_create_issue "CORE" "Bug" "Fix static method call" "Description text" "P2" "Portal" "Production"
+# Usage: jira_create_issue "CORE" "Bug" "Fix static method call" "Description text" "P2" "Portal" "Production "
+# NOTE: Environment field values have trailing spaces (Jira quirk) - "Production " not "Production"
 function jira_create_issue() {
     local project=$1
     local issue_type=$2
@@ -101,7 +102,7 @@ function jira_create_issue() {
     local description=$4
     local priority=${5:-"P2"}
     local component=${6:-"Portal"}  # customfield_10135 - Carefeed Component
-    local environment=${7:-"Production"}  # customfield_10275 - Environment
+    local environment=${7:-"Production "}  # customfield_10275 - Environment (NOTE: trailing space required!)
 
     if ! jira_is_configured; then
         echo "Error: Jira credentials not configured"
