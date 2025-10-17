@@ -2,11 +2,23 @@
 
 Hi Claude! When the user asks you to read this file at the start of a session, follow these steps:
 
-## 0. Determine Session Type
+## 0. Parse Session Arguments
 
-**Check if session type was provided:**
-- If argument provided (e.g., `/start debugging`): Use that type
-- If no argument: Default to `coding`
+**Extract session type and description:**
+- `/start [session_type] [description...]`
+- **session_type**: First argument (e.g., `debugging`)
+- **description**: All remaining text after session type (e.g., `the production branch vs master`)
+
+**Examples:**
+- `/start` → type=`coding`, description=none
+- `/start debugging` → type=`debugging`, description=none
+- `/start debugging the production branch vs master` → type=`debugging`, description=`the production branch vs master`
+- `/start coding implement user authentication` → type=`coding`, description=`implement user authentication`
+
+Look for `SESSION_DESCRIPTION:` in the command invocation to extract the description if provided.
+
+**If no session type provided:**
+- Default to `coding`
 
 **Valid session types:**
 - `coding` - Building features, fixing bugs, implementing functionality
@@ -148,6 +160,12 @@ Session notes are organized by type:
 
 **Templates available:**
 - `~/.claude/templates/session-notes/{type}.md`
+
+**Using Session Description:**
+If a session description was provided via `/start [type] [description]`, use it to:
+1. Add context to the session notes header (e.g., `## Session Focus: {description}`)
+2. Provide initial direction for the session
+3. Include in the SESSION_MARKER for better continuation context
 
 ---
 

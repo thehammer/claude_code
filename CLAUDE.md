@@ -19,14 +19,19 @@
 ### Session Type Detection (for continuations only)
 
 **Primary Method** - Look for session marker:
-- Search conversation history for: `<!-- SESSION_MARKER: type={session_type} date={date} -->`
-- If found, extract the session type from the marker
-- Example: `<!-- SESSION_MARKER: type=clauding date=2025-10-14 -->` → session type is "clauding"
+- Search conversation history for: `<!-- SESSION_MARKER: type={session_type} date={date} description="{description}" -->`
+- If found, extract:
+  - **session type** from the marker
+  - **date** from the marker
+  - **description** from the marker (optional)
+- Examples:
+  - `<!-- SESSION_MARKER: type=clauding date=2025-10-14 -->` → session type is "clauding", no description
+  - `<!-- SESSION_MARKER: type=debugging date=2025-10-17 description="the production branch vs master" -->` → session type is "debugging", description is "the production branch vs master"
 
 **Fallback Method** - Look for /start command:
 - If no marker found, search conversation history for the last `/start` command
-- Example: User invoked `/start clauding` → session type is "clauding"
-- Extract the argument (the session type) from the command
+- Example: User invoked `/start debugging the production branch vs master` → session type is "debugging", description is "the production branch vs master"
+- Extract both the session type (first argument) and description (remaining text) from the command
 
 ### Resumption Logic (if session type detected)
 
@@ -42,11 +47,24 @@ Once you've identified the session type:
    - Read `~/.claude/session-types/{detected_type}.md`
    - Follow the startup instructions for that session type
    - Load the context specified in that session type definition
+   - If a description was detected, use it to inform the session context
    - Inform the user clearly:
+
+     **Without description:**
      ```
      🔄 **Resuming {session_type} session**
 
      I detected this is a continuation of a {session_type} session from {date}.
+     I've automatically reloaded the session context and am ready to continue.
+     ```
+
+     **With description:**
+     ```
+     🔄 **Resuming {session_type} session: {description}**
+
+     I detected this is a continuation of a {session_type} session from {date}.
+     Focus: {description}
+
      I've automatically reloaded the session context and am ready to continue.
      ```
 
