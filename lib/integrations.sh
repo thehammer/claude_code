@@ -683,6 +683,143 @@ function datadog_search_logs() {
         }"
 }
 
+# Enhanced search logs with pagination support
+# Usage: datadog_search_logs_paginated "query" from_ms to_ms [limit] [cursor]
+# Returns: Full JSON response including pagination cursor
+function datadog_search_logs_paginated() {
+    local query=$1
+    local from_ms=$2
+    local to_ms=$3
+    local limit=${4:-1000}
+    local cursor=${5:-""}
+
+    if [ -z "$query" ] || [ -z "$from_ms" ] || [ -z "$to_ms" ]; then
+        echo "Usage: datadog_search_logs_paginated <query> <from_ms> <to_ms> [limit] [cursor]" >&2
+        echo "Example: datadog_search_logs_paginated \"source:/ecs/queues\" 1729180800000 1729224000000 1000" >&2
+        return 1
+    fi
+    if ! datadog_is_configured; then
+        echo "Error: Datadog credentials not configured" >&2
+        return 1
+    fi
+
+    local site=${DATADOG_SITE:-datadoghq.com}
+
+    # Build pagination object
+    local page_json="{\"limit\": $limit}"
+    if [ -n "$cursor" ]; then
+        page_json="{\"limit\": $limit, \"cursor\": \"$cursor\"}"
+    fi
+
+    curl -s -X POST "https://api.${site}/api/v2/logs/events/search" \
+        -H "DD-API-KEY: ${DATADOG_API_KEY}" \
+        -H "DD-APPLICATION-KEY: ${DATADOG_APP_KEY}" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"filter\": {
+                \"query\": \"${query}\",
+                \"from\": \"${from_ms}\",
+                \"to\": \"${to_ms}\"
+            },
+            \"page\": $page_json,
+            \"sort\": \"timestamp\"
+        }"
+}
+
+# Bulk collect logs with automatic pagination
+# Usage: datadog_collect_logs_bulk "source:/ecs/queues" "12h" "/path/to/output"
+# Collects all logs for the specified time period, handling pagination automatically
+function datadog_collect_logs_bulk() {
+    local query=$1
+    local timeframe=$2
+    local output_dir=$3
+
+    if [ -z "$query" ] || [ -z "$timeframe" ] || [ -z "$output_dir" ]; then
+        echo "Usage: datadog_collect_logs_bulk <query> <timeframe> <output_dir>" >&2
+        echo "Example: datadog_collect_logs_bulk \"source:/ecs/queues\" \"12h\" \"./logs/queues\"" >&2
+        return 1
+    fi
+    if ! datadog_is_configured; then
+        echo "Error: Datadog credentials not configured" >&2
+        return 1
+    fi
+
+    # Create output directory
+    mkdir -p "$output_dir"
+
+    # Calculate timestamps
+    local now_ms=$(date +%s)000
+    local hours=12
+    case "$timeframe" in
+        1h)  hours=1 ;;
+        3h)  hours=3 ;;
+        6h)  hours=6 ;;
+        12h) hours=12 ;;
+        24h|1d) hours=24 ;;
+        2d)  hours=48 ;;
+    esac
+    local from_ms=$((now_ms - (hours * 3600 * 1000)))
+
+    echo "Collecting logs for query: $query"
+    echo "Time range: $(date -r $((from_ms / 1000)) '+%Y-%m-%d %H:%M:%S') to $(date -r $((now_ms / 1000)) '+%Y-%m-%d %H:%M:%S')"
+    echo "Output directory: $output_dir"
+    echo ""
+
+    local batch=1
+    local total_logs=0
+    local cursor=""
+    local has_more=true
+
+    while [ "$has_more" = true ]; do
+        echo -n "Fetching batch $batch..."
+
+        # Query with pagination
+        local response=$(datadog_search_logs_paginated "$query" "$from_ms" "$now_ms" 1000 "$cursor")
+
+        # Save batch
+        local batch_file="$output_dir/batch-$(printf '%03d' $batch).json"
+        echo "$response" > "$batch_file"
+
+        # Count logs by counting "type":"log" occurrences
+        local batch_count=$(grep -o '"type":"log"' "$batch_file" | wc -l | tr -d ' ')
+
+        # Extract pagination cursor using grep/sed (avoids full JSON parsing)
+        local next_cursor=$(grep -o '"after":"[^"]*"' "$batch_file" | tail -1 | sed 's/"after":"//;s/"$//')
+
+        # Update totals and progress
+        total_logs=$((total_logs + batch_count))
+        echo " $batch_count logs (total: $total_logs)"
+
+        # Check for next page cursor
+        if [ -n "$next_cursor" ]; then
+            cursor="$next_cursor"
+            batch=$((batch + 1))
+            # Brief sleep to avoid rate limits
+            sleep 0.5
+        else
+            has_more=false
+            echo ""
+            echo "Collection complete: $total_logs total logs in $batch batches"
+        fi
+    done
+
+    # Create summary file
+    cat > "$output_dir/collection-summary.txt" <<EOF
+Collection Summary
+==================
+Query: $query
+Timeframe: $timeframe
+Start: $(date -r $((from_ms / 1000)) '+%Y-%m-%d %H:%M:%S %Z')
+End: $(date -r $((now_ms / 1000)) '+%Y-%m-%d %H:%M:%S %Z')
+Total Logs: $total_logs
+Total Batches: $batch
+Collection Date: $(date '+%Y-%m-%d %H:%M:%S %Z')
+EOF
+
+    echo ""
+    echo "Summary saved to: $output_dir/collection-summary.txt"
+}
+
 # Get service metrics
 # Usage: datadog_get_metrics "system.cpu.user" "1h"
 function datadog_get_metrics() {
@@ -1733,6 +1870,194 @@ function aws_status() {
         echo ""
         echo "Run: aws_login"
     fi
+}
+
+# ==============================================================================
+# Helper Functions - AWS Lambda
+# ==============================================================================
+
+# Get Lambda function configuration
+# Usage: lambda_get_config "prod-developers" "1password-env-writer"
+function lambda_get_config() {
+    local aws_profile="$1"
+    local function_name="$2"
+
+    if [ -z "$aws_profile" ] || [ -z "$function_name" ]; then
+        echo "❌ Error: Missing required arguments"
+        echo "Usage: lambda_get_config <aws-profile> <function-name>"
+        echo ""
+        echo "Examples:"
+        echo "  lambda_get_config prod-developers 1password-env-writer"
+        return 1
+    fi
+
+    echo "🔍 Fetching Lambda configuration for: $function_name"
+    echo ""
+
+    aws_exec "$aws_profile" lambda get-function-configuration \
+        --function-name "$function_name"
+}
+
+# Get Lambda function code location (S3 or URL)
+# Usage: lambda_get_code_location "prod-developers" "1password-env-writer"
+function lambda_get_code_location() {
+    local aws_profile="$1"
+    local function_name="$2"
+
+    if [ -z "$aws_profile" ] || [ -z "$function_name" ]; then
+        echo "❌ Error: Missing required arguments"
+        echo "Usage: lambda_get_code_location <aws-profile> <function-name>"
+        return 1
+    fi
+
+    echo "🔍 Fetching code location for Lambda: $function_name"
+    echo ""
+
+    aws_exec "$aws_profile" lambda get-function \
+        --function-name "$function_name" \
+        | jq -r '.Code.Location'
+}
+
+# Download Lambda function code
+# Usage: lambda_download_code "prod-developers" "1password-env-writer" "./lambda-code.zip"
+function lambda_download_code() {
+    local aws_profile="$1"
+    local function_name="$2"
+    local output_file="${3:-./lambda-code.zip}"
+
+    if [ -z "$aws_profile" ] || [ -z "$function_name" ]; then
+        echo "❌ Error: Missing required arguments"
+        echo "Usage: lambda_download_code <aws-profile> <function-name> [output-file]"
+        echo ""
+        echo "Examples:"
+        echo "  lambda_download_code prod-developers 1password-env-writer ./code.zip"
+        return 1
+    fi
+
+    echo "📦 Downloading Lambda code for: $function_name"
+    echo "Output: $output_file"
+    echo ""
+
+    # Get the download URL
+    local code_url
+    code_url=$(aws_exec "$aws_profile" lambda get-function \
+        --function-name "$function_name" \
+        | jq -r '.Code.Location')
+
+    if [ -z "$code_url" ] || [ "$code_url" = "null" ]; then
+        echo "❌ Error: Could not get code download URL"
+        return 1
+    fi
+
+    echo "Downloading from pre-signed URL..."
+    if curl -s -o "$output_file" "$code_url"; then
+        echo ""
+        echo "✅ Downloaded Lambda code to: $output_file"
+        echo ""
+        echo "File size: $(du -h "$output_file" | cut -f1)"
+        echo ""
+        echo "To extract: unzip $output_file -d lambda-extracted/"
+        return 0
+    else
+        echo "❌ Error: Failed to download Lambda code"
+        return 1
+    fi
+}
+
+# Extract Lambda code to directory
+# Usage: lambda_extract_code "lambda-code.zip" "./lambda-extracted"
+function lambda_extract_code() {
+    local zip_file="$1"
+    local output_dir="${2:-./lambda-extracted}"
+
+    if [ -z "$zip_file" ]; then
+        echo "❌ Error: Missing zip file argument"
+        echo "Usage: lambda_extract_code <zip-file> [output-dir]"
+        return 1
+    fi
+
+    if [ ! -f "$zip_file" ]; then
+        echo "❌ Error: Zip file not found: $zip_file"
+        return 1
+    fi
+
+    echo "📂 Extracting Lambda code..."
+    echo "Source: $zip_file"
+    echo "Destination: $output_dir"
+    echo ""
+
+    mkdir -p "$output_dir"
+
+    if unzip -q -o "$zip_file" -d "$output_dir"; then
+        echo "✅ Extracted Lambda code to: $output_dir"
+        echo ""
+        echo "Contents:"
+        ls -lh "$output_dir"
+        return 0
+    else
+        echo "❌ Error: Failed to extract zip file"
+        return 1
+    fi
+}
+
+# Get Lambda function info (full details)
+# Usage: lambda_get_info "prod-developers" "1password-env-writer"
+function lambda_get_info() {
+    local aws_profile="$1"
+    local function_name="$2"
+
+    if [ -z "$aws_profile" ] || [ -z "$function_name" ]; then
+        echo "❌ Error: Missing required arguments"
+        echo "Usage: lambda_get_info <aws-profile> <function-name>"
+        return 1
+    fi
+
+    echo "ℹ️  Lambda Function Information: $function_name"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+
+    aws_exec "$aws_profile" lambda get-function \
+        --function-name "$function_name" \
+        | jq -C '.'
+}
+
+# Download and extract Lambda code in one step
+# Usage: lambda_fetch_code "prod-developers" "1password-env-writer" "./1pass-lambda"
+function lambda_fetch_code() {
+    local aws_profile="$1"
+    local function_name="$2"
+    local output_dir="${3:-./lambda-code}"
+
+    if [ -z "$aws_profile" ] || [ -z "$function_name" ]; then
+        echo "❌ Error: Missing required arguments"
+        echo "Usage: lambda_fetch_code <aws-profile> <function-name> [output-dir]"
+        echo ""
+        echo "Examples:"
+        echo "  lambda_fetch_code prod-developers 1password-env-writer ./1pass-lambda"
+        return 1
+    fi
+
+    local zip_file="${output_dir}.zip"
+
+    echo "🚀 Fetching Lambda code for: $function_name"
+    echo ""
+
+    # Download the code
+    if ! lambda_download_code "$aws_profile" "$function_name" "$zip_file"; then
+        return 1
+    fi
+
+    echo ""
+
+    # Extract the code
+    if ! lambda_extract_code "$zip_file" "$output_dir"; then
+        return 1
+    fi
+
+    # Clean up zip file
+    rm "$zip_file"
+    echo ""
+    echo "🎉 Lambda code ready in: $output_dir"
 }
 
 # ==============================================================================
