@@ -39,3 +39,6 @@ statsig/
 *.tmp
 .*.swp
 .*.swo
+
+study-logs
+file-history
