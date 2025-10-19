@@ -439,6 +439,137 @@ function bitbucket_get_pr_comments() {
         "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pullrequests/${pr_id}/comments"
 }
 
+# Get pipeline details
+# Usage: bitbucket_get_pipeline <pipeline_id>
+#    or: bitbucket_get_pipeline <repo> <pipeline_id>
+function bitbucket_get_pipeline() {
+    local repo pipeline_id
+    local bitbucket_token="${BITBUCKET_ACCESS_TOKEN:-$BITBUCKET_APP_PASSWORD}"
+
+    if ! bitbucket_is_configured; then
+        echo "Error: Bitbucket credentials not configured"
+        return 1
+    fi
+
+    if [ $# -eq 1 ]; then
+        # Auto-detect repo from git remote
+        local remote_url=$(git config --get remote.origin.url 2>/dev/null)
+        if [ -z "$remote_url" ]; then
+            echo "Error: Not in a git repository or no origin remote configured"
+            return 1
+        fi
+        repo=$(echo "$remote_url" | sed -E 's|.*/([^/]+)(\.git)?$|\1|')
+        pipeline_id=$1
+    else
+        repo=$1
+        pipeline_id=$2
+    fi
+
+    curl -s -u "${BITBUCKET_USERNAME}:${bitbucket_token}" \
+        -H "Accept: application/json" \
+        "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pipelines/${pipeline_id}"
+}
+
+# Get pipeline step URL for browser viewing
+# Usage: bitbucket_get_step_url <pipeline_id> [step_name_pattern]
+#    or: bitbucket_get_step_url <repo> <pipeline_id> [step_name_pattern]
+# Example: bitbucket_get_step_url 13906 "PHP Test"
+# Example: bitbucket_get_step_url 13906  (shows all steps)
+function bitbucket_get_step_url() {
+    local repo pipeline_id step_pattern
+    local bitbucket_token="${BITBUCKET_ACCESS_TOKEN:-$BITBUCKET_APP_PASSWORD}"
+
+    if ! bitbucket_is_configured; then
+        echo "Error: Bitbucket credentials not configured"
+        return 1
+    fi
+
+    if [ $# -eq 1 ]; then
+        # Auto-detect repo, show all steps
+        local remote_url=$(git config --get remote.origin.url 2>/dev/null)
+        if [ -z "$remote_url" ]; then
+            echo "Error: Not in a git repository or no origin remote configured"
+            return 1
+        fi
+        repo=$(echo "$remote_url" | sed -E 's|.*/([^/]+)(\.git)?$|\1|')
+        pipeline_id=$1
+        step_pattern=""
+    elif [ $# -eq 2 ]; then
+        # Auto-detect repo from git remote
+        local remote_url=$(git config --get remote.origin.url 2>/dev/null)
+        if [ -z "$remote_url" ]; then
+            echo "Error: Not in a git repository or no origin remote configured"
+            return 1
+        fi
+        repo=$(echo "$remote_url" | sed -E 's|.*/([^/]+)(\.git)?$|\1|')
+        pipeline_id=$1
+        step_pattern=$2
+    else
+        repo=$1
+        pipeline_id=$2
+        step_pattern=$3
+    fi
+
+    # Get all steps
+    local steps=$(curl -s -u "${BITBUCKET_USERNAME}:${bitbucket_token}" \
+        -H "Accept: application/json" \
+        "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pipelines/${pipeline_id}/steps/")
+
+    if [ -z "$steps" ] || ! echo "$steps" | jq -e '.values' >/dev/null 2>&1; then
+        echo "Error: Failed to fetch pipeline steps or invalid response"
+        return 1
+    fi
+
+    # If no pattern, show all steps with URLs
+    if [ -z "$step_pattern" ]; then
+        echo "Pipeline #${pipeline_id} steps:"
+        echo ""
+        while IFS='|' read -r status name uuid; do
+            local color=""
+            case "$status" in
+                SUCCESSFUL) color="\033[32m" ;; # green
+                FAILED) color="\033[31m" ;; # red
+                *) color="\033[33m" ;; # yellow
+            esac
+            local uuid_encoded=$(echo "$uuid" | jq -rR '@uri')
+            echo -e "${color}${status}\033[0m ${name}"
+            echo "   https://bitbucket.org/Bitbucketpassword1/${repo}/pipelines/results/${pipeline_id}/steps/${uuid_encoded}"
+            echo ""
+        done < <(echo "$steps" | jq -r '.values[] | (.state.result.name // .state.name) + "|" + .name + "|" + .uuid')
+        return 0
+    fi
+
+    # Find matching step
+    local step_uuid=$(echo "$steps" | jq -r ".values[] | select(.name | test(\"${step_pattern}\"; \"i\")) | .uuid")
+    local step_name=$(echo "$steps" | jq -r ".values[] | select(.name | test(\"${step_pattern}\"; \"i\")) | .name")
+    local step_status=$(echo "$steps" | jq -r ".values[] | select(.name | test(\"${step_pattern}\"; \"i\")) | .state.result.name // .state.name")
+
+    if [ -z "$step_uuid" ]; then
+        echo "Error: No step found matching pattern '${step_pattern}'"
+        echo ""
+        echo "Available steps:"
+        echo "$steps" | jq -r '.values[] | "  [\(.state.result.name // .state.name)] \(.name)"'
+        return 1
+    fi
+
+    # URL encode the UUID (which includes curly braces)
+    # jq's @uri handles this automatically
+    local step_uuid_encoded=$(echo "$step_uuid" | jq -rR '@uri')
+    local step_url="https://bitbucket.org/Bitbucketpassword1/${repo}/pipelines/results/${pipeline_id}/steps/${step_uuid_encoded}"
+
+    echo "Step: ${step_name}"
+    echo "Status: ${step_status}"
+    echo "URL: ${step_url}"
+    echo ""
+    echo "💡 Note: Bitbucket API v2 doesn't expose step logs programmatically."
+    echo "   You must view logs in your browser using the URL above."
+}
+
+# Alias for backwards compatibility
+function bitbucket_get_pipeline_logs() {
+    bitbucket_get_step_url "$@"
+}
+
 # ==============================================================================
 # Helper Functions - GitHub
 # ==============================================================================
