@@ -42,9 +42,9 @@ git remote get-url origin
 | `bitbucket_get_pr <pr_id>` | Get PR details | `bitbucket_get_pr 1234` |
 | `bitbucket_get_pr_comments <pr_id>` | Read PR comments | `bitbucket_get_pr_comments 1234` |
 | `bitbucket_update_pr <pr_id> <title> [description]` | Update PR | `bitbucket_update_pr 1234 "New title" "New desc"` |
-| `bitbucket_get_pipeline <pipeline_id>` | Check pipeline status | `bitbucket_get_pipeline 13906` |
-| `bitbucket_get_step_url <pipeline_id> [step_pattern]` | Get pipeline step URL | `bitbucket_get_step_url 13906 "PHP Test"` |
-| `bitbucket_get_pipeline_logs` | Alias for get_step_url | `bitbucket_get_pipeline_logs 13906` |
+| `bitbucket_get_pipeline <repo> <pipeline_id>` | Check pipeline status | `bitbucket_get_pipeline "portal_dev" 13906` |
+| `bitbucket_get_step_url [repo] <pipeline_id> [step_pattern]` | Get pipeline step URLs | `bitbucket_get_step_url 13906` or `bitbucket_get_step_url "portal_dev" 13906 "PHP Test"` |
+| `bitbucket_get_pipeline_logs [repo] <pipeline_id>` | Alias for get_step_url | `bitbucket_get_pipeline_logs 13906` |
 | `list_all_open_prs [limit] [show_all]` | **List YOUR open PRs across ALL repos** | `list_all_open_prs 10` |
 
 **Note on bitbucket_list_prs:**
@@ -52,6 +52,13 @@ git remote get-url origin
 - Auto-detects repo from git remote if not specified
 - State: "OPEN", "MERGED", "DECLINED", "SUPERSEDED" (default: all)
 - Limit: Max results (default: 50)
+
+**Note on pipeline functions:**
+- `bitbucket_get_pipeline` requires explicit repo name
+- `bitbucket_get_step_url` auto-detects repo from git remote if only pipeline_id provided
+- `bitbucket_get_step_url` can accept explicit repo: `bitbucket_get_step_url "portal_dev" 13906 "PHP Test"`
+- Pipeline steps may not be available for old/expired pipelines
+- These functions work best with recent pipeline runs (within last 30 days)
 
 **Examples:**
 ```bash
