@@ -39,18 +39,17 @@ Summarize:
 - Recent commits
 
 ### 3. Open Pull Requests
-Check for context on related work:
+List open PRs across all Carefeed repositories:
 
-**Step 1:** Detect git hosting service
 ```bash
-git remote get-url origin
+list_all_open_prs 10
 ```
 
-**Step 2:** List PRs based on service
-- If Bitbucket: `bitbucket_list_prs "OPEN" 10`
-- If GitHub: `github_list_prs "open" 10`
+This will show open PRs from:
+- Bitbucket repos: portal_dev, family-portal
+- GitHub repos: (if any configured)
 
-**Important:** Integrations are already loaded from step 1, so these functions are immediately available.
+**Important:** This function is already loaded from step 1. It auto-detects which repos exist and have open PRs.
 
 ### 4. Recent Session Notes
 Look in `.claude/session-notes/coding/` for most recent note to understand:

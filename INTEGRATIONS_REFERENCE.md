@@ -37,14 +37,44 @@ git remote get-url origin
 
 | Function | Purpose | Example |
 |----------|---------|---------|
+| `bitbucket_list_prs [repo] [state] [limit]` | List PRs (auto-detects repo) | `bitbucket_list_prs "" "OPEN" 10` |
 | `bitbucket_create_pr <source> <dest> <title> <description>` | Create PR via API | `bitbucket_create_pr "feature/CORE-1234" "master" "Title" "$(carefeed_pr_description CORE-1234)"` |
-| `bitbucket_list_prs [state] [limit]` | List PRs | `bitbucket_list_prs "OPEN" 10` |
 | `bitbucket_get_pr <pr_id>` | Get PR details | `bitbucket_get_pr 1234` |
 | `bitbucket_get_pr_comments <pr_id>` | Read PR comments | `bitbucket_get_pr_comments 1234` |
-| `bitbucket_update_pr <pr_id> <title> <description>` | Update PR | `bitbucket_update_pr 1234 "New title" "New desc"` |
-| `bitbucket_get_pipeline <pr_id>` | Check pipeline status | `bitbucket_get_pipeline 1234` |
-| `bitbucket_get_pipeline_logs <pr_id>` | Get pipeline logs | `bitbucket_get_pipeline_logs 1234` |
-| `bitbucket_get_step_url <pipeline_uuid> <step_name>` | Get step details | `bitbucket_get_step_url "uuid" "Build"` |
+| `bitbucket_update_pr <pr_id> <title> [description]` | Update PR | `bitbucket_update_pr 1234 "New title" "New desc"` |
+| `bitbucket_get_pipeline <pipeline_id>` | Check pipeline status | `bitbucket_get_pipeline 13906` |
+| `bitbucket_get_step_url <pipeline_id> [step_pattern]` | Get pipeline step URL | `bitbucket_get_step_url 13906 "PHP Test"` |
+| `bitbucket_get_pipeline_logs` | Alias for get_step_url | `bitbucket_get_pipeline_logs 13906` |
+| `list_all_open_prs [limit] [show_all]` | **List YOUR open PRs across ALL repos** | `list_all_open_prs 10` |
+
+**Note on bitbucket_list_prs:**
+- All parameters are optional
+- Auto-detects repo from git remote if not specified
+- State: "OPEN", "MERGED", "DECLINED", "SUPERSEDED" (default: all)
+- Limit: Max results (default: 50)
+
+**Examples:**
+```bash
+bitbucket_list_prs                     # Auto-detect repo, all states, 50 results
+bitbucket_list_prs "" "OPEN"           # Auto-detect repo, only open PRs
+bitbucket_list_prs "" "OPEN" 10        # Auto-detect repo, open PRs, limit 10
+bitbucket_list_prs "portal_dev"        # Specific repo, all states
+bitbucket_list_prs "portal_dev" "OPEN" 5  # All params specified
+```
+
+**Note on list_all_open_prs:**
+- **By default, shows only YOUR PRs** (filtered by "Hammer")
+- Checks all repos: portal_dev, family-portal, GitHub repos
+- Optional `show_all` parameter to see all users' PRs
+
+**Examples:**
+```bash
+list_all_open_prs           # Your PRs only, limit 10 per repo
+list_all_open_prs 5         # Your PRs only, limit 5 per repo
+list_all_open_prs 10 all    # All users' PRs, limit 10 per repo
+```
+
+**Pro Tip:** Use `list_all_open_prs` in session startup to quickly see YOUR open PRs across all Carefeed repos!
 
 ### GitHub Functions
 

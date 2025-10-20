@@ -193,9 +193,20 @@ function bitbucket_is_configured() {
 }
 
 # List pull requests
-# Usage: bitbucket_list_prs "portal_dev"
+# Usage: bitbucket_list_prs [repo] [state] [limit]
+#   repo: Repository name (default: auto-detect from git remote, fallback to "portal_dev")
+#   state: "OPEN", "MERGED", "DECLINED", or "SUPERSEDED" (default: all states)
+#   limit: Max results to return (default: 50)
+# Examples:
+#   bitbucket_list_prs                    # Auto-detect repo, all states, 50 results
+#   bitbucket_list_prs "portal_dev"       # Specific repo, all states
+#   bitbucket_list_prs "" "OPEN"          # Auto-detect repo, only open PRs
+#   bitbucket_list_prs "" "OPEN" 10       # Auto-detect repo, open PRs, limit 10
+#   bitbucket_list_prs "portal_dev" "OPEN" 10  # All params specified
 function bitbucket_list_prs() {
-    local repo=${1:-portal_dev}
+    local repo="${1}"
+    local state="${2}"
+    local limit="${3:-50}"
     local bitbucket_token="${BITBUCKET_ACCESS_TOKEN:-$BITBUCKET_APP_PASSWORD}"
 
     if ! bitbucket_is_configured; then
@@ -203,9 +214,25 @@ function bitbucket_list_prs() {
         return 1
     fi
 
+    # Auto-detect repo from git remote if not specified
+    if [ -z "$repo" ]; then
+        local remote_url=$(git config --get remote.origin.url 2>/dev/null)
+        if [ -n "$remote_url" ]; then
+            repo=$(echo "$remote_url" | sed -E 's|.*/([^/]+)(\.git)?$|\1|')
+        else
+            repo="portal_dev"  # Fallback default
+        fi
+    fi
+
+    # Build query parameters
+    local query_params="pagelen=${limit}"
+    if [ -n "$state" ]; then
+        query_params="${query_params}&state=${state}"
+    fi
+
     curl -s -u "${BITBUCKET_USERNAME}:${bitbucket_token}" \
         -H "Accept: application/json" \
-        "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pullrequests"
+        "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pullrequests?${query_params}"
 }
 
 # Create a pull request
@@ -568,6 +595,72 @@ function bitbucket_get_step_url() {
 # Alias for backwards compatibility
 function bitbucket_get_pipeline_logs() {
     bitbucket_get_step_url "$@"
+}
+
+# List all open PRs across Carefeed repositories
+# Usage: list_all_open_prs [limit_per_repo] [show_all]
+#   limit_per_repo: Max PRs to show per repository (default: 10)
+#   show_all: Set to "all" to show all users' PRs, otherwise shows only your PRs (default: your PRs only)
+# This function checks both Bitbucket and GitHub for Carefeed repos
+# Examples:
+#   list_all_open_prs           # Your PRs only, limit 10 per repo
+#   list_all_open_prs 5         # Your PRs only, limit 5 per repo
+#   list_all_open_prs 10 all    # All users' PRs, limit 10 per repo
+function list_all_open_prs() {
+    local limit="${1:-10}"
+    local show_all="${2}"
+    local found_any=false
+
+    if [ "$show_all" = "all" ]; then
+        echo "📋 Open Pull Requests Across All Repos (All Users)"
+    else
+        echo "📋 Your Open Pull Requests Across All Repos"
+    fi
+    echo "========================================"
+    echo ""
+
+    # Bitbucket repos (Carefeed workspace)
+    if bitbucket_is_configured; then
+        local bb_repos=("portal_dev" "family-portal")
+
+        for repo in "${bb_repos[@]}"; do
+            local result=$(bitbucket_list_prs "$repo" "OPEN" "$limit" 2>/dev/null)
+
+            if [ "$show_all" != "all" ]; then
+                # Filter to only PRs by current user (Hammer)
+                result=$(echo "$result" | jq '{values: [.values[]? | select(.author.display_name == "Hammer")]}' 2>/dev/null)
+            fi
+
+            local count=$(echo "$result" | jq -r '.values | length' 2>/dev/null || echo "0")
+
+            if [ "$count" -gt 0 ] 2>/dev/null; then
+                if [ "$show_all" = "all" ]; then
+                    echo "🔵 Bitbucket: $repo ($count open PRs)"
+                    echo "$result" | jq -r '.values[] | "  PR #\(.id): \(.title) (by \(.author.display_name))"'
+                else
+                    echo "🔵 Bitbucket: $repo ($count open PRs)"
+                    echo "$result" | jq -r '.values[] | "  PR #\(.id): \(.title)"'
+                fi
+                echo ""
+                found_any=true
+            fi
+        done
+    fi
+
+    # GitHub repos (if configured)
+    if github_is_configured; then
+        # Add GitHub repos here if/when Carefeed uses GitHub
+        # Would filter by GitHub username similarly
+        :
+    fi
+
+    if [ "$found_any" = false ]; then
+        if [ "$show_all" = "all" ]; then
+            echo "No open pull requests found across all repositories."
+        else
+            echo "You have no open pull requests across all repositories."
+        fi
+    fi
 }
 
 # ==============================================================================
