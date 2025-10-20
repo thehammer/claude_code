@@ -40,5 +40,21 @@ statsig/
 .*.swp
 .*.swo
 
-study-logs
-file-history
+# Study logs and artifacts (may contain production data, stack traces, error messages)
+study-logs/
+!study-logs/.gitkeep
+studies/*/artifacts/
+studies/*/output/
+
+# File history (may contain sensitive file paths and content)
+file-history/
+!file-history/.gitkeep
+
+# History and conversation logs (may contain sensitive data discussed in sessions)
+history.jsonl
+*.history
+
+# Any JSON files in root (often contain sensitive data exports)
+/*.json
+!settings.json
+!/plugins/config.json
