@@ -57,6 +57,24 @@ Look for `SESSION_DESCRIPTION:` in the command invocation to extract the descrip
 
 ---
 
+## Security Awareness
+
+**IMPORTANT:** When working with production systems, debug logs, or customer data:
+
+- **Never commit sensitive data** - production logs, customer names, stack traces, credentials
+- Review files before committing (see `~/.claude/SECURITY.md` for full guidelines)
+- Use `.gitignore` patterns to protect study-logs, debug artifacts, conversation history
+- When in doubt about a file, DON'T commit it
+
+**Quick security check before any commit:**
+```bash
+git status && git diff --cached | grep -iE "password|secret|token|api.key|credential"
+```
+
+See [`~/.claude/SECURITY.md`](~/.claude/SECURITY.md) for comprehensive security guidelines.
+
+---
+
 ## Cascade Resolution Pattern
 
 When reading configuration files, use this order (later overrides earlier):

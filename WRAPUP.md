@@ -46,7 +46,31 @@ Include PR status in session notes.
    - Archive stale ideas if needed
    - This keeps the ideas backlog fresh and actionable
 
-7. **Commit changes to ~/.claude repository** (for clauding sessions):
+7. **Security Review Before Committing** (CRITICAL):
+   - **Always review files to be committed for sensitive data**
+   - Check for files that might contain:
+     - Production error logs or stack traces
+     - Customer data (names, emails, PHI/PII)
+     - API keys, tokens, passwords, or credentials
+     - Internal system details or architecture
+     - Conversation history with sensitive discussions
+     - Debug artifacts or data exports
+   - Run security check:
+     ```bash
+     # Review what will be committed
+     git status
+     git diff --cached
+
+     # Check for potential secrets in staged files
+     git diff --cached | grep -iE "password|secret|token|api.key|credential" || echo "No obvious secrets found"
+     ```
+   - **If sensitive files found:**
+     - Unstage them: `git reset HEAD <file>`
+     - Add to .gitignore if appropriate
+     - Never commit production data, customer info, or secrets
+   - **Proceed only after verification**
+
+8. **Commit changes to ~/.claude repository** (for clauding sessions):
    - Check git status in ~/.claude
    - If there are changes to configuration files:
      ```bash
@@ -54,6 +78,7 @@ Include PR status in session notes.
      git add .
      git status
      ```
+   - **Run security review (step 7)** before committing
    - Show Hammer what files changed
    - Create commit with descriptive message about what was improved
    - Push to remote if desired
