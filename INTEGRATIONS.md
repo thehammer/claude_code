@@ -2,6 +2,16 @@
 
 This document describes the external services Claude can integrate with and how to use them.
 
+## Quick Reference
+
+**👉 For a complete function catalog with examples, see [`INTEGRATIONS_REFERENCE.md`](INTEGRATIONS_REFERENCE.md)**
+
+The reference file provides:
+- All 89+ functions organized by service
+- Quick lookup tables with usage examples
+- When to use which service (e.g., Bitbucket vs GitHub)
+- Common workflows and troubleshooting
+
 ## Setup
 
 See [`~/.claude/credentials/README.md`](credentials/README.md) for setup instructions.

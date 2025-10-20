@@ -130,12 +130,27 @@ This applies to preferences, session notes, and TODOs.
 
 ## Integration Loading Strategy
 
-**Pre-load only when specified by session type.**
+**IMPORTANT:** When integrations are loaded, you have access to 89+ helper functions for external services (Jira, Bitbucket, GitHub, Slack, Sentry, Datadog, AWS, 1Password, etc.).
 
-Most sessions should load integrations on-demand:
+**Quick Reference:** See `~/.claude/INTEGRATIONS_REFERENCE.md` for:
+- Complete function catalog with examples
+- When to use which service (e.g., Bitbucket vs GitHub for PRs)
+- Common workflows (create PR, debug errors, deploy env vars)
+- Troubleshooting guide
+
+**Loading:**
+- `coding` and `debugging` sessions: Pre-load integrations at session start
+- Other sessions: Load on-demand when needed
+
 ```bash
-# Only when needed during session
+# Load integrations (if not already loaded by session type)
 source ~/.claude/lib/integrations.sh
+```
+
+**Verify availability:**
+```bash
+declare -F | grep -c "bitbucket_\|jira_\|slack_"
+# Should show 30+ functions if loaded
 ```
 
 **Note on permissions**: If you get permission prompts for helper functions, click "Yes, and don't ask again" to persist approvals across sessions. See `~/.claude/PERMISSIONS.md` for recommended pre-approved commands.

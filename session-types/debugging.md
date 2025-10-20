@@ -5,16 +5,27 @@ Investigating errors, troubleshooting production issues, analyzing error pattern
 
 ## Context to Load
 
-### 1. Integration Pre-Loading
-**Load immediately** (debugging relies heavily on these):
+### 1. Load Integrations FIRST
+**CRITICAL:** Load integrations at the very start of the session.
+
 ```bash
 source ~/.claude/lib/integrations.sh
 ```
 
-Integrations available:
-- ✅ **Sentry** - Error tracking and stack traces
-- ✅ **Datadog** - Logs and metrics
-- ✅ **Bitbucket** - For creating fix PRs
+**Why:** Debugging sessions heavily rely on:
+- Sentry (error tracking, stack traces)
+- Datadog (log search, metrics, monitors)
+- Slack (reading error notifications, checking channels)
+- Bitbucket/GitHub (creating fix PRs)
+- Jira (bug ticket creation)
+
+**Verify availability:**
+```bash
+declare -F | grep -c "sentry_\|datadog_\|slack_\|bitbucket_\|github_"
+```
+Should show 40+ functions loaded.
+
+**Quick reference:** See `~/.claude/INTEGRATIONS_REFERENCE.md` for all available functions.
 
 ### 2. Recent Errors (Optional Quick Check)
 Can optionally check for recent errors:
@@ -49,19 +60,21 @@ Read cascading preferences:
 ## Integrations
 
 ### Pre-loaded (Always Available)
-- **Sentry** - sentry_list_issues, sentry_get_issue, sentry_search_issues
-- **Datadog** - datadog_search_logs, datadog_list_monitors, datadog_get_monitor
-- **Bitbucket** - For creating PRs with fixes
+Loaded in step 1, immediately available:
+- ✅ **Sentry** - Error tracking, issue details, event search
+- ✅ **Datadog** - Log search, metrics, monitors, traces
+- ✅ **Slack** - Read error notifications, check channels (use before Datadog for human messages!)
+- ✅ **Jira** - Create bug tickets, link to issues
+- ✅ **Bitbucket/GitHub** - Create fix PRs (detect from git remote)
+- ✅ **Carefeed Helpers** - Branch names, ticket inference
+- ✅ **AWS** - Resource inspection if needed
+- ✅ **Notifications** - Alert user when investigation complete
 
-### Load On-Demand
-- **Jira** - To create bug tickets or link to existing ones
-- **Confluence** - To update runbooks with findings
-- **Slack** - To notify team of critical issues
+**No need to re-load** - All 89 functions available from session start.
 
-### Skip Entirely
-- Recent commits (not relevant to debugging)
-- Open PRs (unless specifically asked)
-- TODO items (focusing on immediate issue)
+**Quick reference:** See `~/.claude/INTEGRATIONS_REFERENCE.md` for function details.
+
+**Important:** When asked about Slack channels, always try `slack_get_channel_messages` first. Only fall back to Datadog for application logs, not human messages.
 
 ## Summary Format
 
