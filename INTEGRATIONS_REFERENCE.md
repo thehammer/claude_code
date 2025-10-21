@@ -142,7 +142,29 @@ list_all_open_prs 10 all    # All users' PRs, limit 10 per repo
 **Common JQL patterns:**
 - `assignee = currentUser() AND status != Done` - My open issues
 - `project = CORE AND created >= -7d` - Recent CORE tickets
-- `status = "In Progress" AND assignee = currentUser()` - My in-progress work
+- `project = CORE` - All CORE tickets
+- Use single quotes for JQL, avoid inner quotes when possible
+
+**Note on JQL syntax:**
+When using `jira_search`, enclose the entire JQL query in single quotes:
+```bash
+# ✅ Works - simple queries
+jira_search 'project = CORE' 10
+jira_search 'project = CORE AND created >= -7d' 20
+
+# ⚠️  Complex operators may have limitations
+# The /search/jql endpoint has simpler functionality than full Jira search
+# For complex queries, use the Jira web interface
+
+# ❌ Avoid quotes in field values
+# Don't use: jira_search 'status = "In Progress"'
+# The function uses REST API v3 /search/jql which returns issue IDs only
+```
+
+**What jira_search returns:**
+- Returns issue IDs only (not full issue details)
+- Use `jira_get_issue <key>` to get full details for specific issues
+- Best for simple project/date-based queries
 
 ---
 
@@ -201,6 +223,8 @@ list_all_open_prs 10 all    # All users' PRs, limit 10 per repo
 
 ## AWS Functions
 
+### Authentication & Configuration
+
 | Function | Purpose | Example |
 |----------|---------|---------|
 | `aws_exec <profile> <command...>` | Run AWS CLI (auto-login) | `aws_exec "prod-developers" s3 ls` |
@@ -219,6 +243,17 @@ list_all_open_prs 10 all    # All users' PRs, limit 10 per repo
 - **Shared Services (851765305742):** `shared-developers`, `shared-readonly`
 
 **Key feature:** `aws_exec` automatically handles SSO login if session expired
+
+### Lambda Functions
+
+| Function | Purpose | Example |
+|----------|---------|---------|
+| `aws_lambda_get_info <profile> <function>` | Get function info | `aws_lambda_get_info "prod-developers" "1password-env-writer"` |
+| `aws_lambda_get_config <profile> <function>` | Get configuration | `aws_lambda_get_config "prod-developers" "1password-env-writer"` |
+| `aws_lambda_get_code_location <profile> <function>` | Get S3 code location | `aws_lambda_get_code_location "prod-developers" "my-function"` |
+| `aws_lambda_fetch_code <profile> <function>` | Download & extract code | `aws_lambda_fetch_code "prod-developers" "my-function"` |
+| `aws_lambda_download_code <profile> <function> <dest>` | Download to specific location | `aws_lambda_download_code "prod-developers" "my-function" "/tmp/code.zip"` |
+| `aws_lambda_extract_code <zip_file> <dest>` | Extract downloaded code | `aws_lambda_extract_code "/tmp/code.zip" "/tmp/lambda-code"` |
 
 ---
 
@@ -242,19 +277,6 @@ list_all_open_prs 10 all    # All users' PRs, limit 10 per repo
 **S3 buckets:**
 - Dev/Staging: `cf-staging-env-files`
 - Production: `cf-production-env-files`
-
----
-
-## AWS Lambda Utilities
-
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `lambda_get_info <profile> <function>` | Get function info | `lambda_get_info "prod-developers" "1password-env-writer"` |
-| `lambda_get_config <profile> <function>` | Get configuration | `lambda_get_config "prod-developers" "1password-env-writer"` |
-| `lambda_get_code_location <profile> <function>` | Get S3 code location | `lambda_get_code_location "prod-developers" "my-function"` |
-| `lambda_fetch_code <profile> <function>` | Download code from S3 | `lambda_fetch_code "prod-developers" "my-function"` |
-| `lambda_download_code <profile> <function> <dest>` | Download to specific location | `lambda_download_code "prod-developers" "my-function" "/tmp/code.zip"` |
-| `lambda_extract_code <zip_file> <dest>` | Extract downloaded code | `lambda_extract_code "/tmp/code.zip" "/tmp/lambda-code"` |
 
 ---
 

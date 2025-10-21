@@ -2540,21 +2540,21 @@ function aws_status() {
 }
 
 # ==============================================================================
-# Helper Functions - AWS Lambda
+# AWS Lambda Functions
 # ==============================================================================
 
 # Get Lambda function configuration
-# Usage: lambda_get_config "prod-developers" "1password-env-writer"
-function lambda_get_config() {
+# Usage: aws_lambda_get_config "prod-developers" "1password-env-writer"
+function aws_lambda_get_config() {
     local aws_profile="$1"
     local function_name="$2"
 
     if [ -z "$aws_profile" ] || [ -z "$function_name" ]; then
         echo "❌ Error: Missing required arguments"
-        echo "Usage: lambda_get_config <aws-profile> <function-name>"
+        echo "Usage: aws_lambda_get_config <aws-profile> <function-name>"
         echo ""
         echo "Examples:"
-        echo "  lambda_get_config prod-developers 1password-env-writer"
+        echo "  aws_lambda_get_config prod-developers 1password-env-writer"
         return 1
     fi
 
@@ -2566,14 +2566,14 @@ function lambda_get_config() {
 }
 
 # Get Lambda function code location (S3 or URL)
-# Usage: lambda_get_code_location "prod-developers" "1password-env-writer"
-function lambda_get_code_location() {
+# Usage: aws_lambda_get_code_location "prod-developers" "1password-env-writer"
+function aws_lambda_get_code_location() {
     local aws_profile="$1"
     local function_name="$2"
 
     if [ -z "$aws_profile" ] || [ -z "$function_name" ]; then
         echo "❌ Error: Missing required arguments"
-        echo "Usage: lambda_get_code_location <aws-profile> <function-name>"
+        echo "Usage: aws_lambda_get_code_location <aws-profile> <function-name>"
         return 1
     fi
 
@@ -2586,18 +2586,18 @@ function lambda_get_code_location() {
 }
 
 # Download Lambda function code
-# Usage: lambda_download_code "prod-developers" "1password-env-writer" "./lambda-code.zip"
-function lambda_download_code() {
+# Usage: aws_lambda_download_code "prod-developers" "1password-env-writer" "./lambda-code.zip"
+function aws_lambda_download_code() {
     local aws_profile="$1"
     local function_name="$2"
     local output_file="${3:-./lambda-code.zip}"
 
     if [ -z "$aws_profile" ] || [ -z "$function_name" ]; then
         echo "❌ Error: Missing required arguments"
-        echo "Usage: lambda_download_code <aws-profile> <function-name> [output-file]"
+        echo "Usage: aws_lambda_download_code <aws-profile> <function-name> [output-file]"
         echo ""
         echo "Examples:"
-        echo "  lambda_download_code prod-developers 1password-env-writer ./code.zip"
+        echo "  aws_lambda_download_code prod-developers 1password-env-writer ./code.zip"
         return 1
     fi
 
@@ -2632,14 +2632,14 @@ function lambda_download_code() {
 }
 
 # Extract Lambda code to directory
-# Usage: lambda_extract_code "lambda-code.zip" "./lambda-extracted"
-function lambda_extract_code() {
+# Usage: aws_lambda_extract_code "lambda-code.zip" "./lambda-extracted"
+function aws_lambda_extract_code() {
     local zip_file="$1"
     local output_dir="${2:-./lambda-extracted}"
 
     if [ -z "$zip_file" ]; then
         echo "❌ Error: Missing zip file argument"
-        echo "Usage: lambda_extract_code <zip-file> [output-dir]"
+        echo "Usage: aws_lambda_extract_code <zip-file> [output-dir]"
         return 1
     fi
 
@@ -2668,14 +2668,14 @@ function lambda_extract_code() {
 }
 
 # Get Lambda function info (full details)
-# Usage: lambda_get_info "prod-developers" "1password-env-writer"
-function lambda_get_info() {
+# Usage: aws_lambda_get_info "prod-developers" "1password-env-writer"
+function aws_lambda_get_info() {
     local aws_profile="$1"
     local function_name="$2"
 
     if [ -z "$aws_profile" ] || [ -z "$function_name" ]; then
         echo "❌ Error: Missing required arguments"
-        echo "Usage: lambda_get_info <aws-profile> <function-name>"
+        echo "Usage: aws_lambda_get_info <aws-profile> <function-name>"
         return 1
     fi
 
@@ -2689,18 +2689,18 @@ function lambda_get_info() {
 }
 
 # Download and extract Lambda code in one step
-# Usage: lambda_fetch_code "prod-developers" "1password-env-writer" "./1pass-lambda"
-function lambda_fetch_code() {
+# Usage: aws_lambda_fetch_code "prod-developers" "1password-env-writer" "./1pass-lambda"
+function aws_lambda_fetch_code() {
     local aws_profile="$1"
     local function_name="$2"
     local output_dir="${3:-./lambda-code}"
 
     if [ -z "$aws_profile" ] || [ -z "$function_name" ]; then
         echo "❌ Error: Missing required arguments"
-        echo "Usage: lambda_fetch_code <aws-profile> <function-name> [output-dir]"
+        echo "Usage: aws_lambda_fetch_code <aws-profile> <function-name> [output-dir]"
         echo ""
         echo "Examples:"
-        echo "  lambda_fetch_code prod-developers 1password-env-writer ./1pass-lambda"
+        echo "  aws_lambda_fetch_code prod-developers 1password-env-writer ./1pass-lambda"
         return 1
     fi
 
@@ -2710,14 +2710,14 @@ function lambda_fetch_code() {
     echo ""
 
     # Download the code
-    if ! lambda_download_code "$aws_profile" "$function_name" "$zip_file"; then
+    if ! aws_lambda_download_code "$aws_profile" "$function_name" "$zip_file"; then
         return 1
     fi
 
     echo ""
 
     # Extract the code
-    if ! lambda_extract_code "$zip_file" "$output_dir"; then
+    if ! aws_lambda_extract_code "$zip_file" "$output_dir"; then
         return 1
     fi
 
