@@ -146,17 +146,18 @@ list_all_open_prs 10 all    # All users' PRs, limit 10 per repo
 
 | Function | Purpose | Example |
 |----------|---------|---------|
-| `sentry_list_production_issues` | List prod errors (pre-filtered) | `sentry_list_production_issues` |
+| `sentry_list_production_issues <org> <project>` | List prod errors | `sentry_list_production_issues "carefeed" "portal"` |
 | `sentry_get_issue <org> <project> <id>` | Get error details | `sentry_get_issue "carefeed" "portal" "12345"` |
 | `sentry_get_issue_events <org> <project> <id>` | Get event data | `sentry_get_issue_events "carefeed" "portal" "12345"` |
 | `sentry_search_issues <org> <query>` | Search errors | `sentry_search_issues "carefeed" "DateTimeImmutable"` |
-| `sentry_search_events <org> <query>` | Search event data | `sentry_search_events "carefeed" "error"` |
 | `sentry_list_orgs` | List organizations | `sentry_list_orgs` |
 | `sentry_list_projects <org>` | List projects | `sentry_list_projects "carefeed"` |
 | `sentry_list_issues <org> <project> [query]` | List issues with filter | `sentry_list_issues "carefeed" "portal" "is:unresolved"` |
 
+**Note:** `sentry_search_events` function exists but requires complex parameters - not documented in quick reference.
+
 **Typical workflow:**
-1. Start with `sentry_list_production_issues` for overview
+1. Start with `sentry_list_production_issues "carefeed" "portal"` for overview
 2. Use `sentry_get_issue` for specific error details
 3. Correlate with Datadog logs for full context
 
@@ -168,7 +169,7 @@ list_all_open_prs 10 all    # All users' PRs, limit 10 per repo
 |----------|---------|---------|
 | `datadog_search_logs <query> [time]` | Search logs | `datadog_search_logs "status:error service:/ecs/portal_dev" "1h"` |
 | `datadog_search_logs_chunked <query> <time> [chunk_mins]` | Paginated search | `datadog_search_logs_chunked "service:/ecs/portal_dev" "6h" 30` |
-| `datadog_collect_logs_bulk <query> <time>` | Bulk collection | `datadog_collect_logs_bulk "service:/ecs/portal_dev" "3h"` |
+| `datadog_collect_logs_bulk <query> <time> <output_dir>` | Bulk collection | `datadog_collect_logs_bulk "service:/ecs/portal_dev" "3h" "./logs"` |
 | `datadog_search_traces <query> [time]` | Search traces | `datadog_search_traces "service:portal" "1h"` |
 | `datadog_list_monitors` | List monitors | `datadog_list_monitors` |
 | `datadog_get_monitor <id>` | Get monitor details | `datadog_get_monitor "12345"` |
