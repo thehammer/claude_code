@@ -106,10 +106,11 @@ list_all_open_prs 10 all    # All users' PRs, limit 10 per repo
 | `slack_get_channel_messages <channel_id> [limit]` | Read channel messages | `slack_get_channel_messages "C123ABC" 50` |
 | `slack_find_channel <name>` | Get channel ID by name | `slack_find_channel "production"` |
 | `slack_list_conversations` | List all channels | `slack_list_conversations` |
+| `slack_get_user_info <user_id>` | Get user information | `slack_get_user_info "U01234ABCDE"` |
+| `slack_search_messages <query> [count]` | Search messages | `slack_search_messages "error in:#production"` |
+| `slack_get_history <channel_id> [limit]` | Get channel history | `slack_get_history "C123ABC" 100` |
 | `slack_post_message <channel> <message>` | Post to channel | `slack_post_message "#production" "Deploy complete"` |
 | `slack_send_dm <user_id> <message>` | Send DM (needs im:write scope) | `slack_send_dm "U123" "Done!"` |
-| `slack_search_messages <query>` | Search messages | `slack_search_messages "error timeout"` |
-| `slack_get_history <channel_id> [limit]` | Get channel history | `slack_get_history "C123ABC" 100` |
 
 **Workflow for reading channel:**
 1. Use `slack_find_channel "channel-name"` to get channel ID
@@ -124,10 +125,13 @@ list_all_open_prs 10 all    # All users' PRs, limit 10 per repo
 
 | Function | Purpose | Example |
 |----------|---------|---------|
-| `jira_create_issue <project> <type> <summary> <desc> <priority> <component> <env>` | Create ticket | `jira_create_issue "CORE" "Bug" "Fix thing" "Details" "P2" "Portal" "Production "` |
 | `jira_get_issue <key>` | Get issue details | `jira_get_issue "CORE-1234"` |
 | `jira_search <jql> [max]` | Search with JQL | `jira_search "assignee=currentUser() AND status!=Done" 20` |
 | `jira_whoami` | Get current user | `jira_whoami` |
+| `jira_list_projects` | List all projects | `jira_list_projects` |
+| `jira_list_issue_types` | List all issue types | `jira_list_issue_types` |
+| `jira_get_transitions <key>` | Get available transitions | `jira_get_transitions "CORE-1234"` |
+| `jira_create_issue <project> <type> <summary> <desc> <priority> <component> <env>` | Create ticket | `jira_create_issue "CORE" "Bug" "Fix thing" "Details" "P2" "Portal" "Production "` |
 
 **Note on jira_create_issue:**
 - Environment field values have **trailing spaces** (Jira quirk): `"Production "` not `"Production"`
