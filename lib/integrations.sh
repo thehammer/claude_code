@@ -148,6 +148,53 @@ function jira_create_issue() {
         "https://carefeed.atlassian.net/rest/api/3/issue"
 }
 
+# List all projects
+# Usage: jira_list_projects
+function jira_list_projects() {
+    if ! jira_is_configured; then
+        echo "Error: Jira credentials not configured"
+        return 1
+    fi
+
+    curl -s -u "${ATLASSIAN_EMAIL}:${ATLASSIAN_API_TOKEN}" \
+        -H "Accept: application/json" \
+        "https://carefeed.atlassian.net/rest/api/3/project"
+}
+
+# List all issue types
+# Usage: jira_list_issue_types
+function jira_list_issue_types() {
+    if ! jira_is_configured; then
+        echo "Error: Jira credentials not configured"
+        return 1
+    fi
+
+    curl -s -u "${ATLASSIAN_EMAIL}:${ATLASSIAN_API_TOKEN}" \
+        -H "Accept: application/json" \
+        "https://carefeed.atlassian.net/rest/api/3/issuetype"
+}
+
+# Get available transitions for an issue
+# Usage: jira_get_transitions "CORE-1234"
+function jira_get_transitions() {
+    local issue_key=$1
+
+    if [ -z "$issue_key" ]; then
+        echo "Usage: jira_get_transitions <issue-key>"
+        echo "Example: jira_get_transitions CORE-1234"
+        return 1
+    fi
+
+    if ! jira_is_configured; then
+        echo "Error: Jira credentials not configured"
+        return 1
+    fi
+
+    curl -s -u "${ATLASSIAN_EMAIL}:${ATLASSIAN_API_TOKEN}" \
+        -H "Accept: application/json" \
+        "https://carefeed.atlassian.net/rest/api/3/issue/${issue_key}/transitions"
+}
+
 # ==============================================================================
 # Helper Functions - Confluence
 # ==============================================================================
@@ -1789,6 +1836,27 @@ function slack_search_messages() {
         -d "count=${count}" \
         -d "page=${page}" \
         -d "highlight=true"
+}
+
+# Get user information
+# Usage: slack_get_user_info <user_id>
+function slack_get_user_info() {
+    local user_id=$1
+
+    if [ -z "$user_id" ]; then
+        echo "Usage: slack_get_user_info <user_id>"
+        echo "Example: slack_get_user_info U01234ABCDE"
+        return 1
+    fi
+
+    if ! slack_is_configured; then
+        echo "Error: Slack credentials not configured"
+        return 1
+    fi
+
+    curl -s -X GET "https://slack.com/api/users.info" \
+        -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+        -d "user=${user_id}"
 }
 
 # Find channel ID by name
