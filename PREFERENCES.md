@@ -9,10 +9,10 @@
 - **Timezone**: America/Chicago (Central Time) - Use CT for all time displays
 
 ## Notifications
-- **Slack User ID**: (Pending - need im:write scope on hammers_app bot)
-- **Slack Notification Channel**: #local-testing (temporary until DMs work)
-- **Preferred notification method**: Slack DM (once im:write scope added)
-- **Current method**: Slack channel or macOS notification
+- **Slack User ID**: U09EKM8DKQ8 (Hammer - validated working)
+- **Slack Notification Channel**: #local-testing (fallback)
+- **Preferred notification method**: Slack DM (working via slack_send_dm)
+- **Current method**: Slack DM
 - **Fallback**: macOS notification
 - **When to notify**:
   - Tasks taking longer than 5 minutes

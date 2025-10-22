@@ -261,18 +261,20 @@ jira_search 'project = CORE AND created >= -7d' 20
 
 | Function | Purpose | Example |
 |----------|---------|---------|
-| `onepass_view_env <profile> <file>` | View env file | `onepass_view_env "nonprod-developers" "portal.env"` |
-| `onepass_download_env <profile> <file>` | Download env file | `onepass_download_env "nonprod-developers" "portal.env"` |
-| `onepass_check_env <profile> <file>` | Check metadata | `onepass_check_env "nonprod-developers" "portal.env"` |
-| `onepass_list_env_files <profile>` | List all env files | `onepass_list_env_files "nonprod-developers"` |
-| `onepass_deploy_env <profile> <config>` | Deploy single config | `onepass_deploy_env "nonprod-developers" "admin-portal-dev"` |
-| `onepass_deploy_all_dev` | Deploy all dev configs | `onepass_deploy_all_dev` |
-| `onepass_deploy_all_prod` | Deploy prod (requires confirmation) | `onepass_deploy_all_prod` |
+| `onepass_view_env <profile> <file>` | View env file from S3 | `onepass_view_env "nonprod-developers" "portal.env"` |
+| `onepass_download_env <profile> <file> [output]` | Download env file from S3 | `onepass_download_env "nonprod-developers" "portal.env" ".env.staging"` |
+| `onepass_check_env <profile> <file>` | Check if file exists + metadata | `onepass_check_env "nonprod-developers" "portal.env"` |
+| `onepass_list_env_files <profile>` | List all env files in S3 | `onepass_list_env_files "nonprod-developers"` |
 
-**How it works:**
-1. Env vars stored in 1Password (Login entries with tags)
-2. Lambda reads from 1Password → writes to S3
-3. ECS containers load `.env` files from S3 at startup
+**What these functions do:**
+- Read-only access to environment files stored in S3
+- Help you inspect configuration without downloading full files
+- Useful for debugging and validation
+
+**What these functions DON'T do:**
+- Do NOT deploy or modify infrastructure
+- Do NOT write to S3 or update Lambda functions
+- Deployment handled by your normal CI/CD process
 
 **S3 buckets:**
 - Dev/Staging: `cf-staging-env-files`
