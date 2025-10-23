@@ -1,5 +1,6 @@
-# Dockerfile for Carefeed-customized Jira MCP Server
-# Built from local development directory with transitions tools added
+# Dockerfile for Carefeed Jira MCP Server
+# Built from Carefeed fork: github.com/Carefeed/mcp-server-atlassian-jira
+# Includes custom workflow transition tools
 # Runs in HTTP mode for remote connections
 
 FROM node:20-alpine
@@ -9,11 +10,17 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Copy scripts for postinstall
+COPY scripts ./scripts
+
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --only=production --ignore-scripts
 
 # Copy built JavaScript files (assumes you've run npm run build)
 COPY dist ./dist
+
+# Make dist/index.js executable
+RUN chmod +x dist/index.js
 
 # Set environment variables (can be overridden by docker-compose)
 ENV TRANSPORT_MODE=http
