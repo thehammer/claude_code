@@ -9,20 +9,21 @@ Building features, fixing bugs, implementing functionality, refactoring code.
 **CRITICAL:** Load integrations at the very start of the session.
 
 ```bash
-source ~/.claude/lib/integrations.sh
+source ~/.claude/lib/core/loader.sh coding
 ```
 
 **Why:** Coding sessions frequently need:
-- Jira (ticket creation, reading requirements)
+- Jira MCP tools (ticket management)
 - Bitbucket/GitHub (PR creation, pipeline checks)
 - Slack (notifications)
 - Carefeed helpers (branch names, commit messages)
+- AWS, 1Password (deployment tools)
 
 **Verify availability:**
 ```bash
-declare -F | grep -c "bitbucket_\|jira_\|slack_\|github_\|carefeed_"
+declare -F | grep -c "bitbucket_\|slack_\|github_\|carefeed_\|aws_"
 ```
-Should show 30+ functions loaded.
+Should show 70+ functions loaded.
 
 **Quick reference:** See `~/.claude/INTEGRATIONS_REFERENCE.md` for all available functions.
 
@@ -69,8 +70,8 @@ Check `.claude/todos/features.md` or `.claude/TODO.md` for planned work
 ## Integrations
 
 ### Pre-loaded (Always Available)
-Loaded in step 1, immediately available:
-- ✅ **Jira** - Create tickets, read requirements
+Loaded in step 1 via modular loader, immediately available:
+- ✅ **Jira MCP** - MCP tools for ticket management
 - ✅ **Bitbucket** - Create PRs, check pipelines (for Bitbucket repos)
 - ✅ **GitHub** - Create PRs, check Actions (for GitHub repos)
 - ✅ **Slack** - Post notifications
@@ -81,7 +82,7 @@ Loaded in step 1, immediately available:
 - ✅ **Datadog** - Log search, monitoring
 - ✅ **Notifications** - Smart user notifications
 
-**No need to re-load** - All 89 functions available from session start.
+**No need to re-load** - All functions available from session start via smart loader.
 
 **Quick reference:** See `~/.claude/INTEGRATIONS_REFERENCE.md` for function details.
 

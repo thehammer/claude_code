@@ -9,7 +9,7 @@ Investigating errors, troubleshooting production issues, analyzing error pattern
 **CRITICAL:** Load integrations at the very start of the session.
 
 ```bash
-source ~/.claude/lib/integrations.sh
+source ~/.claude/lib/core/loader.sh debugging
 ```
 
 **Why:** Debugging sessions heavily rely on:

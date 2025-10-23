@@ -30,7 +30,7 @@ Check `~/.claude/IDEAS.md` for:
 
 ### 4. Integration Status
 ```bash
-source ~/.claude/lib/integrations.sh
+source ~/.claude/lib/core/loader.sh clauding
 ls -l ~/.claude/lib/
 ls -l ~/.claude/credentials/
 ```
@@ -99,7 +99,7 @@ Then ask: "What would you like to improve?" with options:
 
 2b. **Create New Helper:**
    - Identify repeated patterns or complex inline code
-   - Write helper function in `~/.claude/lib/integrations.sh` (or new file if large)
+   - Write helper function in appropriate `~/.claude/lib/` category file
    - Add error handling and input validation
    - Document parameters and return values in comments
    - Test with various inputs
