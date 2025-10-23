@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Claude Code Helper Script
+set -eo pipefail
+
+LIB_DIR="$HOME/.claude/lib"
+
+source "$LIB_DIR/core/credentials.sh"
+source "$LIB_DIR/services/mcp-candidates/bitbucket.sh"
+source "$LIB_DIR/services/mcp-candidates/github.sh"
+source "$LIB_DIR/core/utilities.sh"
+
+list_all_open_prs "$@"

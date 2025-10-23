@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Claude Code Helper Script
+set -eo pipefail
+
+LIB_DIR="$HOME/.claude/lib"
+
+source "$LIB_DIR/local/study-tracker.sh"
+
+study_init "$@"

@@ -80,9 +80,12 @@ sentry_search_events() {
         return 1
     fi
 
+    # Function incomplete - needs implementation
+    echo "Note: sentry_search_events function is incomplete"
+}
 
 # ==============================================================================
-# Notification Utilities  
+# Notification Utilities
 # ==============================================================================
 
 function macos_notify() {
@@ -119,6 +122,7 @@ function notify_user() {
     # Ultimate fallback: terminal bell
     echo -e "\a"
     echo "$task - $status"
+}
 
 # ==============================================================================
 # Integration Status
@@ -200,8 +204,15 @@ function list_all_open_prs() {
             local result=$(bitbucket_list_prs "$repo" "OPEN" "$limit" 2>/dev/null)
 
             if [ "$show_all" != "all" ]; then
-                # Filter to only PRs by current user (Hammer)
-                result=$(echo "$result" | jq '{values: [.values[]? | select(.author.display_name == "Hammer")]}' 2>/dev/null)
+                # Filter to only PRs by current user
+                # Use UUID if configured (most accurate), otherwise fall back to display_name
+                if [ -n "$BITBUCKET_USER_UUID" ]; then
+                    result=$(echo "$result" | jq --arg uuid "$BITBUCKET_USER_UUID" '{values: [.values[]? | select(.author.uuid == $uuid)]}' 2>/dev/null)
+                else
+                    # Fallback: filter by display name (less reliable, requires display_name to be set)
+                    local display_name="${BITBUCKET_DISPLAY_NAME:-Hammer}"
+                    result=$(echo "$result" | jq --arg name "$display_name" '{values: [.values[]? | select(.author.display_name == $name)]}' 2>/dev/null)
+                fi
             fi
 
             local count=$(echo "$result" | jq -r '.values | length' 2>/dev/null || echo "0")
@@ -209,10 +220,14 @@ function list_all_open_prs() {
             if [ "$count" -gt 0 ] 2>/dev/null; then
                 if [ "$show_all" = "all" ]; then
                     echo "🔵 Bitbucket: $repo ($count open PRs)"
-                    echo "$result" | jq -r '.values[] | "  PR #\(.id): \(.title) (by \(.author.display_name))"'
+                    echo "$result" | jq -r '.values[] | "  PR #\(.id): \(.title) (by \(.author.display_name))" + if .draft then " [DRAFT]" else "" end'
                 else
-                    echo "🔵 Bitbucket: $repo ($count open PRs)"
-                    echo "$result" | jq -r '.values[] | "  PR #\(.id): \(.title)"'
+                    # Count draft vs open
+                    local draft_count=$(echo "$result" | jq '[.values[] | select(.draft == true)] | length')
+                    local open_count=$(echo "$result" | jq '[.values[] | select(.draft == false)] | length')
+
+                    echo "🔵 Bitbucket: $repo ($open_count open, $draft_count draft)"
+                    echo "$result" | jq -r '.values[] | "  PR #\(.id): \(.title)" + if .draft then " [DRAFT]" else "" end'
                 fi
                 echo ""
                 found_any=true
@@ -234,9 +249,4 @@ function list_all_open_prs() {
             echo "You have no open pull requests across all repositories."
         fi
     fi
-}
-
-
-# Ensure proper closing
-}
 }

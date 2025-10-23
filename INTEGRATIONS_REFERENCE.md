@@ -1,27 +1,63 @@
-# Integration Functions Quick Reference
+# Integration Scripts Quick Reference
 
-**Location:** `~/.claude/lib/integrations.sh`
-**Load with:** `source ~/.claude/lib/integrations.sh`
+**Location:** `~/.claude/bin/`
+**Architecture:** Standalone scripts (no sourcing required!)
+**Total Scripts:** 97 across 8 services + utilities
 
-## When to Use Integrations
+## Quick Start
 
-- ✅ **Creating/reading Jira tickets** → Use `jira_*` functions
-- ✅ **Creating/reading PRs** → Use `bitbucket_*` or `github_*` functions (detect from git remote)
-- ✅ **Posting to Slack** → Use `slack_*` functions
-- ✅ **Searching logs/errors** → Use `datadog_*` or `sentry_*` functions
-- ✅ **AWS operations** → Use `aws_*` functions
-- ✅ **Env var deployment** → Use `onepass_*` functions
-- ✅ **Carefeed conventions** → Use `carefeed_*` helper functions
+All integration functions are now **standalone scripts**. Just call them directly:
+
+```bash
+# List your open PRs
+~/.claude/bin/utilities/list-all-open-prs 10
+
+# Create a PR
+~/.claude/bin/services/bitbucket/create-pr "feature/branch" "master" "Title" "Description"
+
+# Search logs
+~/.claude/bin/services/datadog/search-logs "status:error" "1h"
+
+# Send Slack message
+~/.claude/bin/services/slack/post-message "general" "Hello!"
+```
+
+**No need to source anything** - each script loads only its dependencies.
 
 ---
 
-## Pull Request Functions (IMPORTANT!)
+## Complete Catalog
+
+See [~/.claude/bin/README.md](~/.claude/bin/README.md) for comprehensive documentation.
+
+**Quick navigation:**
+```bash
+ls ~/.claude/bin/services/        # List all services
+ls ~/.claude/bin/services/bitbucket/   # List Bitbucket scripts
+ls ~/.claude/bin/carefeed/        # List Carefeed helpers
+```
+
+---
+
+## When to Use Integrations
+
+- ✅ **Creating/reading Jira tickets** → Use Jira MCP tools
+- ✅ **Creating/reading PRs** → Use `services/bitbucket/*` or `services/github/*` scripts
+- ✅ **Posting to Slack** → Use `services/slack/*` scripts
+- ✅ **Searching logs/errors** → Use `services/datadog/*` or `services/sentry/*` scripts
+- ✅ **AWS operations** → Use `services/aws/*` scripts
+- ✅ **Env var deployment** → Use `services/onepassword/*` scripts
+- ✅ **Carefeed conventions** → Use `carefeed/*` helper scripts
+
+---
+
+## Pull Request Scripts (IMPORTANT!)
 
 **CRITICAL:** Different Carefeed projects use different Git hosting:
 - **Check git remote origin** to determine which service to use
-- **Bitbucket repos:** `Bitbucketpassword1/*` → Use `bitbucket_*` functions
-- **GitHub repos:** `github.com/*` → Use `github_*` functions
-- **NEVER suggest opening browser** - Always use API functions
+- **Bitbucket repos:** `Bitbucketpassword1/*` → Use `services/bitbucket/*` scripts
+- **GitHub repos:** `github.com/*` → Use `services/github/*` scripts
+- **NEVER suggest opening browser** - Always use API scripts
 
 ### Detecting PR Service
 
@@ -29,396 +65,333 @@
 # Check which service hosts this repo
 git remote get-url origin
 
-# If contains "bitbucket" or "Bitbucketpassword1" → Use bitbucket_create_pr
-# If contains "github.com" → Use github_create_pr
+# If contains "bitbucket" or "Bitbucketpassword1" → Use services/bitbucket/*
+# If contains "github.com" → Use services/github/*
 ```
 
-### Bitbucket Functions
+### Bitbucket Scripts (9 scripts)
 
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `bitbucket_list_prs [repo] [state] [limit]` | List PRs (auto-detects repo) | `bitbucket_list_prs "" "OPEN" 10` |
-| `bitbucket_create_pr <source> <dest> <title> <description>` | Create PR via API | `bitbucket_create_pr "feature/CORE-1234" "master" "Title" "$(carefeed_pr_description CORE-1234)"` |
-| `bitbucket_get_pr <pr_id>` | Get PR details | `bitbucket_get_pr 1234` |
-| `bitbucket_get_pr_comments <pr_id>` | Read PR comments | `bitbucket_get_pr_comments 1234` |
-| `bitbucket_update_pr <pr_id> <title> [description]` | Update PR | `bitbucket_update_pr 1234 "New title" "New desc"` |
-| `bitbucket_get_pipeline <repo> <pipeline_id>` | Check pipeline status | `bitbucket_get_pipeline "portal_dev" 13906` |
-| `bitbucket_get_step_url [repo] <pipeline_id> [step_pattern]` | Get pipeline step URLs | `bitbucket_get_step_url 13906` or `bitbucket_get_step_url "portal_dev" 13906 "PHP Test"` |
-| `bitbucket_get_pipeline_logs [repo] <pipeline_id>` | Alias for get_step_url | `bitbucket_get_pipeline_logs 13906` |
-| `list_all_open_prs [limit] [show_all]` | **List YOUR open PRs across ALL repos** | `list_all_open_prs 10` |
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `list-prs <repo> <state> [limit]` | List PRs (auto-detects repo) | `list-prs "" "OPEN" 10` |
+| `create-pr <source> <dest> <title> <desc>` | Create PR via API | `create-pr "feature/CORE-1234" "master" "Title" "Description"` |
+| `get-pr <pr_id>` | Get PR details | `get-pr 1234` |
+| `get-pr-comments <pr_id>` | Read PR comments | `get-pr-comments 1234` |
+| `update-pr <pr_id> <title> [desc]` | Update PR | `update-pr 1234 "New title" "New desc"` |
+| `get-pipeline <repo> <pipeline_id>` | Check pipeline status | `get-pipeline "portal_dev" 13906` |
+| `get-step-url <pipeline_id> [step]` | Get pipeline step URLs | `get-step-url 13906 "PHP Test"` |
+| `get-pipeline-logs <pipeline_id>` | Alias for get-step-url | `get-pipeline-logs 13906` |
+| `is-configured` | Check if credentials are set | `is-configured` |
 
-**Note on bitbucket_list_prs:**
-- All parameters are optional
-- Auto-detects repo from git remote if not specified
-- State: "OPEN", "MERGED", "DECLINED", "SUPERSEDED" (default: all)
-- Limit: Max results (default: 50)
-
-**Note on pipeline functions:**
-- `bitbucket_get_pipeline` requires explicit repo name
-- `bitbucket_get_step_url` auto-detects repo from git remote if only pipeline_id provided
-- `bitbucket_get_step_url` can accept explicit repo: `bitbucket_get_step_url "portal_dev" 13906 "PHP Test"`
-- Pipeline steps may not be available for old/expired pipelines
-- These functions work best with recent pipeline runs (within last 30 days)
+**Full paths:**
+```bash
+~/.claude/bin/services/bitbucket/list-prs "" "OPEN" 10
+~/.claude/bin/services/bitbucket/create-pr "feature/branch" "master" "Title" "Desc"
+```
 
 **Examples:**
 ```bash
-bitbucket_list_prs                     # Auto-detect repo, all states, 50 results
-bitbucket_list_prs "" "OPEN"           # Auto-detect repo, only open PRs
-bitbucket_list_prs "" "OPEN" 10        # Auto-detect repo, open PRs, limit 10
-bitbucket_list_prs "portal_dev"        # Specific repo, all states
-bitbucket_list_prs "portal_dev" "OPEN" 5  # All params specified
+cd ~/.claude/bin/services/bitbucket
+
+./list-prs                     # Auto-detect repo, all states, default limit
+./list-prs "" "OPEN"           # Auto-detect repo, only open PRs
+./list-prs "" "OPEN" 10        # Auto-detect repo, open PRs, limit 10
+./list-prs "portal_dev"        # Specific repo, all states
+./list-prs "portal_dev" "OPEN" 5  # All params specified
 ```
 
-**Note on list_all_open_prs:**
-- **By default, shows only YOUR PRs** (filtered by "Hammer")
+### GitHub Scripts (9 scripts)
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `create-pr <source> <dest> <title> <desc>` | Create PR via API | `create-pr "feature/add-auth" "main" "Title" "Desc"` |
+| `list-prs [state] [limit]` | List PRs | `list-prs "open" 10` |
+| `get-pr <pr_number>` | Get PR details | `get-pr 42` |
+| `get-pr-comments <pr_number>` | Read PR comments | `get-pr-comments 42` |
+| `get-pr-reviews <pr_number>` | Get review status | `get-pr-reviews 42` |
+| `update-pr <pr_number> <title> <body>` | Update PR | `update-pr 42 "New title" "New body"` |
+| `list-repos` | List repositories | `list-repos` |
+| `whoami` | Get current GitHub user | `whoami` |
+| `is-configured` | Check if credentials are set | `is-configured` |
+
+**Full paths:**
+```bash
+~/.claude/bin/services/github/create-pr "feature/branch" "main" "Title" "Desc"
+~/.claude/bin/services/github/list-prs "open" 10
+```
+
+---
+
+## Slack Scripts (12 scripts)
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `post-message <channel> <text>` | Post to channel | `post-message "general" "Hello!"` |
+| `send-dm <user_id> <text>` | Send direct message | `send-dm "U12345" "Hi there"` |
+| `get-channel-messages <channel> [limit]` | Get recent messages | `get-channel-messages "general" 50` |
+| `find-channel <name>` | Find channel ID by name | `find-channel "engineering"` |
+| `get-history <channel_id> [limit]` | Get channel history | `get-history "C12345" 100` |
+| `search-messages <query> [count]` | Search all messages | `search-messages "error" 50` |
+| `get-user-info <user_id>` | Get user details | `get-user-info "U12345"` |
+| `list-conversations [types]` | List channels/DMs | `list-conversations "public_channel"` |
+| `notify-completion <task> [duration]` | Send completion notice | `notify-completion "deploy" "5m"` |
+| `notify-progress <task> <status>` | Send progress update | `notify-progress "build" "running tests"` |
+| `whoami` | Get current Slack user | `whoami` |
+| `is-configured` | Check if credentials are set | `is-configured` |
+
+**Full paths:**
+```bash
+~/.claude/bin/services/slack/post-message "general" "Deployment complete!"
+~/.claude/bin/services/slack/send-dm "U12345" "PR ready for review"
+```
+
+**Important:** When asked about Slack channels, ALWAYS try `get-channel-messages` first. Only fall back to Datadog for application logs, not human messages.
+
+---
+
+## Sentry Scripts (9 scripts)
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `list-issues <org> <project> <query> [limit]` | List issues | `list-issues carefeed portal_dev "is:unresolved" 10` |
+| `get-issue <issue_id>` | Get issue details | `get-issue PORTAL-1ABC` |
+| `get-issue-events <issue_id> [limit]` | Get events for issue | `get-issue-events PORTAL-1ABC 50` |
+| `search-issues <org> <project> <query>` | Search issues | `search-issues carefeed portal_dev "error:timeout"` |
+| `list-production-issues <org> <project>` | List unresolved prod issues | `list-production-issues carefeed portal_dev` |
+| `list-projects <org>` | List projects in org | `list-projects carefeed` |
+| `list-orgs` | List organizations | `list-orgs` |
+| `whoami` | Get current Sentry user | `whoami` |
+| `is-configured` | Check if credentials are set | `is-configured` |
+
+**Full paths:**
+```bash
+~/.claude/bin/services/sentry/list-issues carefeed portal_dev "is:unresolved" 10
+~/.claude/bin/services/sentry/get-issue PORTAL-1ABC
+```
+
+---
+
+## Datadog Scripts (16 scripts)
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `search-logs <query> <time_range>` | Search logs | `search-logs "status:error service:portal_dev" "1h"` |
+| `search-logs-paginated <query> <from> <to>` | Paginated search | `search-logs-paginated "error" "now-1d" "now"` |
+| `collect-logs-bulk <query> <from> <to>` | Bulk collect logs | `collect-logs-bulk "status:error" "now-24h" "now"` |
+| `get-metrics <query> <from> <to>` | Query metrics | `get-metrics "avg:system.cpu.user" "now-1h" "now"` |
+| `list-monitors [query]` | List monitors | `list-monitors "tag:production"` |
+| `get-monitor <monitor_id>` | Get monitor details | `get-monitor 12345` |
+| `search-traces <query> <from> <to>` | Search APM traces | `search-traces "service:api" "now-1h" "now"` |
+| `list-dashboards` | List dashboards | `list-dashboards` |
+| `get-dashboard <dashboard_id>` | Get dashboard | `get-dashboard "abc-123"` |
+| `create-dashboard <title> <widgets>` | Create dashboard | `create-dashboard "My Dashboard" "{...}"` |
+| `update-dashboard <id> <title> <widgets>` | Update dashboard | `update-dashboard "abc-123" "New Title" "{...}"` |
+| `delete-dashboard <dashboard_id>` | Delete dashboard | `delete-dashboard "abc-123"` |
+| `search-dashboards <query>` | Search dashboards | `search-dashboards "production"` |
+| `export-dashboard <dashboard_id>` | Export as JSON | `export-dashboard "abc-123"` |
+| `validate` | Test API connection | `validate` |
+| `is-configured` | Check if credentials are set | `is-configured` |
+
+**Full paths:**
+```bash
+~/.claude/bin/services/datadog/search-logs "status:error service:/ecs/portal_dev" "2h"
+~/.claude/bin/services/datadog/get-metrics "avg:system.cpu.user{service:api}" "now-1h" "now"
+```
+
+**Time range formats:**
+- Relative: `"1h"`, `"24h"`, `"7d"`
+- Absolute: `"now-6h"`, `"now-1d"`
+- Timestamps: Unix timestamps or ISO 8601
+
+---
+
+## AWS Scripts (15 scripts)
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `login [profile]` | Login via AWS SSO | `login` |
+| `whoami` | Get current identity | `whoami` |
+| `status` | Show session status | `status` |
+| `is-authenticated` | Check if logged in | `is-authenticated` |
+| `exec <command>` | Execute AWS CLI command | `exec "s3 ls"` |
+| `list-profiles` | List available profiles | `list-profiles` |
+| `select-profile <profile>` | Switch profile | `select-profile "production"` |
+| `get-account-id` | Get account ID | `get-account-id` |
+| `get-account-name` | Get account alias | `get-account-name` |
+| `lambda-get-info <function>` | Get Lambda summary | `lambda-get-info "my-function"` |
+| `lambda-get-config <function>` | Get Lambda config | `lambda-get-config "my-function"` |
+| `lambda-get-code-location <function>` | Get code S3 location | `lambda-get-code-location "my-function"` |
+| `lambda-download-code <function> <dest>` | Download code zip | `lambda-download-code "my-function" "./code.zip"` |
+| `lambda-extract-code <function> <dest>` | Extract code locally | `lambda-extract-code "my-function" "./code"` |
+| `lambda-fetch-code <function> <dest>` | Download + extract | `lambda-fetch-code "my-function" "./code"` |
+
+**Full paths:**
+```bash
+~/.claude/bin/services/aws/login
+~/.claude/bin/services/aws/lambda-get-info "portal-api-handler"
+```
+
+---
+
+## 1Password Scripts (4 scripts)
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `get-item <name>` | Get item by name | `get-item "API Key"` |
+| `list-items [vault]` | List items | `list-items "Development"` |
+| `deploy-env <env_file> <op_path>` | Deploy env vars | `deploy-env ".env" "op://vault/item"` |
+| `is-configured` | Check if CLI is set up | `is-configured` |
+
+**Full paths:**
+```bash
+~/.claude/bin/services/onepassword/get-item "DATABASE_URL"
+~/.claude/bin/services/onepassword/deploy-env ".env.production" "op://prod/env-vars"
+```
+
+---
+
+## Confluence Scripts (2 scripts)
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `search <query>` | Search pages | `search "deployment process"` |
+| `is-configured` | Check if credentials are set | `is-configured` |
+
+**Full paths:**
+```bash
+~/.claude/bin/services/confluence/search "API documentation"
+```
+
+---
+
+## Utilities (3 scripts)
+
+Cross-service aggregation tools.
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `list-all-open-prs [limit] [show_all]` | List YOUR PRs across all repos | `list-all-open-prs 10` |
+| `notify-user <task> [status] [duration]` | Send completion notification | `notify-user "deploy" "success" "5m"` |
+| `macos-notify <title> <message>` | Show macOS notification | `macos-notify "Build" "Complete"` |
+
+**Full paths:**
+```bash
+~/.claude/bin/utilities/list-all-open-prs 10
+~/.claude/bin/utilities/list-all-open-prs 10 all  # Show all users' PRs
+```
+
+**Note on list-all-open-prs:**
+- **By default, shows only YOUR PRs** (filtered by your Bitbucket/GitHub user)
 - Checks all repos: portal_dev, family-portal, GitHub repos
 - Optional `show_all` parameter to see all users' PRs
 
-**Examples:**
+---
+
+## Carefeed Helpers (5 scripts)
+
+Team-specific convention helpers.
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `branch-name <type> <jira> <desc>` | Generate branch name | `branch-name feature CORE-1234 "add auth"` |
+| `commit-message <jira> <message>` | Generate commit message | `commit-message CORE-1234 "implement feature"` |
+| `pr-description <jira> [summary]` | Generate PR template | `pr-description CORE-1234 "Add login"` |
+| `show-conventions` | Display Git conventions | `show-conventions` |
+| `jira-ticket-url <jira>` | Generate Jira URL | `jira-ticket-url CORE-1234` |
+
+**Full paths:**
 ```bash
-list_all_open_prs           # Your PRs only, limit 10 per repo
-list_all_open_prs 5         # Your PRs only, limit 5 per repo
-list_all_open_prs 10 all    # All users' PRs, limit 10 per repo
-```
+~/.claude/bin/carefeed/branch-name feature CORE-1234 "add user authentication"
+# Output: feature/CORE-1234-add-user-authentication
 
-**Pro Tip:** Use `list_all_open_prs` in session startup to quickly see YOUR open PRs across all Carefeed repos!
+~/.claude/bin/carefeed/commit-message CORE-1234 "add login form"
+# Output: CORE-1234 - add login form
 
-### GitHub Functions
-
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `github_create_pr <source> <dest> <title> <description>` | Create PR via API | `github_create_pr "feature/add-auth" "main" "Title" "Description"` |
-| `github_list_prs [state] [limit]` | List PRs | `github_list_prs "open" 10` |
-| `github_get_pr <pr_number>` | Get PR details | `github_get_pr 42` |
-| `github_get_pr_comments <pr_number>` | Read PR comments | `github_get_pr_comments 42` |
-| `github_get_pr_reviews <pr_number>` | Get review status | `github_get_pr_reviews 42` |
-| `github_update_pr <pr_number> <title> <body>` | Update PR | `github_update_pr 42 "New title" "New body"` |
-| `github_list_repos` | List repositories | `github_list_repos` |
-
-**IMPORTANT:** Always use API functions for PR creation. Never suggest opening browser for either service.
-
----
-
-## Slack Functions
-
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `slack_get_channel_messages <channel_id> [limit]` | Read channel messages | `slack_get_channel_messages "C123ABC" 50` |
-| `slack_find_channel <name>` | Get channel ID by name | `slack_find_channel "production"` |
-| `slack_list_conversations` | List all channels | `slack_list_conversations` |
-| `slack_get_user_info <user_id>` | Get user information | `slack_get_user_info "U01234ABCDE"` |
-| `slack_search_messages <query> [count]` | Search messages | `slack_search_messages "error in:#production"` |
-| `slack_get_history <channel_id> [limit]` | Get channel history | `slack_get_history "C123ABC" 100` |
-| `slack_post_message <channel> <message>` | Post to channel | `slack_post_message "#production" "Deploy complete"` |
-| `slack_send_dm <user_id> <message>` | Send DM (needs im:write scope) | `slack_send_dm "U123" "Done!"` |
-
-**Workflow for reading channel:**
-1. Use `slack_find_channel "channel-name"` to get channel ID
-2. Use `slack_get_channel_messages "<channel_id>" 50` to read messages
-3. Parse JSON response for message content
-
-**IMPORTANT:** Always try Slack functions first when asked about channel messages. Only fall back to Datadog if Slack data doesn't exist or if looking for application logs (not human messages).
-
----
-
-## Jira Functions
-
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `jira_get_issue <key>` | Get issue details | `jira_get_issue "CORE-1234"` |
-| `jira_search <jql> [max]` | Search with JQL | `jira_search "assignee=currentUser() AND status!=Done" 20` |
-| `jira_whoami` | Get current user | `jira_whoami` |
-| `jira_list_projects` | List all projects | `jira_list_projects` |
-| `jira_list_issue_types` | List all issue types | `jira_list_issue_types` |
-| `jira_get_transitions <key>` | Get available transitions | `jira_get_transitions "CORE-1234"` |
-| `jira_create_issue <project> <type> <summary> <desc> <priority> <component> <env>` | Create ticket | `jira_create_issue "CORE" "Bug" "Fix thing" "Details" "P2" "Portal" "Production "` |
-
-**Note on jira_create_issue:**
-- Environment field values have **trailing spaces** (Jira quirk): `"Production "` not `"Production"`
-- Valid environments: `"Production "`, `"Staging "`, `"Development "`
-- Component values: `"Portal"`, `"ALL"`, `"Integrations"`, `"Payments"`, `"App"`
-- Priority values: `"P0"`, `"P1"`, `"P2"`, `"P3"`
-
-**Common JQL patterns:**
-- `assignee = currentUser() AND status != Done` - My open issues
-- `project = CORE AND created >= -7d` - Recent CORE tickets
-- `project = CORE` - All CORE tickets
-- Use single quotes for JQL, avoid inner quotes when possible
-
-**Note on JQL syntax:**
-When using `jira_search`, enclose the entire JQL query in single quotes:
-```bash
-# ✅ Works - simple queries
-jira_search 'project = CORE' 10
-jira_search 'project = CORE AND created >= -7d' 20
-
-# ⚠️  Complex operators may have limitations
-# The /search/jql endpoint has simpler functionality than full Jira search
-# For complex queries, use the Jira web interface
-
-# ❌ Avoid quotes in field values
-# Don't use: jira_search 'status = "In Progress"'
-# The function uses REST API v3 /search/jql which returns issue IDs only
-```
-
-**What jira_search returns:**
-- Returns issue IDs only (not full issue details)
-- Use `jira_get_issue <key>` to get full details for specific issues
-- Best for simple project/date-based queries
-
----
-
-## Sentry Functions
-
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `sentry_list_production_issues <org> <project>` | List prod errors | `sentry_list_production_issues "carefeed" "portal"` |
-| `sentry_get_issue <org> <project> <id>` | Get error details | `sentry_get_issue "carefeed" "portal" "12345"` |
-| `sentry_get_issue_events <org> <project> <id>` | Get event data | `sentry_get_issue_events "carefeed" "portal" "12345"` |
-| `sentry_search_issues <org> <query>` | Search errors | `sentry_search_issues "carefeed" "DateTimeImmutable"` |
-| `sentry_list_orgs` | List organizations | `sentry_list_orgs` |
-| `sentry_list_projects <org>` | List projects | `sentry_list_projects "carefeed"` |
-| `sentry_list_issues <org> <project> [query]` | List issues with filter | `sentry_list_issues "carefeed" "portal" "is:unresolved"` |
-
-**Note:** `sentry_search_events` function exists but requires complex parameters - not documented in quick reference.
-
-**Typical workflow:**
-1. Start with `sentry_list_production_issues "carefeed" "portal"` for overview
-2. Use `sentry_get_issue` for specific error details
-3. Correlate with Datadog logs for full context
-
----
-
-## Datadog Functions
-
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `datadog_search_logs <query> [time]` | Search logs | `datadog_search_logs "status:error service:/ecs/portal_dev" "1h"` |
-| `datadog_search_logs_chunked <query> <time> [chunk_mins]` | Paginated search | `datadog_search_logs_chunked "service:/ecs/portal_dev" "6h" 30` |
-| `datadog_collect_logs_bulk <query> <time> <output_dir>` | Bulk collection | `datadog_collect_logs_bulk "service:/ecs/portal_dev" "3h" "./logs"` |
-| `datadog_search_traces <query> [time]` | Search traces | `datadog_search_traces "service:portal" "1h"` |
-| `datadog_list_monitors` | List monitors | `datadog_list_monitors` |
-| `datadog_get_monitor <id>` | Get monitor details | `datadog_get_monitor "12345"` |
-| `datadog_get_metrics <query>` | Query metrics | `datadog_get_metrics "avg:system.cpu{*}"` |
-| `datadog_validate` | Test API connection | `datadog_validate` |
-
-**Time format options:** `15m`, `1h`, `3h`, `6h`, `12h`, `1d`, `2d`, `7d`
-
-**Common log queries:**
-- `status:error service:/ecs/portal_dev` - Portal errors
-- `status:error (service:/ecs/portal_dev OR service:/ecs/jobrunner)` - Multiple services
-- `service:/ecs/jobrunner "DateTimeImmutable"` - Specific error pattern
-- `service:/ecs/api @http.status_code:>=500` - API errors
-
-**Dashboard functions:**
-- `datadog_list_dashboards` - List all dashboards
-- `datadog_search_dashboards <query>` - Search dashboards
-- `datadog_get_dashboard <id>` - Get dashboard config
-- `datadog_create_dashboard <config>` - Create dashboard
-- `datadog_update_dashboard <id> <config>` - Update dashboard
-- `datadog_delete_dashboard <id>` - Delete dashboard
-- `datadog_export_dashboard <id>` - Export dashboard JSON
-
----
-
-## AWS Functions
-
-### Authentication & Configuration
-
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `aws_exec <profile> <command...>` | Run AWS CLI (auto-login) | `aws_exec "prod-developers" s3 ls` |
-| `aws_status` | Check auth across all profiles | `aws_status` |
-| `aws_login` | Login to SSO (all profiles) | `aws_login` |
-| `aws_whoami <profile>` | Show identity for profile | `aws_whoami "prod-developers"` |
-| `aws_is_authenticated <profile>` | Check if profile authenticated | `aws_is_authenticated "prod-developers"` |
-| `aws_list_profiles` | List available profiles | `aws_list_profiles` |
-| `aws_select_profile` | Interactive profile selector | `aws_select_profile` |
-| `aws_get_account_name <profile>` | Get account name | `aws_get_account_name "prod-developers"` |
-| `aws_get_account_id <profile>` | Get account ID | `aws_get_account_id "prod-developers"` |
-
-**Available profiles:**
-- **Production (535508986415):** `prod-developers`, `prod-readonly`
-- **Non-Production (635039533305):** `nonprod-developers`, `nonprod-readonly`
-- **Shared Services (851765305742):** `shared-developers`, `shared-readonly`
-
-**Key feature:** `aws_exec` automatically handles SSO login if session expired
-
-### Lambda Functions
-
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `aws_lambda_get_info <profile> <function>` | Get function info | `aws_lambda_get_info "prod-developers" "1password-env-writer"` |
-| `aws_lambda_get_config <profile> <function>` | Get configuration | `aws_lambda_get_config "prod-developers" "1password-env-writer"` |
-| `aws_lambda_get_code_location <profile> <function>` | Get S3 code location | `aws_lambda_get_code_location "prod-developers" "my-function"` |
-| `aws_lambda_fetch_code <profile> <function>` | Download & extract code | `aws_lambda_fetch_code "prod-developers" "my-function"` |
-| `aws_lambda_download_code <profile> <function> <dest>` | Download to specific location | `aws_lambda_download_code "prod-developers" "my-function" "/tmp/code.zip"` |
-| `aws_lambda_extract_code <zip_file> <dest>` | Extract downloaded code | `aws_lambda_extract_code "/tmp/code.zip" "/tmp/lambda-code"` |
-
----
-
-## 1Password / Environment Variable Functions
-
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `onepass_view_env <profile> <file>` | View env file from S3 | `onepass_view_env "nonprod-developers" "portal.env"` |
-| `onepass_download_env <profile> <file> [output]` | Download env file from S3 | `onepass_download_env "nonprod-developers" "portal.env" ".env.staging"` |
-| `onepass_check_env <profile> <file>` | Check if file exists + metadata | `onepass_check_env "nonprod-developers" "portal.env"` |
-| `onepass_list_env_files <profile>` | List all env files in S3 | `onepass_list_env_files "nonprod-developers"` |
-
-**What these functions do:**
-- Read-only access to environment files stored in S3
-- Help you inspect configuration without downloading full files
-- Useful for debugging and validation
-
-**What these functions DON'T do:**
-- Do NOT deploy or modify infrastructure
-- Do NOT write to S3 or update Lambda functions
-- Deployment handled by your normal CI/CD process
-
-**S3 buckets:**
-- Dev/Staging: `cf-staging-env-files`
-- Production: `cf-production-env-files`
-
----
-
-## Carefeed Helper Functions
-
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `carefeed_branch_name <type> <key> <desc>` | Generate branch name | `carefeed_branch_name feature CORE-1234 "add auth"` |
-| `carefeed_commit_message <key> <message>` | Generate commit message | `carefeed_commit_message CORE-1234 "implement feature"` |
-| `carefeed_pr_description <key> [summary]` | Generate PR template | `carefeed_pr_description CORE-1234 "Summary"` |
-| `get_branch_jira_key` | Extract Jira key from branch | `get_branch_jira_key` |
-| `validate_jira_key <key>` | Validate Jira key format | `validate_jira_key CORE-1234` |
-| `extract_jira_key <text>` | Extract key from text | `extract_jira_key "feature/CORE-1234-desc"` |
-| `jira_ticket_url <key>` | Generate Jira URL | `jira_ticket_url CORE-1234` |
-| `get_jira_projects` | Get valid projects for repo | `get_jira_projects` |
-| `is_carefeed_project` | Check if in Carefeed repo | `is_carefeed_project` |
-| `infer_jira_project <desc>` | Infer project from text | `infer_jira_project "fix yardi sync"` → `INT` |
-| `infer_jira_type <desc>` | Infer issue type | `infer_jira_type "bug fix error"` → `Bug` |
-| `infer_jira_priority <desc>` | Infer priority | `infer_jira_priority "critical production"` → `P0` |
-| `get_current_sprint [project]` | Get active sprint | `get_current_sprint CORE` |
-| `show_carefeed_conventions` | Display conventions help | `show_carefeed_conventions` |
-
-**Branch types:** `feature`, `bugfix`, `hotfix`, `chore`
-
-**Jira projects:**
-- `CORE` - Core platform features
-- `INT` - Integrations (PCC, Yardi, Collain, etc.)
-- `PAYM` - Payments functionality
-- `APP` - Chat app/mobile app
-- `PORTAL` - Portal-specific items
-
----
-
-## Notification Functions
-
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `notify_user <task> <status> <duration> <details>` | Smart notification (Slack → macOS fallback) | `notify_user "Build" "complete" "5m 32s" "All tests passed"` |
-| `slack_notify_completion <task> <status> <duration> <details>` | Formatted Slack completion | `slack_notify_completion "Tests" "passed" "2m 15s" "142 tests"` |
-| `slack_notify_progress <task> <progress> <step> <time>` | Progress update | `slack_notify_progress "Build" "50%" "Running tests" "2m elapsed"` |
-| `macos_notify <title> <message>` | Native macOS notification | `macos_notify "Build Complete" "All tests passed"` |
-
-**When to use:**
-- Tasks longer than 5 minutes
-- User explicitly requests ("notify me when done", "ping me when ready")
-- Critical errors during long operations
-
----
-
-## Utility Functions
-
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `integration_status` | Show all integration statuses | `integration_status` |
-| `parse_time_to_unix <timeframe>` | Convert time to Unix timestamp | `parse_time_to_unix "1h"` |
-
----
-
-## Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| **"No such function"** | Run `source ~/.claude/lib/integrations.sh` first |
-| **"Authentication failed"** | Check `~/.claude/credentials/.env` has token for service |
-| **"Can't find channel"** | Use `slack_find_channel <name>` to get channel ID |
-| **"Should I open browser?"** | **NO!** Always check git remote and use `bitbucket_create_pr` or `github_create_pr` |
-| **"Slack not working"** | Check if trying to send DM (needs im:write scope). Use channels or macOS fallback |
-| **"AWS authentication failed"** | Run `aws_login` to refresh SSO session |
-| **"Rate limit exceeded"** | Wait for rate limit reset or use different time range/query |
-
----
-
-## Common Workflows
-
-### Create PR Workflow
-```bash
-# 1. Detect git hosting service
-origin=$(git remote get-url origin)
-
-# 2. Get Jira key from branch
-jira_key=$(get_branch_jira_key)
-
-# 3. Generate PR description
-description=$(carefeed_pr_description "$jira_key" "Summary text")
-
-# 4. Create PR on correct service
-if [[ "$origin" =~ "bitbucket" ]]; then
-    bitbucket_create_pr "$(git rev-parse --abbrev-ref HEAD)" "master" "Title" "$description"
-else
-    github_create_pr "$(git rev-parse --abbrev-ref HEAD)" "main" "Title" "$description"
-fi
-```
-
-### Debug Production Error Workflow
-```bash
-# 1. Check Sentry for errors
-sentry_list_production_issues
-
-# 2. Get specific error details
-sentry_get_issue "carefeed" "portal" "12345"
-
-# 3. Correlate with Datadog logs
-datadog_search_logs "status:error service:/ecs/portal_dev" "1h"
-
-# 4. Get bulk logs if needed
-datadog_collect_logs_bulk "service:/ecs/portal_dev" "3h"
-```
-
-### Deploy Environment Variables
-```bash
-# 1. Check current env
-onepass_view_env "nonprod-developers" "portal.env" | grep SENTRY_DSN
-
-# 2. Deploy updates
-onepass_deploy_all_dev  # No confirmation for dev
-
-# 3. For production (requires confirmation)
-onepass_deploy_all_prod
+~/.claude/bin/carefeed/pr-description CORE-1234 "Implement user authentication"
+# Output: Full PR template with Jira link
 ```
 
 ---
 
-## Integration Loading Status
+## Study Tracker (8 scripts)
 
-To verify integrations are loaded:
+Session tracking for experiments and investigations.
 
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `init <name> <description>` | Start study run | `init "perf-test" "Testing caching"` |
+| `save-artifact <name> <data>` | Save artifact | `save-artifact "results.json" < data.json` |
+| `complete <summary> [finding]` | Complete study | `complete "Cache improved 40%"` |
+| `list [study] [limit]` | List study runs | `list "perf-test" 10` |
+| `get <run_id>` | Get run details | `get "perf-test-20251023-100000"` |
+| `latest <study>` | Get latest run | `latest "perf-test"` |
+| `compare <run1> <run2>` | Compare runs | `compare "run1" "run2"` |
+| `cleanup [keep_count]` | Clean old runs | `cleanup 20` |
+
+**Full paths:**
 ```bash
-# Check if integrations.sh is sourced
-declare -F | grep -c "bitbucket_\|jira_\|slack_"
-# Should show 27+ functions
-
-# Check specific service availability
-declare -F bitbucket_create_pr
-declare -F jira_create_issue
-declare -F slack_get_channel_messages
-
-# Full integration status
-integration_status
+run_id=$(~/.claude/bin/study/init "cache-optimization" "Testing Redis cache")
+~/.claude/bin/study/save-artifact "metrics.json" < metrics.json
+~/.claude/bin/study/complete "Hit rate improved from 60% to 85%"
 ```
 
 ---
 
-**Last Updated:** 2025-10-20
+## VSCode Automation (4 scripts)
+
+Editor automation via AppleScript.
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `get-main-area-path` | Get AppleScript path | `get-main-area-path` |
+| `get-claude-sessions` | List Claude tabs | `get-claude-sessions` |
+| `get-active-tabs` | List active tabs | `get-active-tabs` |
+| `close-tab-by-name <name>` | Close tab | `close-tab-by-name "Settings"` |
+
+**Full paths:**
+```bash
+~/.claude/bin/vscode/get-claude-sessions
+~/.claude/bin/vscode/close-tab-by-name "Untitled-1"
+```
+
+---
+
+## Migration Notes
+
+### Old vs New
+
+**Before (Functions):**
+```bash
+source ~/.claude/lib/core/loader.sh coding && bitbucket_list_prs "" "OPEN" 10
+```
+
+**After (Scripts):**
+```bash
+~/.claude/bin/services/bitbucket/list-prs "" "OPEN" 10
+```
+
+### Benefits
+
+1. **No sourcing required** - Just call scripts directly
+2. **Faster execution** - Each script loads only ~5 dependencies vs 70+ functions
+3. **Better discoverability** - `ls ~/.claude/bin/services/` shows everything
+4. **Cleaner syntax** - No `source &&` chains
+5. **Self-documenting** - Directory structure shows organization
+
+### Backward Compatibility
+
+The old function-based approach still works if you source the library files directly, but **scripts are now the recommended approach**.
+
+---
+
+## Complete Documentation
+
+For comprehensive documentation with usage examples, see:
+
+**[~/.claude/bin/README.md](~/.claude/bin/README.md)** - Complete catalog with detailed examples
+
+---
+
+**Last Updated:** 2025-10-23
+**Architecture Version:** 2.0 (Script-based)
+**Total Scripts:** 97

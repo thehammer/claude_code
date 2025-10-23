@@ -5,25 +5,23 @@ Building features, fixing bugs, implementing functionality, refactoring code.
 
 ## Context to Load
 
-### 1. Load Integrations FIRST
-**CRITICAL:** Load integrations at the very start of the session.
+### 1. Verify Helper Scripts
+**Optional:** Verify helper scripts are available.
 
-```bash
-source ~/.claude/lib/core/loader.sh coding
-```
-
-**Why:** Coding sessions frequently need:
+**Why:** Coding sessions frequently use:
 - Jira MCP tools (ticket management)
 - Bitbucket/GitHub (PR creation, pipeline checks)
 - Slack (notifications)
 - Carefeed helpers (branch names, commit messages)
 - AWS, 1Password (deployment tools)
 
+**All available as standalone scripts** in `~/.claude/bin/`
+
 **Verify availability:**
 ```bash
-declare -F | grep -c "bitbucket_\|slack_\|github_\|carefeed_\|aws_"
+ls ~/.claude/bin/services/*/
 ```
-Should show 70+ functions loaded.
+Should show all available service scripts (97 total scripts across 8 services).
 
 **Quick reference:** See `~/.claude/INTEGRATIONS_REFERENCE.md` for all available functions.
 
@@ -43,14 +41,14 @@ Summarize:
 List open PRs across all Carefeed repositories:
 
 ```bash
-list_all_open_prs 10
+~/.claude/bin/utilities/list-all-open-prs 10
 ```
 
 This will show open PRs from:
 - Bitbucket repos: portal_dev, family-portal
 - GitHub repos: (if any configured)
 
-**Important:** This function is already loaded from step 1. It auto-detects which repos exist and have open PRs.
+**Note:** Now using standalone script instead of sourcing functions.
 
 ### 4. Recent Session Notes
 Look in `.claude/session-notes/coding/` for most recent note to understand:

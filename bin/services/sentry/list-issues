@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Claude Code Helper Script
+set -eo pipefail
+
+LIB_DIR="$HOME/.claude/lib"
+
+source "$LIB_DIR/core/credentials.sh"
+source "$LIB_DIR/services/mcp-candidates/sentry.sh"
+
+sentry_list_issues "$@"

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Claude Code Helper Script
+# List all open pull requests across Carefeed repositories
+#
+# Usage: list_all_open_prs [limit_per_repo] [show_all]
+#   limit_per_repo: Max PRs to show per repository (default: 10)
+#   show_all: Set to "all" to show all users' PRs (default: your PRs only)
+#
+# Examples:
+#   list_all_open_prs           # Your PRs only, limit 10 per repo
+#   list_all_open_prs 5         # Your PRs only, limit 5 per repo
+#   list_all_open_prs 10 all    # All users' PRs, limit 10 per repo
+
+set -eo pipefail
+
+# Get the directory where this script lives
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(dirname "$SCRIPT_DIR")/lib"
+
+# Load dependencies in order
+source "$LIB_DIR/core/credentials.sh"
+source "$LIB_DIR/services/mcp-candidates/bitbucket.sh"
+source "$LIB_DIR/services/mcp-candidates/github.sh"
+source "$LIB_DIR/core/utilities.sh"
+
+# Call the function with all arguments
+list_all_open_prs "$@"

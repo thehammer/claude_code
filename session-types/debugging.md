@@ -5,12 +5,8 @@ Investigating errors, troubleshooting production issues, analyzing error pattern
 
 ## Context to Load
 
-### 1. Load Integrations FIRST
-**CRITICAL:** Load integrations at the very start of the session.
-
-```bash
-source ~/.claude/lib/core/loader.sh debugging
-```
+### 1. Verify Helper Scripts
+**Optional:** Verify helper scripts are available.
 
 **Why:** Debugging sessions heavily rely on:
 - Sentry (error tracking, stack traces)
@@ -19,11 +15,13 @@ source ~/.claude/lib/core/loader.sh debugging
 - Bitbucket/GitHub (creating fix PRs)
 - Jira (bug ticket creation)
 
+**All available as standalone scripts** in `~/.claude/bin/`
+
 **Verify availability:**
 ```bash
-declare -F | grep -c "sentry_\|datadog_\|slack_\|bitbucket_\|github_"
+ls ~/.claude/bin/services/{sentry,datadog,slack,bitbucket}/
 ```
-Should show 40+ functions loaded.
+Should show all available scripts for debugging services.
 
 **Quick reference:** See `~/.claude/INTEGRATIONS_REFERENCE.md` for all available functions.
 
@@ -31,8 +29,8 @@ Should show 40+ functions loaded.
 Can optionally check for recent errors:
 ```bash
 # Uncomment if you want to see recent errors at startup
-# datadog_search_logs "status:error service:/ecs/portal_dev" "1h"
-# sentry_list_issues "carefeed" "portal" "is:unresolved"
+# ~/.claude/bin/services/datadog/search-logs "status:error service:/ecs/portal_dev" "1h"
+# ~/.claude/bin/services/sentry/list-issues carefeed portal_dev "is:unresolved" 10
 ```
 
 ### 3. Git Status (Minimal)
