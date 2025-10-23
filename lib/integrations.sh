@@ -38,161 +38,29 @@ GITHUB_TOKEN=$(echo -n "${GITHUB_TOKEN}" | tr -d '[:space:]')
 # ==============================================================================
 # Helper Functions - Jira
 # ==============================================================================
+#
+# NOTE: Direct Jira API functions have been removed in favor of MCP tools.
+# Use the following MCP tools instead:
+#
+#   mcp__jira__jira_get_issue        - Get issue details (better formatting + dev info)
+#   mcp__jira__jira_ls_issues        - Search issues with JQL
+#   mcp__jira__jira_ls_projects      - List all projects
+#   mcp__jira__jira_create_issue     - Create new issue
+#   mcp__jira__jira_get_transitions  - Get available transitions (TO BE ADDED)
+#   mcp__jira__jira_transition_issue - Move issue to new status (TO BE ADDED)
+#   mcp__jira__jira_whoami           - Get current user info (TO BE ADDED)
+#
+# Carefeed-specific helper functions (branch naming, commit messages, etc.) remain
+# available in ~/.claude/lib/carefeed.sh and are loaded automatically.
+#
+# ==============================================================================
 
-# Test if Jira credentials are configured
+# Test if Jira credentials are configured (kept for other scripts)
 function jira_is_configured() {
     if [ -z "$ATLASSIAN_API_TOKEN" ] || [ -z "$ATLASSIAN_EMAIL" ]; then
         return 1
     fi
     return 0
-}
-
-# Get issue details
-# Usage: jira_get_issue "CORE-1234"
-function jira_get_issue() {
-    local issue_key=$1
-    if ! jira_is_configured; then
-        echo "Error: Jira credentials not configured"
-        return 1
-    fi
-
-    curl -s -u "${ATLASSIAN_EMAIL}:${ATLASSIAN_API_TOKEN}" \
-        -H "Accept: application/json" \
-        "https://carefeed.atlassian.net/rest/api/3/issue/${issue_key}"
-}
-
-# Search issues using JQL
-# Usage: jira_search "project=CORE AND assignee=currentUser()" 10
-function jira_search() {
-    local jql=$1
-    local max_results=${2:-50}
-
-    if ! jira_is_configured; then
-        echo "Error: Jira credentials not configured"
-        return 1
-    fi
-
-    curl -s -u "${ATLASSIAN_EMAIL}:${ATLASSIAN_API_TOKEN}" \
-        -H "Accept: application/json" \
-        -H "Content-Type: application/json" \
-        -X POST \
-        -d "{\"jql\":\"${jql}\",\"maxResults\":${max_results}}" \
-        "https://carefeed.atlassian.net/rest/api/3/search/jql"
-}
-
-# Get current user info
-function jira_whoami() {
-    if ! jira_is_configured; then
-        echo "Error: Jira credentials not configured"
-        return 1
-    fi
-
-    curl -s -u "${ATLASSIAN_EMAIL}:${ATLASSIAN_API_TOKEN}" \
-        -H "Accept: application/json" \
-        "https://carefeed.atlassian.net/rest/api/3/myself"
-}
-
-# Create a new Jira issue
-# Usage: jira_create_issue "CORE" "Bug" "Fix static method call" "Description text" "P2" "Portal" "Production "
-# NOTE: Environment field values have trailing spaces (Jira quirk) - "Production " not "Production"
-function jira_create_issue() {
-    local project=$1
-    local issue_type=$2
-    local summary=$3
-    local description=$4
-    local priority=${5:-"P2"}
-    local component=${6:-"Portal"}  # customfield_10135 - Carefeed Component
-    local environment=${7:-"Production "}  # customfield_10275 - Environment (NOTE: trailing space required!)
-
-    if ! jira_is_configured; then
-        echo "Error: Jira credentials not configured"
-        return 1
-    fi
-
-    # Build JSON payload using jq for proper JSON construction
-    local json_payload=$(jq -n \
-        --arg project "$project" \
-        --arg issuetype "$issue_type" \
-        --arg summary "$summary" \
-        --arg description "$description" \
-        --arg priority "$priority" \
-        --arg component "$component" \
-        --arg environment "$environment" \
-        '{
-            fields: {
-                project: { key: $project },
-                summary: $summary,
-                description: {
-                    type: "doc",
-                    version: 1,
-                    content: [{
-                        type: "paragraph",
-                        content: [{
-                            type: "text",
-                            text: $description
-                        }]
-                    }]
-                },
-                issuetype: { name: $issuetype },
-                priority: { name: $priority },
-                customfield_10135: { value: $component },
-                customfield_10275: [{ value: $environment }]
-            }
-        }')
-
-    curl -s -u "${ATLASSIAN_EMAIL}:${ATLASSIAN_API_TOKEN}" \
-        -H "Accept: application/json" \
-        -H "Content-Type: application/json" \
-        -X POST \
-        -d "${json_payload}" \
-        "https://carefeed.atlassian.net/rest/api/3/issue"
-}
-
-# List all projects
-# Usage: jira_list_projects
-function jira_list_projects() {
-    if ! jira_is_configured; then
-        echo "Error: Jira credentials not configured"
-        return 1
-    fi
-
-    curl -s -u "${ATLASSIAN_EMAIL}:${ATLASSIAN_API_TOKEN}" \
-        -H "Accept: application/json" \
-        "https://carefeed.atlassian.net/rest/api/3/project"
-}
-
-# List all issue types
-# Usage: jira_list_issue_types
-function jira_list_issue_types() {
-    if ! jira_is_configured; then
-        echo "Error: Jira credentials not configured"
-        return 1
-    fi
-
-    curl -s -u "${ATLASSIAN_EMAIL}:${ATLASSIAN_API_TOKEN}" \
-        -H "Accept: application/json" \
-        "https://carefeed.atlassian.net/rest/api/3/issuetype"
-}
-
-# Get available transitions for an issue
-# Usage: jira_get_transitions "CORE-1234"
-function jira_get_transitions() {
-    local issue_key=$1
-
-    if [ -z "$issue_key" ]; then
-        echo "Usage: jira_get_transitions <issue-key>"
-        echo "Example: jira_get_transitions CORE-1234"
-        return 1
-    fi
-
-    if ! jira_is_configured; then
-        echo "Error: Jira credentials not configured"
-        return 1
-    fi
-
-    curl -s -u "${ATLASSIAN_EMAIL}:${ATLASSIAN_API_TOKEN}" \
-        -H "Accept: application/json" \
-        "https://carefeed.atlassian.net/rest/api/3/issue/${issue_key}/transitions"
 }
 
 # ==============================================================================

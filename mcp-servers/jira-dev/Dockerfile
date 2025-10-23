@@ -6,14 +6,15 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and scripts
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (skip scripts since we're copying pre-built dist)
+RUN npm ci --only=production --ignore-scripts
 
-# Copy built JavaScript files (assumes you've run npm run build)
+# Copy built JavaScript files and scripts
 COPY dist ./dist
+COPY scripts ./scripts
 
 # Set environment variables (can be overridden by docker-compose)
 ENV TRANSPORT_MODE=http
