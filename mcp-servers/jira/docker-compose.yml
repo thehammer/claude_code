@@ -1,0 +1,19 @@
+services:
+  jira-mcp:
+    build: .
+    container_name: jira-mcp-server
+    ports:
+      - "3000:3000"
+    environment:
+      - TRANSPORT_MODE=http
+      - PORT=3000
+      - ATLASSIAN_SITE_NAME=${ATLASSIAN_SITE_NAME:-carefeed}
+      - ATLASSIAN_USER_EMAIL=${ATLASSIAN_EMAIL}
+      - ATLASSIAN_API_TOKEN=${ATLASSIAN_API_TOKEN}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
