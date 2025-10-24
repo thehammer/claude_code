@@ -39,6 +39,30 @@ This directory contains **Docker deployment configurations** for Carefeed's MCP 
 - `jira_get_transitions` - Get available workflow transitions
 - `jira_transition_issue` - Move issues through workflow
 
+### Bitbucket MCP Server
+
+**Status:** ✅ Production (HTTP mode, port 3001)
+
+**Source:**
+- Local: `~/Code/mcp-server-atlassian-bitbucket` (Not forked yet)
+- Upstream: https://github.com/aashari/mcp-server-atlassian-bitbucket
+
+**Deployment:**
+- Directory: `~/.claude/mcp-servers/bitbucket/`
+- Container: `bitbucket-mcp-server`
+- Port: 3001
+- Tools: 18 (workspaces, repos, PRs, search, diff)
+
+**Tools Available:**
+- Workspace: `ls-workspaces`, `get-workspace`
+- Repository: `ls-repos`, `get-repo`, `get-commit-history`, `add-branch`, `list-branches`, `get-file`
+- Pull Requests: `ls-prs`, `get-pr`, `ls-pr-comments`, `add-pr-comment`, `add-pr`, `update-pr`, `approve-pr`, `reject-pr`
+- Utilities: `search`, `diff-branches`
+
+**Known Gaps:**
+- ❌ Pipeline tools not available (will use bash helpers temporarily)
+- Future: Fork and add pipeline tools (`get-pipeline`, `list-pipelines`, `get-pipeline-steps`)
+
 ---
 
 ## Workflow for Adding/Modifying MCP Servers
@@ -335,12 +359,14 @@ docker-compose up -d
 
 **Planned:**
 - Slack MCP (for notifications, channel management)
+- Sentry MCP (for error tracking, issue management)
+- Datadog MCP (for log search, monitoring)
+- GitHub MCP (for GitHub repos and PRs)
 - Database MCP (for schema inspection, queries)
-- Bitbucket MCP (for PR management, pipelines)
 
 **Pattern:** All will follow the same fork → develop → deploy workflow.
 
 ---
 
-**Last Updated:** 2025-10-23
+**Last Updated:** 2025-10-24
 **Maintained By:** Carefeed Platform Team

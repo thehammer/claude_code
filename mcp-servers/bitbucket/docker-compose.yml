@@ -1,0 +1,22 @@
+services:
+  bitbucket-mcp:
+    image: carefeed-bitbucket-mcp:latest
+    container_name: bitbucket-mcp-server
+    build:
+      context: /Users/hammer/Code/mcp-server-atlassian-bitbucket
+      dockerfile: /Users/hammer/.claude/mcp-servers/bitbucket/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - TRANSPORT_MODE=http
+      - PORT=3001
+      - ATLASSIAN_USER_EMAIL=${ATLASSIAN_EMAIL}
+      - ATLASSIAN_API_TOKEN=${BITBUCKET_ACCESS_TOKEN}
+      - BITBUCKET_DEFAULT_WORKSPACE=${BITBUCKET_WORKSPACE:-Bitbucketpassword1}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

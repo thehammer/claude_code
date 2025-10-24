@@ -1,6 +1,9 @@
 # Credentials and Secrets
 credentials/.env
 credentials/services/*.json
+**/.env
+**/.env.*
+!**/.env.example
 
 # Debug Output
 debug/
