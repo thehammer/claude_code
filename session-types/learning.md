@@ -179,3 +179,7 @@ After a learning session, consider:
 ---
 
 **Ready to learn!** 📚
+
+## Calendar Display
+Show today's calendar in summary using the "Display Today's Calendar" recipe.
+Include "📅 Today's Schedule:" line in summary format.

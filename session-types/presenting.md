@@ -117,3 +117,7 @@ Use `~/.claude/templates/session-notes/presenting.md` for session notes structur
 - **Use examples:** Concrete scenarios help understanding
 - **Link context:** Reference tickets, docs, related work
 - **Highlight decisions:** What alternatives were considered? Why this approach?
+
+## Calendar Display
+Show today's calendar in summary using the "Display Today's Calendar" recipe.
+Include "📅 Today's Schedule:" line in summary format.

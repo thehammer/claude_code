@@ -98,3 +98,7 @@ Then ask: "What would you like to analyze?" or "Which part of the codebase shoul
 
 ## Notes Template
 Use `~/.claude/templates/session-notes/analysis.md` for session notes structure.
+
+## Calendar Display
+Show today's calendar after git status using the "Display Today's Calendar" recipe.
+Include "📅 Today's Schedule:" line in summary format.

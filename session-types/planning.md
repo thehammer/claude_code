@@ -120,3 +120,7 @@ Then ask: "What would you like to plan?" with options:
 
 ## Notes Template
 Use `~/.claude/templates/session-notes/planning.md` for session notes structure.
+
+## Calendar Display
+Show today's calendar early in startup using the "Display Today's Calendar" recipe.
+Include "📅 Today's Schedule:" line in summary format - helpful for planning work around meetings.

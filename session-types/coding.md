@@ -37,7 +37,21 @@ Summarize:
 - Any uncommitted changes
 - Recent commits
 
-### 3. Open Pull Requests
+### 3. Today's Calendar
+Use the "Display Today's Calendar" recipe to show today's schedule:
+
+```bash
+m365 request --url "https://graph.microsoft.com/v1.0/me/calendar/calendarView?startDateTime=$(date +%Y-%m-%d)T05:00:00Z&endDateTime=$(date -v+1d +%Y-%m-%d)T05:00:00Z" --method get | jq -r '.value | sort_by(.start.dateTime) | .[] | "\(.start.dateTime)|\(.end.dateTime)|\(.subject)|\(.organizer.emailAddress.name)"'
+```
+
+Format concisely:
+- If no meetings: "📅 No meetings today"
+- If meetings: "📅 Today's Schedule: [count] meetings ([first start] - [last end])"
+- Show brief list of meeting times and subjects
+
+**Recipe reference:** `~/.claude/recipes/calendar/display-today-calendar.md`
+
+### 4. Open Pull Requests
 List open PRs across all Carefeed repositories:
 
 ```bash
@@ -89,6 +103,8 @@ Loaded in step 1 via modular loader, immediately available:
 Tell Hammer:
 - **Last coding session:** [date]
 - **Current branch:** [branch name]
+- **📅 Today's Schedule:** [count] meetings ([time range]) or "No meetings today"
+  - [Brief list: time - subject]
 - **Open PRs:** [count and status]
 - **What we were working on:** [brief summary from notes]
 - **Uncommitted changes:** [yes/no, what files]

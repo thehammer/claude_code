@@ -202,3 +202,7 @@ Personal sessions are great for:
 ---
 
 **Ready to have some fun!** 🎉
+
+## Calendar Display
+Show today's calendar in summary using the "Display Today's Calendar" recipe.
+Include "📅 Today's Schedule:" line in summary format - especially important for personal time management.

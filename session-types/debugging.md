@@ -43,7 +43,21 @@ Only need to know:
 - Current branch (to create fix branch if needed)
 - Working tree status
 
-### 4. Recent Debugging Notes
+### 4. Today's Calendar
+Use the "Display Today's Calendar" recipe to show today's schedule:
+
+```bash
+m365 request --url "https://graph.microsoft.com/v1.0/me/calendar/calendarView?startDateTime=$(date +%Y-%m-%d)T05:00:00Z&endDateTime=$(date -v+1d +%Y-%m-%d)T05:00:00Z" --method get | jq -r '.value | sort_by(.start.dateTime) | .[] | "\(.start.dateTime)|\(.end.dateTime)|\(.subject)|\(.organizer.emailAddress.name)"'
+```
+
+Format concisely:
+- If no meetings: "📅 No meetings today"
+- If meetings: "📅 Today's Schedule: [count] meetings ([first start] - [last end])"
+- Show brief list - especially important for urgent debugging work
+
+**Recipe reference:** `~/.claude/recipes/calendar/display-today-calendar.md`
+
+### 5. Recent Debugging Notes
 Look in `.claude/session-notes/debugging/` for:
 - Recent issues investigated
 - Patterns discovered
@@ -78,8 +92,10 @@ Loaded in step 1, immediately available:
 
 Tell Hammer:
 - **Last debugging session:** [date and what was investigated]
-- **Integrations loaded:** Sentry, Datadog, Bitbucket
 - **Current branch:** [branch name]
+- **📅 Today's Schedule:** [count] meetings ([time range]) or "No meetings today"
+  - [Brief list: time - subject]
+- **Integrations loaded:** Sentry, Datadog, Bitbucket
 - **Recent patterns:** [if found in notes]
 
 Then ask: "What issue would you like to investigate?" or "Which error should we debug?"
