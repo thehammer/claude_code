@@ -27,7 +27,8 @@
       "Bash(extract_*:*)",
       "Bash(infer_*:*)",
       "Bash(show_*:*)",
-      "Bash(~/.claude/lib/*.sh:*)"
+      "Bash(~/.claude/lib/*.sh:*)",
+      "Bash(m365:*)"
     ],
     "deny": [
       "Bash(rm -rf /*:*)",
