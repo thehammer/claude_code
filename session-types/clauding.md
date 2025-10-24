@@ -28,7 +28,18 @@ Check `~/.claude/IDEAS.md` for:
 - Workflow enhancements
 - Tool additions
 
-### 4. Integration Status
+### 4. Today's Calendar
+Use the "Display Today's Calendar" recipe:
+
+```bash
+m365 request --url "https://graph.microsoft.com/v1.0/me/calendar/calendarView?startDateTime=$(date +%Y-%m-%d)T05:00:00Z&endDateTime=$(date -v+1d +%Y-%m-%d)T05:00:00Z" --method get | jq -r '.value | sort_by(.start.dateTime) | .[] | "\(.start.dateTime)|\(.end.dateTime)|\(.subject)|\(.organizer.emailAddress.name)"'
+```
+
+Format concisely for context awareness.
+
+**Recipe reference:** `~/.claude/recipes/calendar/display-today-calendar.md`
+
+### 5. Integration Status
 ```bash
 source ~/.claude/lib/core/loader.sh clauding
 ls -l ~/.claude/lib/
@@ -67,6 +78,7 @@ Clauding sessions work on configuration, not code.
 
 Tell Hammer:
 - **Last clauding session:** [date and what was improved]
+- **📅 Today's Schedule:** [count] meetings ([time range]) or "No meetings today"
 - **Config state:** [health check - any missing files?]
 - **Available session types:** [list types]
 - **Integration status:** [which integrations configured]
