@@ -4,7 +4,70 @@
 
 When the user says it's time to wrap up:
 
-1. **Check Open Pull Requests Status**
+1. **Sync Permissions Up (If Project Has Local Settings)**
+
+**Check for project-local permissions:**
+```bash
+if [ -f .claude/settings.local.json ]; then
+    echo "Project has local permission settings - running sync-up"
+fi
+```
+
+**If `.claude/settings.local.json` exists:**
+
+### Run Sync-Up Recipe
+
+**Recipe:** `~/.claude/recipes/permissions/sync-up-project-to-global.md`
+
+**Goal:** Promote useful project permissions to global settings, consolidating permission management.
+
+**Follow the sync-up recipe instructions:**
+1. Identify NEW permissions (compare current vs `.session-start` backup)
+2. Categorize permissions:
+   - Auto-promote: Generic wildcards, common tools, safe operations
+   - Review: Project-specific tools, remote operations, integrations
+   - Never promote: Absolute paths, one-off commands, embedded data
+3. Present promotable permissions to user
+4. Update global settings with promoted patterns
+5. Optionally clean up project settings (remove now-global patterns)
+6. Report results
+
+**Quick Summary (Full details in recipe):**
+- Auto-promotes obviously useful patterns (no user input needed)
+- Reviews project-specific patterns interactively
+- Auto-skips one-off commands and absolute paths
+- Simplifies project settings after promotion
+- Always creates backups before modifying
+
+**Expected Result:**
+```
+✅ Permission sync complete (project → global)
+
+Global changes:
+  + 5 new allow patterns
+  + 0 new deny patterns
+  + 0 new ask patterns
+
+Project cleanup:
+  - Removed 25 patterns (now in global)
+  - 8 project-specific patterns remain
+
+Backups saved:
+  - ~/.claude/settings.json.backup
+  - .claude/settings.local.json.backup
+
+Next session: Global permissions available everywhere!
+```
+
+**Why This Matters:**
+- Consolidates useful permissions to global (available in all projects)
+- Reduces project-specific permission bloat
+- Maintains single source of truth for common operations
+- Cleans up "don't ask again" accumulation
+
+---
+
+2. **Check Open Pull Requests Status**
 
 If Bitbucket integration is configured, list current open PRs:
 

@@ -57,6 +57,68 @@ Look for `SESSION_DESCRIPTION:` in the command invocation to extract the descrip
 
 ---
 
+## 0.5. Permission Synchronization (If Project Has Local Settings)
+
+**Check for project-local permissions:**
+```bash
+if [ -f .claude/settings.local.json ]; then
+    echo "Project has local permission settings"
+fi
+```
+
+**If `.claude/settings.local.json` exists:**
+
+### Create Session Start Backup
+```bash
+cp .claude/settings.local.json .claude/settings.local.json.session-start
+```
+This backup allows sync-up at session end to identify NEW permissions added during the session.
+
+### Run Sync-Down Recipe
+
+**Recipe:** `~/.claude/recipes/permissions/sync-down-global-to-project.md`
+
+**Goal:** Merge global permissions into project settings so you have access to all globally-approved operations.
+
+**Follow the sync-down recipe instructions:**
+1. Read global permissions from `~/.claude/settings.json`
+2. Read project permissions from `.claude/settings.local.json`
+3. Combine and deduplicate (smart consolidation)
+4. Handle conflicts (project deny/ask vs global allow)
+5. Write updated settings
+6. Report what changed
+
+**Quick Summary (Full details in recipe):**
+- Global wildcards (e.g., `Write(**)`) absorb specific patterns
+- Project `deny` takes precedence over global `allow` (safety first)
+- Project `ask` reviewed interactively if conflicts with global
+- Always creates backup before modifying
+
+**Expected Result:**
+```
+✅ Permission sync complete (global → project)
+
+Summary:
+- Allow patterns: 30 global + 12 project = 35 merged (7 consolidated)
+- Deny patterns: 5 global + 0 project = 5 total
+- Ask patterns: 9 global + 2 project = 11 total
+
+Backup saved: .claude/settings.local.json.backup
+```
+
+**If no project settings:**
+```
+ℹ️  No .claude/settings.local.json found
+Using global permissions only (this is normal and preferred!)
+```
+
+**Why This Matters:**
+- Prevents permission prompts for globally-approved operations
+- Maintains single source of truth (global) while respecting project overrides
+- Consolidates fragmented permissions across projects
+
+---
+
 ## Security Awareness
 
 **IMPORTANT:** When working with production systems, debug logs, or customer data:
