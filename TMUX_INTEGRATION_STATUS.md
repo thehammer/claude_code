@@ -47,24 +47,27 @@ Building out tmux/iTerm as primary IDE for Claude Code sessions, replacing VS Co
 ### What We Built
 
 #### 1. Shell Function: `cs` (Claude Session)
-**File:** `~/.zshrc:369-376`
+**File:** `~/.zshrc:369-388`
 
-**Purpose:** Quick tmux session management with automatic Claude CLI startup
+**Purpose:** Quick tmux session management with automatic Claude CLI startup and session initialization
 
 **Usage:**
 ```bash
-cs              # Creates/attaches "claude" session, runs claude
-cs clauding     # Creates/attaches "clauding" session, runs claude
-cs portal-dev   # Creates/attaches "portal-dev" session, runs claude
+cs                    # Creates/attaches "claude" session, auto /start clauding
+cs work               # Creates/attaches "work" session, auto /start clauding
+cs portal-dev coding  # Creates/attaches "portal-dev" session, auto /start coding
 ```
 
 **How it works:**
-- First time: Creates new tmux session with given name, starts in `~/.claude`, automatically runs `claude` command
+- First time: Creates new tmux session with given name, starts in `~/.claude`, automatically runs `claude` and sends `/start <session_type>` command
 - Subsequent: Attaches to existing session, preserves everything
+- Default session type: `clauding` (since we start in `~/.claude`)
 
 **To activate:** `source ~/.zshrc` or open new terminal
 
-**Updated (2025-10-25 evening):** New sessions start in `~/.claude` directory for easier config access
+**Updates:**
+- **2025-10-25 evening:** New sessions start in `~/.claude` directory for easier config access
+- **2025-10-25 late:** Auto-sends `/start` command when creating new sessions
 
 ---
 
@@ -197,31 +200,30 @@ tmux_new_window "logs" "tail -f /var/log/app.log"
 ---
 
 #### 2. Shell Function: `ct` (Claude Tab)
-**File:** `~/.zshrc:378-414`
+**File:** `~/.zshrc:390-437`
 
-**Purpose:** Quick way to open new Claude sessions in new tmux windows
+**Purpose:** Quick way to open new Claude sessions in new tmux windows with automatic session initialization
 
 **Usage:**
 ```bash
 ct              # Opens new Claude tab with default name
-ct coding       # Opens new tab named "💻 coding"
-ct debugging    # Opens new tab named "🐛 debug"
-ct my-feature   # Opens new tab named "my-feature"
+ct coding       # Opens new tab named "💻 coding", auto /start coding
+ct debugging    # Opens new tab named "🐛 debug", auto /start debugging
+ct my-feature   # Opens new tab named "my-feature" (no auto-start)
 ```
 
 **How it works:**
 - Validates you're in tmux (errors if not)
 - Maps session type to emoji window name
 - Creates new window with claude auto-started
-- Provides clear success feedback: `✓ Opened: 💻 coding`
-- User can then run `/start` in the new window
+- Automatically sends `/start <session_type>` command if session type is recognized
+- Provides clear success feedback: `✓ Opened: 💻 coding (starting coding session)`
 
 **To activate:** `source ~/.zshrc` or open new terminal
 
-**Refined (2025-10-25 evening):**
-- Silent helper loading (`&>/dev/null`) - no more function definition spam
-- Clear success messages for better feedback
-- Tested and verified working in production
+**Updates:**
+- **2025-10-25 evening:** Silent helper loading, clear success messages
+- **2025-10-25 late:** Auto-sends `/start` command for recognized session types
 
 ---
 
@@ -408,6 +410,35 @@ Ensures `tmux_new_window()` and other tmux helpers are always available when Cla
 - [ ] Session-type specific behaviors documented
 - [ ] Multi-pane patterns established
 - [ ] iTerm integrations (if valuable)
+
+---
+
+## Troubleshooting
+
+### Workspace Trust Prompt on `cs` Startup
+
+**Problem:** When running `cs` (which starts Claude in `~/.claude`), you see:
+```
+Do you trust the files in this folder?
+/Users/hammer/.claude
+```
+
+**Solution:** Add `~/.claude` to Claude Code's trusted projects:
+
+Create or update `~/.claude/.claude.json`:
+```json
+{
+  "projects": {
+    "/Users/hammer/.claude": {
+      "allowedTools": []
+    }
+  }
+}
+```
+
+**Why:** When `cs` starts a new session, it begins in `~/.claude` (perfect for clauding sessions). Claude Code's workspace trust feature prompts for untrusted directories. Pre-configuring the directory in `.claude.json` skips the trust dialog.
+
+**Status:** ✅ Fixed (2025-10-25)
 
 ---
 

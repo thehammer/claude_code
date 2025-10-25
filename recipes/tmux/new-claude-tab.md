@@ -160,6 +160,15 @@ source ~/.claude/lib/core/loader.sh
 - Close unused windows: `Ctrl-B &` (confirms before killing)
 - Check tmux configuration: `tmux show-options -g`
 
+### `/start` command appears but doesn't submit
+
+**Cause:** Timing issue - Enter key sent before Claude is ready to receive it
+
+**Solution:** This was fixed in the `cs` and `ct` functions on 2025-10-25:
+- Increased initialization wait from 1.5s to 2s
+- Send text and Enter separately with 0.3s delay between them
+- If still experiencing issues, reload shell: `source ~/.zshrc`
+
 ## Use Cases
 
 ### Multiple Projects
@@ -305,3 +314,4 @@ Result: Three separate Claude sessions for parallel project work.
 
 **Version History:**
 - 2025-10-25: Initial creation with `ct` helper and manual methods
+- 2025-10-25: Fixed timing issue where `/start` command wasn't auto-submitting (both `cs` and `ct` functions)
