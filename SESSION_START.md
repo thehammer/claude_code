@@ -57,6 +57,32 @@ Look for `SESSION_DESCRIPTION:` in the command invocation to extract the descrip
 
 ---
 
+## 0.4. Update Tmux Window Name (If Running in Tmux)
+
+**Check if running in tmux:**
+```bash
+if [ -n "$TMUX" ]; then
+    source ~/.claude/lib/local/tmux.sh
+    tmux_set_claude_window "{session_type}"
+fi
+```
+
+Replace `{session_type}` with the actual session type (coding, debugging, clauding, etc.).
+
+**This renames the tmux window to:**
+- 💻 coding
+- 🐛 debug
+- 🔍 analysis
+- 📋 planning
+- 📊 presenting
+- 📚 learning
+- 🏠 personal
+- 🔧 clauding
+
+**If not in tmux:** Silent no-op, continues normally.
+
+---
+
 ## 0.5. Permission Synchronization (If Project Has Local Settings)
 
 **Check for project-local permissions:**

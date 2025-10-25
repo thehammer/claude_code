@@ -37,7 +37,12 @@
 - Test changes before considering them complete
 - **Always look for opportunities to create tests** - whenever building or modifying functionality, proactively suggest and create tests that verify behavioral correctness
 - **Fix helpers, integrations, and tools at the source** - When you discover a problem with a helper function, integration, or tool and find the solution, update the source code (in `~/.claude/lib/` or wherever it lives) so it works correctly next time, not just for the current use
-- **Proactively create and refactor helpers** - When you find yourself doing something repeatedly or writing complex inline code, create a helper function in `~/.claude/lib/integrations.sh` or the appropriate location. Refactor existing helpers when you see opportunities to improve them (better error handling, more features, cleaner interface)
+- **Favor recipes over helper functions** - When creating reusable workflows, prefer recipes (`~/.claude/recipes/`) over helper functions. Recipes are human-readable, self-documenting, flexible, and easier to maintain. Use helper functions pragmatically for:
+  - Low-level utilities (parsing, formatting, validation)
+  - Frequently-called operations (dozens of times per session)
+  - Complex logic requiring error handling and state management
+  - Functions that compose well into recipes
+- **Proactively create and refactor helpers** - When you find yourself doing something repeatedly or writing complex inline code, first consider if a recipe would work better. If a helper function is appropriate, create it in `~/.claude/lib/` in the appropriate category file. Refactor existing helpers when you see opportunities to improve them (better error handling, more features, cleaner interface)
 - **Method visibility ordering** - In classes, always organize methods with public methods first, followed by protected methods, then private methods. This makes the public API immediately visible at the top of the class
 
 ### Documentation

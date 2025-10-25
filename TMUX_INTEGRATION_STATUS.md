@@ -1,7 +1,7 @@
 # Tmux/iTerm Integration - Work in Progress
 
-**Status:** Phase 2 Complete - Multi-Window Support Ready
-**Last Updated:** 2025-10-25
+**Status:** Phase 2 Complete - Multi-Window Support Ready (with refinements)
+**Last Updated:** 2025-10-25 (evening)
 **Session:** Clauding
 
 ---
@@ -12,6 +12,7 @@
 - Quick command to open new Claude instances in tmux windows
 - Supports session type names with emoji indicators
 - Example: `ct coding` creates window "💻 coding"
+- **Refined (2025-10-25 evening):** Silent loading, clear success feedback
 
 ✅ **New helper: `tmux_new_window()`**
 - Low-level utility for creating tmux windows
@@ -20,6 +21,10 @@
 ✅ **Comprehensive recipe created**
 - Location: `~/.claude/recipes/tmux/new-claude-tab.md`
 - Documents all usage patterns and examples
+
+✅ **Updated `cs` function**
+- New sessions now start in `~/.claude` directory
+- Perfect for clauding sessions and configuration work
 
 ⚠️ **Important:** Reload your shell or start fresh session to use new features
 ```bash
@@ -54,10 +59,12 @@ cs portal-dev   # Creates/attaches "portal-dev" session, runs claude
 ```
 
 **How it works:**
-- First time: Creates new tmux session with given name, automatically runs `claude` command
+- First time: Creates new tmux session with given name, starts in `~/.claude`, automatically runs `claude` command
 - Subsequent: Attaches to existing session, preserves everything
 
 **To activate:** `source ~/.zshrc` or open new terminal
+
+**Updated (2025-10-25 evening):** New sessions start in `~/.claude` directory for easier config access
 
 ---
 
@@ -206,9 +213,15 @@ ct my-feature   # Opens new tab named "my-feature"
 - Validates you're in tmux (errors if not)
 - Maps session type to emoji window name
 - Creates new window with claude auto-started
+- Provides clear success feedback: `✓ Opened: 💻 coding`
 - User can then run `/start` in the new window
 
 **To activate:** `source ~/.zshrc` or open new terminal
+
+**Refined (2025-10-25 evening):**
+- Silent helper loading (`&>/dev/null`) - no more function definition spam
+- Clear success messages for better feedback
+- Tested and verified working in production
 
 ---
 
@@ -342,6 +355,10 @@ Ensures `tmux_new_window()` and other tmux helpers are always available when Cla
 7. `~/.claude/lib/core/loader.sh` - Added tmux.sh to auto-load list
 8. `~/.claude/recipes/tmux/new-claude-tab.md` - Created comprehensive recipe
 
+**Phase 2 Refinements (2025-10-25 evening):**
+9. `~/.zshrc` - Updated `ct()` for silent loading and success feedback
+10. `~/.zshrc` - Updated `cs()` to start new sessions in `~/.claude` directory
+
 ---
 
 ## Testing Environment
@@ -383,6 +400,8 @@ Ensures `tmux_new_window()` and other tmux helpers are always available when Cla
 - [x] `tmux_new_window()` helper available
 - [x] Recipe documenting multi-window workflow
 - [x] Helpers auto-load via loader.sh
+- [x] Silent loading with clear feedback (refined 2025-10-25)
+- [x] `cs` starts in ~/.claude for config work (refined 2025-10-25)
 
 **Phase 3 (Future):**
 - [ ] Common workflow recipes created

@@ -1,3 +1,5 @@
+name: jira-mcp
+
 services:
   jira-mcp:
     image: carefeed-jira-mcp:latest

@@ -1,3 +1,5 @@
+name: bitbucket-mcp
+
 services:
   bitbucket-mcp:
     image: carefeed-bitbucket-mcp:latest
