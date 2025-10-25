@@ -40,6 +40,11 @@ if [ -f ~/.claude/lib/local/vscode.sh ]; then
     source ~/.claude/lib/local/vscode.sh
 fi
 
+# Tmux integration helpers
+if [ -f ~/.claude/lib/local/tmux.sh ]; then
+    source ~/.claude/lib/local/tmux.sh
+fi
+
 # Study tracker (for learning/analysis)
 if [ -f ~/.claude/lib/local/study-tracker.sh ]; then
     source ~/.claude/lib/local/study-tracker.sh
