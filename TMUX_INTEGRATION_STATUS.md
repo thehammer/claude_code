@@ -1,8 +1,41 @@
 # Tmux/iTerm Integration - Work in Progress
 
-**Status:** Phase 2 Complete - Multi-Window Support Ready (with refinements)
-**Last Updated:** 2025-10-25 (evening)
+**Status:** Phase 3 Complete - Coding Workspace Layouts Ready
+**Last Updated:** 2025-10-25 (night)
 **Session:** Clauding
+
+---
+
+## What's New in Phase 3
+
+✅ **Coding Workspace Layouts**
+- Natural language workflow: "start a coding session for the admin portal"
+- Automatic 3-pane layout: Claude (left) | Emacs (top-right) / Shell (bottom-right)
+- Changes to correct project directory
+- Auto-initializes Claude with `/start coding`
+
+✅ **Project Mappings File**
+- Location: `~/.claude/PROJECTS.md`
+- Maps friendly project names to directories
+- Example: **admin portal** → `~/Code/portal_dev`
+- Easy to extend with new projects
+
+✅ **Helper Function: `tmux_create_coding_layout()`**
+- Creates complete coding workspace in one call
+- Location: `~/.claude/lib/local/tmux.sh`
+- Handles directory validation and layout creation
+- Returns focus to Claude pane
+
+✅ **Recipe: Start Coding Session**
+- Location: `~/.claude/recipes/tmux/start-coding-session.md`
+- Step-by-step instructions for Claude to follow
+- Includes error handling and project discovery
+- Examples and customization options
+
+⚠️ **Important:** Reload tmux helpers to use new function
+```bash
+source ~/.claude/lib/local/tmux.sh
+```
 
 ---
 
@@ -251,26 +284,99 @@ Ensures `tmux_new_window()` and other tmux helpers are always available when Cla
 
 ---
 
-## Phase 3: Next Steps (🔜 NOT STARTED)
+## Phase 3: Coding Workspace Layouts (✅ COMPLETE)
 
-### Potential Enhancements
+### What We Built
 
-#### 1. Session-Specific Layouts
-**Question:** Should different session types auto-create pane layouts?
+#### 1. Project Mappings File
+**File:** `~/.claude/PROJECTS.md`
 
-**Options:**
-- **Minimal (current):** Single pane, create splits manually as needed
-- **Automatic:** Pre-configured layouts per session type
-- **Hybrid:** Simple default + recipes for complex layouts
+**Purpose:** Maps friendly project names to directory paths for easy lookup
 
-#### 2. Additional Tmux Recipes
+**Format:**
+```markdown
+- **admin portal** → `~/Code/portal_dev`
+- **api server** → `~/Code/api`
+```
+
+**Usage:** Claude reads this file when asked to start a coding session
+
+---
+
+#### 2. Helper Function: `tmux_create_coding_layout()`
+**File:** `~/.claude/lib/local/tmux.sh:173-218`
+
+**Purpose:** Creates a 3-pane coding workspace with automatic initialization
+
+**Usage:**
+```bash
+tmux_create_coding_layout "~/Code/portal_dev" "💻 admin-portal"
+```
+
+**Arguments:**
+- `$1` = Project directory path (required)
+- `$2` = Window name (optional, defaults to "💻 coding")
+
+**Layout Created:**
+```
+┌─────────────────┬─────────────────┐
+│                 │                 │
+│                 │     Emacs       │
+│     Claude      │   (top-right)   │
+│     (left)      ├─────────────────┤
+│                 │                 │
+│                 │     Shell       │
+│                 │  (bottom-right) │
+└─────────────────┴─────────────────┘
+```
+
+**Features:**
+- Validates directory exists
+- Expands tilde in paths
+- Starts Claude and auto-runs `/start coding`
+- Starts Emacs in top-right pane
+- Provides shell in bottom-right pane
+- All panes start in project directory
+- Returns focus to Claude pane
+
+---
+
+#### 3. Recipe: Start Coding Session
+**File:** `~/.claude/recipes/tmux/start-coding-session.md`
+
+**Purpose:** Instructions for Claude to follow when user requests a coding workspace
+
+**Workflow:**
+1. Parse user's request for project name
+2. Look up project in PROJECTS.md
+3. Verify directory exists
+4. Load tmux helpers
+5. Create coding layout
+6. Provide clear feedback
+
+**Handles errors:**
+- Project not found in mappings
+- Directory doesn't exist
+- Not in tmux session
+
+---
+
+### Future Enhancement Ideas
+
+#### 1. Additional Layout Types
+**Potential layouts for other session types:**
+- **Debugging layout:** Claude + logs viewer + query shell
+- **Analysis layout:** Claude + file browser + documentation viewer
+- **Presenting layout:** Claude + preview pane + notes
+
+#### 2. More Tmux Recipes
 **Where:** `~/.claude/recipes/tmux/`
 
-**Potential recipes:**
-1. **`setup-coding-workspace.md`** - Multi-pane development layout
-2. **`debug-production-issue.md`** - Debugging layout with logs and queries
-3. **`parallel-command-runner.md`** - Run commands in multiple panes
-4. **`session-persistence.md`** - Save and restore layouts
+**Ideas:**
+1. **`debug-production-issue.md`** - Debugging layout with logs and queries
+2. **`parallel-command-runner.md`** - Run commands in multiple panes
+3. **`session-persistence.md`** - Save and restore layouts
+4. **`start-debugging-session.md`** - Similar to coding but for debugging
 
 #### 3. iTerm-Specific Features
 
@@ -361,6 +467,11 @@ Ensures `tmux_new_window()` and other tmux helpers are always available when Cla
 9. `~/.zshrc` - Updated `ct()` for silent loading and success feedback
 10. `~/.zshrc` - Updated `cs()` to start new sessions in `~/.claude` directory
 
+**Phase 3 (2025-10-25 night):**
+11. `~/.claude/PROJECTS.md` - Created project mappings file
+12. `~/.claude/lib/local/tmux.sh` - Added `tmux_create_coding_layout()` function
+13. `~/.claude/recipes/tmux/start-coding-session.md` - Created recipe for coding workspaces
+
 ---
 
 ## Testing Environment
@@ -405,11 +516,18 @@ Ensures `tmux_new_window()` and other tmux helpers are always available when Cla
 - [x] Silent loading with clear feedback (refined 2025-10-25)
 - [x] `cs` starts in ~/.claude for config work (refined 2025-10-25)
 
-**Phase 3 (Future):**
-- [ ] Common workflow recipes created
-- [ ] Session-type specific behaviors documented
-- [ ] Multi-pane patterns established
-- [ ] iTerm integrations (if valuable)
+**Phase 3:** ✅
+- [x] Coding workspace layout implemented
+- [x] Project mappings file created (PROJECTS.md)
+- [x] Helper function for 3-pane layout
+- [x] Recipe for starting coding sessions
+- [x] Natural language workflow ("start a coding session for X")
+- [x] Automatic directory navigation and initialization
+
+**Future Enhancements:**
+- [ ] Additional layout types (debugging, analysis, presenting)
+- [ ] More tmux recipes for specific workflows
+- [ ] iTerm-specific integrations (badges, notifications)
 
 ---
 
@@ -437,6 +555,34 @@ Create or update `~/.claude/.claude.json`:
 ```
 
 **Why:** When `cs` starts a new session, it begins in `~/.claude` (perfect for clauding sessions). Claude Code's workspace trust feature prompts for untrusted directories. Pre-configuring the directory in `.claude.json` skips the trust dialog.
+
+**Status:** ✅ Fixed (2025-10-25)
+
+---
+
+### "can't find window: 0" Error on `cs` Startup
+
+**Problem:** When creating a new session with `cs`, error messages appear before attaching:
+```
+can't find window: 0
+can't find window: 0
+```
+And the `/start` command never executes automatically.
+
+**Root cause:** The `cs` function was using `tmux send-keys -t "$session_name:0"` to send the `/start` command. When creating a session with a command argument (`"claude"`), tmux's window indexing isn't immediately stable, causing the `:0` window reference to fail.
+
+**Solution:** Remove the `:0` window specification. Changed from:
+```bash
+tmux send-keys -t "$session_name:0" "/start $session_type"
+```
+To:
+```bash
+tmux send-keys -t "$session_name" "/start $session_type"
+```
+
+**Why this works:** When you send keys without specifying a window, tmux sends them to the current window of that session. Since we just created the session with only one window, this is more reliable.
+
+**Location:** `~/.zshrc:383,387`
 
 **Status:** ✅ Fixed (2025-10-25)
 
@@ -474,13 +620,33 @@ ct coding       # "💻 coding" window
 ct debugging    # "🐛 debug" window
 ```
 
+**Create a coding workspace with layout (NEW in Phase 3):**
+
+Ask Claude in natural language:
+```
+"Start a coding session for the admin portal"
+"Create a coding workspace for the API"
+```
+
+Claude will:
+1. Look up the project in `~/.claude/PROJECTS.md`
+2. Create a 3-pane layout (Claude left, Emacs top-right, Shell bottom-right)
+3. Change to the project directory
+4. Auto-initialize Claude with `/start coding`
+
 **Navigate between windows:**
 - Next: `Ctrl-B n`
 - Previous: `Ctrl-B p`
 - Select by number: `Ctrl-B [0-9]`
 - List all: `Ctrl-B w`
 
-**See the recipe for full details:**
+**Navigate between panes:**
+- Arrow keys: `Ctrl-B ↑/↓/←/→`
+- Next pane: `Ctrl-B o`
+- Last pane: `Ctrl-B ;`
+
+**See the recipes for full details:**
 ```bash
 cat ~/.claude/recipes/tmux/new-claude-tab.md
+cat ~/.claude/recipes/tmux/start-coding-session.md
 ```

@@ -169,3 +169,53 @@ tmux_new_window() {
 
     eval "$tmux_cmd"
 }
+
+# Create a coding workspace layout in a new tmux window
+# Layout: Claude (left 50%) | Emacs (top-right 25%) / Shell (bottom-right 25%)
+# Args: $1 = project directory path
+#       $2 = window name (optional, defaults to "💻 coding")
+# Returns: 0 on success, 1 if not in tmux or directory doesn't exist
+tmux_create_coding_layout() {
+    local project_dir="$1"
+    local window_name="${2:-💻 coding}"
+
+    if ! tmux_is_active; then
+        echo "Error: Not in a tmux session" >&2
+        return 1
+    fi
+
+    # Expand tilde in path
+    project_dir="${project_dir/#\~/$HOME}"
+
+    if [[ ! -d "$project_dir" ]]; then
+        echo "Error: Directory does not exist: $project_dir" >&2
+        return 1
+    fi
+
+    # Create new window in the project directory
+    tmux new-window -n "$window_name" -c "$project_dir"
+
+    # Split vertically to create right pane (50/50 split)
+    tmux split-window -h -c "$project_dir"
+
+    # Split the right pane horizontally to create top-right and bottom-right
+    tmux split-window -v -c "$project_dir"
+
+    # Select top-right pane (pane 1) and start emacs
+    tmux select-pane -t 1
+    tmux send-keys "emacs"
+    tmux send-keys Enter
+
+    # Select left pane (pane 0) and start Claude
+    tmux select-pane -t 0
+    tmux send-keys "claude"
+    tmux send-keys Enter
+
+    # Wait for Claude to fully start before sending /start command
+    sleep 2.5
+    tmux send-keys "/start coding"
+    tmux send-keys Enter
+
+    # Return focus to the Claude pane
+    tmux select-pane -t 0
+}
