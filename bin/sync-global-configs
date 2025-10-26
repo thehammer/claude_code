@@ -1,0 +1,281 @@
+#!/bin/bash
+# Sync Global Configuration Files
+#
+# Keeps ~/.claude.json and ~/.claude/settings.json in sync
+#
+# WHY THIS EXISTS:
+# - CLI uses ~/.claude.json for MCP servers and permissions
+# - VSCode extension uses ~/.claude/settings.json for permissions and MCP servers
+# - Both need to stay in sync for consistent behavior
+#
+# WHAT IT SYNCS:
+# - MCP servers (bidirectional)
+# - Permissions (allow, deny, ask) (bidirectional)
+# - Other settings stay file-specific
+#
+# USAGE:
+#   sync-global-configs [--dry-run] [--verbose]
+
+set -euo pipefail
+
+# ==============================================================================
+# Configuration
+# ==============================================================================
+
+CLAUDE_JSON="$HOME/.claude.json"
+SETTINGS_JSON="$HOME/.claude/settings.json"
+DRY_RUN=false
+VERBOSE=false
+
+# ==============================================================================
+# Parse Arguments
+# ==============================================================================
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        --verbose|-v)
+            VERBOSE=true
+            shift
+            ;;
+        --help|-h)
+            cat << 'EOF'
+Usage: sync-global-configs [options]
+
+Syncs MCP servers and permissions between:
+  - ~/.claude.json (CLI config)
+  - ~/.claude/settings.json (VSCode extension config)
+
+Options:
+  --dry-run    Show what would be synced without making changes
+  --verbose    Show detailed sync information
+  --help       Show this help message
+
+Examples:
+  sync-global-configs                # Sync both files
+  sync-global-configs --dry-run      # Preview changes
+  sync-global-configs --verbose      # Show details
+
+EOF
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+# ==============================================================================
+# Validation
+# ==============================================================================
+
+if [[ ! -f "$CLAUDE_JSON" ]]; then
+    echo "Error: $CLAUDE_JSON not found"
+    exit 1
+fi
+
+if [[ ! -f "$SETTINGS_JSON" ]]; then
+    echo "Error: $SETTINGS_JSON not found"
+    exit 1
+fi
+
+# Validate JSON files
+if ! jq empty "$CLAUDE_JSON" 2>/dev/null; then
+    echo "Error: $CLAUDE_JSON contains invalid JSON"
+    exit 1
+fi
+
+if ! jq empty "$SETTINGS_JSON" 2>/dev/null; then
+    echo "Error: $SETTINGS_JSON contains invalid JSON"
+    exit 1
+fi
+
+# ==============================================================================
+# Helper Functions
+# ==============================================================================
+
+log() {
+    if [[ "$VERBOSE" == true ]]; then
+        echo "$@"
+    fi
+}
+
+# ==============================================================================
+# Extract Current State
+# ==============================================================================
+
+log "Reading current configuration..."
+
+# Read MCP servers from both files
+CLAUDE_MCP=$(jq -c '.mcpServers // {}' "$CLAUDE_JSON")
+SETTINGS_MCP=$(jq -c '.mcpServers // {}' "$SETTINGS_JSON")
+
+# Read permissions from both files
+CLAUDE_PERMS=$(jq -c '.permissions // {"allow":[],"deny":[],"ask":[]}' "$CLAUDE_JSON")
+SETTINGS_PERMS=$(jq -c '.permissions // {"allow":[],"deny":[],"ask":[]}' "$SETTINGS_JSON")
+
+log "Current MCP servers in .claude.json: $(echo "$CLAUDE_MCP" | jq 'keys')"
+log "Current MCP servers in settings.json: $(echo "$SETTINGS_MCP" | jq 'keys')"
+
+# ==============================================================================
+# Merge MCP Servers
+# ==============================================================================
+
+log ""
+log "Merging MCP servers..."
+
+# Merge MCP servers: settings.json is source of truth, but keep both
+MERGED_MCP=$(jq -n \
+    --argjson claude "$CLAUDE_MCP" \
+    --argjson settings "$SETTINGS_MCP" \
+    '$claude + $settings')
+
+MCP_CHANGES=$(jq -n \
+    --argjson current "$CLAUDE_MCP" \
+    --argjson merged "$MERGED_MCP" \
+    '$merged | to_entries | map(select(.key as $k | ($current | has($k) | not)))')
+
+if [[ "$(echo "$MCP_CHANGES" | jq 'length')" -gt 0 ]]; then
+    echo "MCP servers to add to .claude.json:"
+    echo "$MCP_CHANGES" | jq -r '.[] | "  + \(.key): \(.value.url // .value.command // "configured")"'
+else
+    echo "MCP servers: already in sync ✓"
+fi
+
+# ==============================================================================
+# Merge Permissions
+# ==============================================================================
+
+log ""
+log "Merging permissions..."
+
+# Extract permission arrays
+CLAUDE_ALLOW=$(echo "$CLAUDE_PERMS" | jq -r '.allow[]?' | sort -u)
+CLAUDE_DENY=$(echo "$CLAUDE_PERMS" | jq -r '.deny[]?' | sort -u)
+CLAUDE_ASK=$(echo "$CLAUDE_PERMS" | jq -r '.ask[]?' | sort -u)
+
+SETTINGS_ALLOW=$(echo "$SETTINGS_PERMS" | jq -r '.allow[]?' | sort -u)
+SETTINGS_DENY=$(echo "$SETTINGS_PERMS" | jq -r '.deny[]?' | sort -u)
+SETTINGS_ASK=$(echo "$SETTINGS_PERMS" | jq -r '.ask[]?' | sort -u)
+
+# Merge and deduplicate
+MERGED_ALLOW=$(echo -e "$CLAUDE_ALLOW\n$SETTINGS_ALLOW" | grep -v '^$' | sort -u)
+MERGED_DENY=$(echo -e "$CLAUDE_DENY\n$SETTINGS_DENY" | grep -v '^$' | sort -u)
+MERGED_ASK=$(echo -e "$CLAUDE_ASK\n$SETTINGS_ASK" | grep -v '^$' | sort -u)
+
+# Count changes
+ALLOW_NEW=$(comm -13 <(echo "$CLAUDE_ALLOW") <(echo "$MERGED_ALLOW") | wc -l | tr -d ' ')
+DENY_NEW=$(comm -13 <(echo "$CLAUDE_DENY") <(echo "$MERGED_DENY") | wc -l | tr -d ' ')
+ASK_NEW=$(comm -13 <(echo "$CLAUDE_ASK") <(echo "$MERGED_ASK") | wc -l | tr -d ' ')
+
+if [[ "$ALLOW_NEW" -gt 0 ]] || [[ "$DENY_NEW" -gt 0 ]] || [[ "$ASK_NEW" -gt 0 ]]; then
+    echo "Permissions to sync to .claude.json:"
+    [[ "$ALLOW_NEW" -gt 0 ]] && echo "  + $ALLOW_NEW new allow patterns"
+    [[ "$DENY_NEW" -gt 0 ]] && echo "  + $DENY_NEW new deny patterns"
+    [[ "$ASK_NEW" -gt 0 ]] && echo "  + $ASK_NEW new ask patterns"
+
+    if [[ "$VERBOSE" == true ]]; then
+        [[ "$ALLOW_NEW" -gt 0 ]] && echo "" && echo "New allow patterns:" && comm -13 <(echo "$CLAUDE_ALLOW") <(echo "$MERGED_ALLOW")
+    fi
+else
+    echo "Permissions: already in sync ✓"
+fi
+
+# ==============================================================================
+# Build Merged JSON
+# ==============================================================================
+
+log ""
+log "Building merged configuration..."
+
+# Convert merged permissions to JSON arrays
+MERGED_ALLOW_JSON=$(echo "$MERGED_ALLOW" | jq -R . | jq -s .)
+MERGED_DENY_JSON=$(echo "$MERGED_DENY" | jq -R . | jq -s .)
+MERGED_ASK_JSON=$(echo "$MERGED_ASK" | jq -R . | jq -s .)
+
+# Build merged permissions object
+MERGED_PERMS=$(jq -n \
+    --argjson allow "$MERGED_ALLOW_JSON" \
+    --argjson deny "$MERGED_DENY_JSON" \
+    --argjson ask "$MERGED_ASK_JSON" \
+    '{allow: $allow, deny: $deny, ask: $ask}')
+
+# ==============================================================================
+# Apply Changes
+# ==============================================================================
+
+if [[ "$DRY_RUN" == true ]]; then
+    echo ""
+    echo "DRY RUN - No changes made"
+    echo ""
+    echo "Would update .claude.json with:"
+    echo "  mcpServers: $(echo "$MERGED_MCP" | jq 'keys | length') servers"
+    echo "  permissions.allow: $(echo "$MERGED_ALLOW_JSON" | jq 'length') patterns"
+    echo "  permissions.deny: $(echo "$MERGED_DENY_JSON" | jq 'length') patterns"
+    echo "  permissions.ask: $(echo "$MERGED_ASK_JSON" | jq 'length') patterns"
+    exit 0
+fi
+
+echo ""
+echo "Applying changes..."
+
+# Backup files
+cp "$CLAUDE_JSON" "$CLAUDE_JSON.backup"
+cp "$SETTINGS_JSON" "$SETTINGS_JSON.backup"
+log "Created backups: .backup files"
+
+# Update .claude.json with merged MCP servers and permissions
+jq --argjson mcpServers "$MERGED_MCP" \
+   --argjson permissions "$MERGED_PERMS" \
+   '.mcpServers = $mcpServers | .permissions = $permissions' \
+   "$CLAUDE_JSON" > "$CLAUDE_JSON.tmp"
+
+if ! jq empty "$CLAUDE_JSON.tmp" 2>/dev/null; then
+    echo "Error: Generated invalid JSON for .claude.json"
+    echo "Restoring from backup..."
+    mv "$CLAUDE_JSON.backup" "$CLAUDE_JSON"
+    rm -f "$CLAUDE_JSON.tmp"
+    exit 1
+fi
+
+mv "$CLAUDE_JSON.tmp" "$CLAUDE_JSON"
+log "Updated $CLAUDE_JSON"
+
+# Update settings.json with merged MCP servers and permissions
+jq --argjson mcpServers "$MERGED_MCP" \
+   --argjson permissions "$MERGED_PERMS" \
+   '.mcpServers = $mcpServers | .permissions = $permissions' \
+   "$SETTINGS_JSON" > "$SETTINGS_JSON.tmp"
+
+if ! jq empty "$SETTINGS_JSON.tmp" 2>/dev/null; then
+    echo "Error: Generated invalid JSON for settings.json"
+    echo "Restoring from backup..."
+    mv "$SETTINGS_JSON.backup" "$SETTINGS_JSON"
+    rm -f "$SETTINGS_JSON.tmp"
+    exit 1
+fi
+
+mv "$SETTINGS_JSON.tmp" "$SETTINGS_JSON"
+log "Updated $SETTINGS_JSON"
+
+# ==============================================================================
+# Summary
+# ==============================================================================
+
+echo ""
+echo "✅ Sync complete!"
+echo ""
+echo "Both files now have:"
+echo "  • $(echo "$MERGED_MCP" | jq 'keys | length') MCP servers"
+echo "  • $(echo "$MERGED_ALLOW_JSON" | jq 'length') allow patterns"
+echo "  • $(echo "$MERGED_DENY_JSON" | jq 'length') deny patterns"
+echo "  • $(echo "$MERGED_ASK_JSON" | jq 'length') ask patterns"
+echo ""
+echo "Backups saved:"
+echo "  • ~/.claude.json.backup"
+echo "  • ~/.claude/settings.json.backup"

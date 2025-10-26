@@ -2,7 +2,7 @@
 
 **Category:** bitbucket
 **Complexity:** moderate
-**Last Updated:** 2025-10-24
+**Last Updated:** 2025-10-25 (Updated for Bitbucket MCP)
 
 ## Goal
 
@@ -10,9 +10,12 @@ Investigate and diagnose Bitbucket Pipeline failures efficiently by identifying 
 
 This recipe provides a systematic debugging workflow that moves from high-level pipeline status to specific error details, helping developers quickly identify and fix CI/CD failures.
 
+**✨ Updated for Bitbucket MCP:** This recipe now uses the Bitbucket MCP server instead of bash helpers. Simply ask Claude Code to perform these steps using natural language - the MCP tools will be used automatically.
+
 ## Prerequisites
 
-- Authenticated with Bitbucket (credentials configured)
+- **Bitbucket MCP server** running and configured in Claude Code
+- Authenticated with Bitbucket (credentials configured in MCP)
 - Working in a project with Bitbucket Pipelines enabled
 - Pipeline ID or PR number to investigate
 - Access to pipeline execution logs
@@ -33,25 +36,21 @@ This recipe provides a systematic debugging workflow that moves from high-level 
 
 ### 1. **Identify Failed Pipeline**
 
-If you have a PR number but not pipeline ID:
+**Using Bitbucket MCP** (recommended):
 
-```bash
-# Get PR details including pipeline status
-pr_data=$(bitbucket_get_pr "$pr_number")
-
-# Extract latest pipeline build number
-pipeline_id=$(echo "$pr_data" | jq -r '.links.buildstatus.href' | grep -oE '[0-9]+$')
+If you have a PR number but not pipeline ID, ask Claude Code:
+```
+"Get PR #[pr_number] from Bitbucket and show me the latest pipeline status"
 ```
 
-**Or list recent pipelines:**
-```bash
-# Using Bitbucket API (will be in MCP)
-curl -s -u "${BITBUCKET_USERNAME}:${bitbucket_token}" \
-  "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pipelines/" | \
-  jq -r '.values[] | select(.state.result.name == "FAILED") |
-    "\(.build_number): \(.target.ref_name) - \(.state.result.name) - \(.created_on)"' | \
-  head -5
+Claude will use the MCP tool `mcp__bitbucket__bb_get_pr` to fetch PR details including pipeline information.
+
+**Or list recent failed pipelines:**
 ```
+"List failed pipelines for [repo-name] in the last 24 hours"
+```
+
+Claude will use `mcp__bitbucket__bb_list_pipelines` with appropriate filters.
 
 **Output example:**
 ```
@@ -65,22 +64,18 @@ curl -s -u "${BITBUCKET_USERNAME}:${bitbucket_token}" \
 
 ### 2. **Get Pipeline Overview**
 
-Fetch high-level pipeline information:
-
-```bash
-# Using current bash helper (will be Bitbucket MCP tool)
-pipeline_data=$(bitbucket_get_pipeline "$pipeline_id")
-
-echo "$pipeline_data" | jq '{
-  build_number: .build_number,
-  state: .state.name,
-  result: .state.result.name,
-  branch: .target.ref_name,
-  commit: .target.commit.hash[0:8],
-  created: .created_on,
-  completed: .completed_on
-}'
+**Using Bitbucket MCP:**
 ```
+"Get details for Bitbucket pipeline #[pipeline_id] in [repo-name]"
+```
+
+Claude will use `mcp__bitbucket__bb_get_pipeline` to fetch pipeline details including:
+- Build number and status
+- State (COMPLETED, IN_PROGRESS, etc.)
+- Result (SUCCESSFUL, FAILED, ERROR, etc.)
+- Branch and commit information
+- Creation and completion timestamps
+- Duration
 
 **Output example:**
 ```json
@@ -106,12 +101,12 @@ echo "$pipeline_data" | jq '{
 
 ### 3. **List All Pipeline Steps**
 
-Get overview of which step(s) failed:
-
-```bash
-# Using current bash helper (will be Bitbucket MCP tool)
-bitbucket_get_step_url "$pipeline_id"
+**Using Bitbucket MCP:**
 ```
+"List all steps for Bitbucket pipeline #[pipeline_id] in [repo-name]"
+```
+
+Claude will use `mcp__bitbucket__bb_list_pipeline_steps` to show all steps with their status.
 
 **Output example:**
 ```
@@ -139,12 +134,12 @@ SKIPPED Deploy
 
 ### 4. **Get Failed Step Details**
 
-Focus on the failed step:
-
-```bash
-# Get specific step URL and status
-bitbucket_get_step_url "$pipeline_id" "PHP Test"
+**Using Bitbucket MCP:**
 ```
+"Show me details for the 'PHP Test' step in pipeline #[pipeline_id]"
+```
+
+Claude can filter the step list to focus on specific steps by name.
 
 **Output example:**
 ```
@@ -200,22 +195,17 @@ URL: https://bitbucket.org/Bitbucketpassword1/portal_dev/pipelines/results/13906
 
 ### 6. **Correlate with Recent Changes**
 
-Compare failed commit with previous successful build:
+**Using Bitbucket MCP + Git:**
 
-```bash
-# Get commit that failed
-failed_commit=$(echo "$pipeline_data" | jq -r '.target.commit.hash')
-
-# Get previous successful pipeline for same branch
-# (Will be Bitbucket MCP tool)
-last_success=$(curl -s -u "${BITBUCKET_USERNAME}:${bitbucket_token}" \
-  "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pipelines/?target.branch=${branch}&sort=-created_on" | \
-  jq -r '.values[] | select(.state.result.name == "SUCCESSFUL") | .target.commit.hash' | \
-  head -1)
-
-# Show files changed between last success and failure
-git diff --name-only "$last_success" "$failed_commit"
+Ask Claude:
 ```
+"What was the last successful pipeline for this branch, and what files changed since then?"
+```
+
+Claude will:
+1. Use `mcp__bitbucket__bb_list_pipelines` to find the last successful build
+2. Extract the commit hashes
+3. Use git to show file changes: `git diff --name-only [last-success] [failed-commit]`
 
 **Output example:**
 ```
@@ -301,78 +291,56 @@ git push origin HEAD
 
 ---
 
-## Command Patterns
+## Using This Recipe with Claude Code
 
-### Complete Debugging Workflow
+### Natural Language Workflow
 
-```bash
-#!/bin/bash
-# Complete pipeline debugging workflow
+Instead of running bash scripts, simply ask Claude Code to help debug the pipeline:
 
-# Input: Pipeline ID or PR number
-pipeline_id="${1}"
-pr_number="${2}"
-
-# Auto-detect repo
-repo=$(git config --get remote.origin.url | sed -E 's|.*/([^/]+)(\.git)?$|\1|')
-
-# If PR number provided, get pipeline ID
-if [[ -n "$pr_number" ]]; then
-  echo "Looking up pipeline for PR #${pr_number}..."
-  pr_data=$(bitbucket_get_pr "$pr_number")
-  pipeline_id=$(echo "$pr_data" | jq -r '.links.buildstatus.href' | grep -oE '[0-9]+$')
-  echo "Found pipeline: #${pipeline_id}"
-fi
-
-# 1. Get pipeline overview
-echo ""
-echo "=== Pipeline Overview ==="
-pipeline_data=$(bitbucket_get_pipeline "$pipeline_id")
-echo "$pipeline_data" | jq '{
-  build: .build_number,
-  result: .state.result.name,
-  branch: .target.ref_name,
-  commit: .target.commit.hash[0:8],
-  duration: (.completed_on - .created_on | split(":") | .[0] + "m " + .[1] + "s")
-}'
-
-# 2. List all steps and identify failures
-echo ""
-echo "=== Pipeline Steps ==="
-bitbucket_get_step_url "$pipeline_id"
-
-# 3. Get failed step details
-echo ""
-echo "=== Failed Step Details ==="
-failed_step=$(bitbucket_get_pipeline "$pipeline_id" | \
-  jq -r '.values[] | select(.state.result.name == "FAILED") | .name' | head -1)
-
-if [[ -n "$failed_step" ]]; then
-  bitbucket_get_step_url "$pipeline_id" "$failed_step"
-
-  echo ""
-  echo "⚠️  Action Required:"
-  echo "   1. Open the URL above in your browser"
-  echo "   2. Review the logs for error messages"
-  echo "   3. Note the file names and line numbers"
-  echo "   4. Continue with correlation analysis below"
-else
-  echo "No failed steps found (might be in progress)"
-fi
-
-# 4. Show recent changes for context
-echo ""
-echo "=== Recent Changes (likely culprits) ==="
-failed_commit=$(echo "$pipeline_data" | jq -r '.target.commit.hash')
-git log -1 --stat "$failed_commit"
-
-echo ""
-echo "💡 Debugging Tips:"
-echo "   • Check files changed in commit above"
-echo "   • Look for patterns matching common errors (see recipe)"
-echo "   • Run tests locally: vendor/bin/phpunit"
-echo "   • Run static analysis: vendor/bin/phpstan analyze"
+**Example conversation:**
 ```
+You: "Pipeline #13906 failed for portal_dev. Can you help me debug it?"
+
+Claude: "I'll investigate pipeline #13906. Let me get the details..."
+[Uses mcp__bitbucket__bb_get_pipeline]
+
+Claude: "The pipeline failed in the 'PHP Test' step. Let me check what tests failed..."
+[Uses mcp__bitbucket__bb_list_pipeline_steps]
+
+Claude: "The tests in FacilityMatcherTest failed. Let me compare with the last successful build to see what changed..."
+[Uses mcp__bitbucket__bb_list_pipelines + git diff]
+
+Claude: "I found that FacilityMatcher.php was modified. The likely issue is..."
+```
+
+### Step-by-Step Prompts
+
+If you prefer to guide Claude through each step:
+
+1. **Identify pipeline:**
+   ```
+   "Show me failed pipelines for [repo-name] from today"
+   ```
+
+2. **Get overview:**
+   ```
+   "Get details for pipeline #[id]"
+   ```
+
+3. **List steps:**
+   ```
+   "List all steps for this pipeline"
+   ```
+
+4. **Analyze failure:**
+   ```
+   "What changed between this failed build and the last successful build?"
+   ```
+
+5. **Suggest fix:**
+   ```
+   "Based on the error and changes, what's the likely root cause?"
+   ```
 
 ---
 
@@ -432,15 +400,12 @@ Date:   Thu Oct 24 14:30:00 2025
 **Cause:** Invalid pipeline ID or insufficient permissions
 
 **Solution:**
-```bash
-# Verify pipeline exists
-bitbucket_get_pipeline "$pipeline_id"
-
-# If not found, list recent pipelines
-curl -s -u "${BITBUCKET_USERNAME}:${bitbucket_token}" \
-  "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pipelines/" | \
-  jq -r '.values[0:10] | .[] | "\(.build_number): \(.state.result.name)"'
+Ask Claude:
 ```
+"List the 10 most recent pipelines for [repo-name]"
+```
+
+Claude will use `mcp__bitbucket__bb_list_pipelines` to show recent pipelines with their IDs and status.
 
 ---
 
@@ -448,15 +413,12 @@ curl -s -u "${BITBUCKET_USERNAME}:${bitbucket_token}" \
 **Cause:** Multiple steps failed or pipeline still running
 
 **Solution:**
-```bash
-# Check if pipeline completed
-bitbucket_get_pipeline "$pipeline_id" | jq '.state.name'
-# Should be "COMPLETED", not "IN_PROGRESS"
-
-# List all failed steps (there may be multiple)
-bitbucket_get_pipeline "$pipeline_id" | \
-  jq -r '.values[] | select(.state.result.name == "FAILED") | .name'
+Ask Claude:
 ```
+"Is pipeline #[id] still running? If completed, show me all failed steps."
+```
+
+Claude will check the pipeline state and list all failed steps if the pipeline has completed.
 
 ---
 
@@ -480,15 +442,12 @@ bitbucket_get_pipeline "$pipeline_id" | \
 **Cause:** Branch has many failed pipelines
 
 **Solution:**
-```bash
-# Filter to specific time range
-date_filter=$(date -u -v-1d '+%Y-%m-%dT%H:%M:%SZ')  # Last 24h
-
-curl -s -u "${BITBUCKET_USERNAME}:${bitbucket_token}" \
-  "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/${repo}/pipelines/?target.branch=${branch}&sort=-created_on" | \
-  jq --arg date "$date_filter" \
-    '.values[] | select(.created_on > $date) | select(.state.result.name == "FAILED")'
+Ask Claude with filters:
 ```
+"Show me failed pipelines for branch [branch-name] from the last 24 hours"
+```
+
+Claude will use `mcp__bitbucket__bb_list_pipelines` with branch and state filters.
 
 ---
 

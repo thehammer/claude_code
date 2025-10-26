@@ -29,6 +29,7 @@ Look for `SESSION_DESCRIPTION:` in the command invocation to extract the descrip
 - `learning` - Understanding technologies, patterns, concepts, experiments
 - `personal` - Side projects, hobbies, personal automation, fun coding
 - `clauding` - Improving Claude configuration and workflows
+- `launcher` - Minimal tmux launcher for creating other session windows
 
 **Validate and infer session type:**
 1. Check if `~/.claude/session-types/{type}.md` exists (exact match)
@@ -42,6 +43,7 @@ Look for `SESSION_DESCRIPTION:` in the command invocation to extract the descrip
      - `learn`, `learning`, `study`, `tutorial`, `education` → `learning`
      - `personal`, `side`, `hobby`, `fun`, `home` → `personal`
      - `claude`, `clauding`, `config`, `configuration` → `clauding`
+     - `launch`, `launcher`, `tmux`, `start` → `launcher`
    - If inference is obvious (clear match), use the inferred type and inform the user
    - If inference is ambiguous or unclear, list available types and offer to:
      - Use one of the existing session types
@@ -54,6 +56,52 @@ Look for `SESSION_DESCRIPTION:` in the command invocation to extract the descrip
 3. Only load what's needed for that session type
 
 **Important:** Each session type has different context needs. The session type definition will specify exactly what to load and what to skip.
+
+---
+
+## 0.3. Sync Global Configuration Files
+
+**Purpose:** Keep CLI and VSCode extension configs in sync
+
+**Run the sync script:**
+```bash
+~/.claude/bin/sync-global-configs
+```
+
+**What it does:**
+- Syncs MCP servers between `~/.claude.json` (CLI) and `~/.claude/settings.json` (VSCode)
+- Syncs permissions (allow, deny, ask) between both files
+- Ensures consistent behavior across CLI and VSCode
+
+**Expected Output:**
+```
+MCP servers: already in sync ✓
+Permissions: already in sync ✓
+
+✅ Sync complete!
+
+Both files now have:
+  • 2 MCP servers
+  • 27 allow patterns
+  • 5 deny patterns
+  • 10 ask patterns
+```
+
+**If changes are made:**
+```
+Permissions to sync to .claude.json:
+  + 3 new allow patterns
+
+✅ Sync complete!
+```
+
+**When to skip:** If you haven't modified either config file since last session, the sync will be instant (no-op).
+
+**Why this matters:**
+- CLI uses `~/.claude.json` for MCP servers and permissions
+- VSCode extension uses `~/.claude/settings.json`
+- Without sync, MCP tools may not be available in CLI sessions
+- Permission changes in VSCode won't apply to CLI (and vice versa)
 
 ---
 
@@ -230,6 +278,10 @@ This applies to preferences, session notes, and TODOs.
 - ✅ Integration status check
 - ⏭️ Skip: ALL project context, ALL integrations, git, PRs
 
+### For `launcher` sessions:
+- ✅ Tmux helper functions only
+- ⏭️ Skip: EVERYTHING else (calendar, integrations, session notes, preferences, git, all context)
+
 **See individual session type files for complete details.**
 
 ---
@@ -339,6 +391,7 @@ When the user says it's time to wrap up, follow instructions in `~/.claude/WRAPU
 
 Each session type has a target token budget for startup:
 
+- `launcher`: ~1-2K tokens (95% savings - tmux helpers only, absolute minimum)
 - `clauding`: ~5K tokens (85% savings - no project context)
 - `personal`: ~5K tokens (85% savings - no work context)
 - `planning`: ~8K tokens (75% savings - focus on TODOs)

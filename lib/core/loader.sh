@@ -26,6 +26,16 @@ if [ -f ~/.claude/lib/core/utilities.sh ]; then
     source ~/.claude/lib/core/utilities.sh
 fi
 
+# Load m365 wrapper with auto-authentication
+if [ -f ~/.claude/lib/core/m365.sh ]; then
+    source ~/.claude/lib/core/m365.sh
+fi
+
+# Load calendar helper functions
+if [ -f ~/.claude/lib/core/calendar.sh ]; then
+    source ~/.claude/lib/core/calendar.sh
+fi
+
 # ==============================================================================
 # Local System Helpers (Always)
 # ==============================================================================

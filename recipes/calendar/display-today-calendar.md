@@ -1,264 +1,168 @@
 # Recipe: Display Today's Calendar
 
 **Category:** calendar
-**Complexity:** moderate
-**Last Updated:** 2025-10-24
+**Complexity:** simple
+**Last Updated:** 2025-10-25
 
 ## Goal
 
-Display today's calendar events in a human-readable format with proper timezone conversion and formatting.
+Display calendar events in a human-readable format with proper timezone conversion and formatting.
 
-This recipe takes raw calendar data and presents it as a clean, formatted schedule suitable for showing to the user or including in session summaries.
+This recipe uses helper functions from `~/.claude/lib/core/calendar.sh` to fetch and display calendar events.
 
 ## Prerequisites
 
-- M365 CLI installed and authenticated
-- `jq` command-line JSON processor installed
-- User timezone is Central Time (UTC-5 or UTC-6 depending on DST)
-- Understanding that Graph API returns times in UTC
+- M365 CLI installed and authenticated (auto-handled by m365 wrapper)
+- Calendar helper functions loaded (automatic via loader.sh)
+- User timezone is Central Time (UTC-5 for CDT, UTC-6 for CST)
 
-## Inputs
+## Usage
 
-- **Required:**
-  - None (uses current date)
-- **Optional:**
-  - `date`: Specific date to display (default: today)
-  - `format`: Output format (default: "text", options: "text", "markdown", "json")
-  - `show_attendees`: Include attendee count (default: false)
-  - `show_location`: Include location details (default: true)
+### Simple - Use Helper Functions
 
-## Steps
-
-1. **Fetch raw calendar data**:
-   - Use the "Fetch Today's Calendar Events" recipe
-   - Get events with key fields: subject, start, end, location, organizer, attendees
-
-2. **Convert UTC times to Central Time**:
-   - Graph API returns times in UTC
-   - Subtract 5 hours for CDT (or 6 for CST) to get Central Time
-   - Handle edge cases (midnight rollover, empty calendar)
-
-3. **Format times for readability**:
-   - Convert 24-hour to 12-hour format (9:45 → 9:45 AM)
-   - Show time range: "9:45 AM - 10:00 AM"
-   - Group by time if needed
-
-4. **Present in readable format**:
-   - Number the events (1, 2, 3...)
-   - Include subject, time range, location
-   - Optionally show organizer and attendee count
-   - Add visual separators and emoji for clarity
-
-## Command Patterns
-
-### IMPORTANT: Use UTC Format
-See "Fetch Today's Calendar Events" recipe for details. Must use UTC format (`T05:00:00Z`), not timezone offset format (`T00:00:00-05:00`).
-
-### Simple Working Approach
-**This is what actually works in practice:**
+The calendar helper provides convenient functions that handle all the complexity:
 
 ```bash
-# Step 1: Fetch raw data (using UTC format)
-m365 request \
-  --url "https://graph.microsoft.com/v1.0/me/calendar/calendarView?startDateTime=2025-10-24T05:00:00Z&endDateTime=2025-10-25T05:00:00Z" \
-  --method get | \
-  jq -r '.value | sort_by(.start.dateTime) | .[] | "\(.start.dateTime)|\(.end.dateTime)|\(.subject)|\(.organizer.emailAddress.name)"'
+# Source the helpers (if not already loaded)
+source ~/.claude/lib/core/loader.sh
 
-# Step 2: Manually format output
-# Parse the pipe-delimited data and convert UTC to CT (subtract 5 hours)
-# Example output:
-# 2025-10-24T14:45:00.0000000 = 9:45 AM CT (14 - 5 = 9)
-# 2025-10-24T15:00:00.0000000 = 10:00 AM CT (15 - 5 = 10)
+# Show today's calendar
+show_today_calendar
+
+# Show yesterday's calendar
+show_yesterday_calendar
+
+# Show tomorrow's calendar
+show_tomorrow_calendar
+
+# Show any specific date
+display_calendar "2025-10-24"
+
+# Summary format (brief one-liners)
+show_today_calendar summary
 ```
 
-### With Timezone Conversion (Central Time)
-```bash
-# Fetch events
-events=$(m365 request \
-  --url "https://graph.microsoft.com/v1.0/me/calendar/calendarView?startDateTime=$(date +%Y-%m-%d)T00:00:00-05:00&endDateTime=$(date -v+1d +%Y-%m-%d)T00:00:00-05:00&\$select=subject,start,end,location,organizer" \
-  --method get)
+## Available Functions
 
-# Format and display
-echo "$events" | jq -r '.value | sort_by(.start.dateTime) | to_entries | .[] |
-  "\(.key + 1). \(.value.start.dateTime[11:13]):\(.value.start.dateTime[14:16]) - \(.value.end.dateTime[11:13]):\(.value.end.dateTime[14:16]) UTC: \(.value.subject)"' | \
-while read line; do
-  # Convert UTC hours to CT (subtract 5)
-  echo "$line" | sed -E 's/([0-9]{2}):([0-9]{2})/$((\1 - 5)):\2/g' | \
-  sed 's/^/• /'
-done
+### `show_today_calendar [format]`
+Display today's calendar events
+- **format**: `simple` (default) or `summary`
+
+### `show_yesterday_calendar [format]`
+Display yesterday's calendar events
+
+### `show_tomorrow_calendar [format]`
+Display tomorrow's calendar events
+
+### `display_calendar <date> [format]`
+Display calendar for any specific date
+- **date**: Required, format YYYY-MM-DD
+- **format**: Optional, `simple` (default) or `summary`
+
+## Output Formats
+
+### Simple Format (Default)
+```
+Your Calendar - Friday, October 24, 2025
+
+1. 9:45 AM - 10:00 AM: Payments Stand up
+   Organizer: Sphurthy Kota
+
+2. 10:00 AM - 10:45 AM: Engineering Jam
+   Organizer: Steve Hatch
+
+3. 10:45 AM - 11:00 AM: Core Daily Stand Up
+   Organizer: Jessica Dominiczak
+
+4. 11:00 AM - 11:30 AM: On-call review
+   Organizer: Lionel Barrow
+
+Total: 4 meetings
 ```
 
-### Pretty Markdown Format
-This is what you would present to the user:
-
-```bash
-# Function to convert UTC hour to 12-hour CT format
-utc_to_ct() {
-  local utc_hour=$1
-  local ct_hour=$((utc_hour - 5))  # CDT offset
-
-  if [ $ct_hour -lt 0 ]; then
-    ct_hour=$((ct_hour + 24))
-  fi
-
-  if [ $ct_hour -eq 0 ]; then
-    echo "12 AM"
-  elif [ $ct_hour -lt 12 ]; then
-    echo "$ct_hour AM"
-  elif [ $ct_hour -eq 12 ]; then
-    echo "12 PM"
-  else
-    echo "$((ct_hour - 12)) PM"
-  fi
-}
-
-# Fetch and format
-m365 request \
-  --url "https://graph.microsoft.com/v1.0/me/calendar/calendarView?startDateTime=$(date +%Y-%m-%d)T00:00:00-05:00&endDateTime=$(date -v+1d +%Y-%m-%d)T00:00:00-05:00&\$select=subject,start,end,location,organizer" \
-  --method get | jq -r '.value | sort_by(.start.dateTime) | to_entries[] |
-    "\(.key + 1)|\(.value.start.dateTime)|\(.value.end.dateTime)|\(.value.subject)|\(.value.location.displayName // "Teams")|\(.value.organizer.emailAddress.name)"' | \
-while IFS='|' read num start end subject location organizer; do
-  start_hour=$(echo "$start" | cut -d'T' -f2 | cut -d':' -f1)
-  start_min=$(echo "$start" | cut -d'T' -f2 | cut -d':' -f2)
-  end_hour=$(echo "$end" | cut -d'T' -f2 | cut -d':' -f1)
-  end_min=$(echo "$end" | cut -d'T' -f2 | cut -d':' -f2)
-
-  start_formatted=$(utc_to_ct $start_hour)
-  end_formatted=$(utc_to_ct $end_hour)
-
-  echo "$num. **$start_formatted:$start_min - $end_formatted:$end_min** - **$subject**"
-  echo "   - $location"
-  echo "   - Organizer: $organizer"
-  echo ""
-done
+### Summary Format
 ```
-
-## Expected Output
-
-### Text Format
-```
-• 9:45 AM - 10:00 AM: Payments Stand up (Microsoft Teams Meeting)
-• 10:00 AM - 10:45 AM: Engineering Jam (Microsoft Teams Meeting)
-• 10:45 AM - 11:00 AM: Core Daily Stand Up (Microsoft Teams Meeting)
-• 11:00 AM - 11:30 AM: On-call review (Microsoft Teams Meeting)
-```
-
-### Markdown Format
-```markdown
-## Your Calendar for Today (October 24, 2025)
-
-1. **9:45 AM - 10:00 AM** - **Payments Stand up**
-   - Teams Meeting
-   - Organizer: Sphurthy Kota
-
-2. **10:00 AM - 10:45 AM** - **Engineering Jam**
-   - Teams Meeting
-   - Organizer: Steve Hatch
-
-3. **10:45 AM - 11:00 AM** - **Core Daily Stand Up**
-   - Teams Meeting
-
-4. **11:00 AM - 11:30 AM** - **On-call review**
-   - Teams Meeting
-
----
-**4 meetings total** - All back-to-back from 9:45 AM to 11:30 AM CT!
-```
-
-### Summary Format (for session startup)
-```
-📅 Today's Schedule (4 events):
+4 meetings on Friday, October 24, 2025:
   9:45 AM - Payments Stand up
- 10:00 AM - Engineering Jam
- 10:45 AM - Core Daily Stand Up
- 11:00 AM - On-call review
+  10:00 AM - Engineering Jam
+  10:45 AM - Core Daily Stand Up
+  11:00 AM - On-call review
 ```
+
+## Technical Details
+
+### How It Works
+
+1. **Auto-authentication**: m365 wrapper ensures authentication before API calls
+2. **Field selection**: Only fetches needed fields to avoid parsing large HTML bodies
+3. **UTC to CT conversion**: Automatically converts UTC times to Central Time (CDT/CST)
+4. **12-hour format**: Converts 24-hour times to readable 12-hour format with AM/PM
+
+### Key Improvements (Oct 25, 2025)
+
+**Problem:** Previous recipe had complex inline bash that:
+- Failed to parse events with HTML bodies containing control characters
+- Required manual timezone conversion math
+- Missed events (showed 2 instead of 4)
+
+**Solution:** Created dedicated helper functions that:
+- Use `$select` parameter to fetch only needed fields
+- Handle timezone conversion automatically
+- Properly parse all events
+- Provide clean, reusable interface
+
+## Low-Level Usage (Advanced)
+
+If you need direct access to the underlying data:
+
+```bash
+# Get raw calendar JSON for a specific date
+get_calendar_for_date "2025-10-24"
+
+# Extract specific fields with jq
+get_calendar_for_date "2025-10-24" | jq -r '.value[] | .subject'
+
+# Manual timezone conversion
+utc_to_central_time "2025-10-24T14:45:00.0000000"  # Returns: 9:45 AM
+```
+
+## Related Files
+
+- **Helper functions**: `~/.claude/lib/core/calendar.sh`
+- **M365 wrapper**: `~/.claude/lib/core/m365.sh`
+- **Loader**: `~/.claude/lib/core/loader.sh`
 
 ## Error Handling
 
-- **No events today**: Display "No calendar events scheduled for today"
-- **Timezone conversion errors**: Fall back to showing UTC times with "UTC" label
-- **Missing fields**: Use sensible defaults (location → "Teams", organizer → "Unknown")
-- **API failures**: Display error message from fetch recipe
-
-## Related Recipes
-
-- **Uses:**
-  - Fetch Today's Calendar Events (gets the raw data)
-
-- **Used by:**
-  - Session Startup Summary (includes calendar in greeting)
-  - Daily Standup Prep (formats for standup context)
-  - Calendar Conflict Checker (highlights overlaps)
-
-- **Alternatives:**
-  - Display Week's Calendar (7-day view)
-  - Display Next Meeting (just the upcoming event)
-
-## Notes
-
-### Timezone Complexity
-- Graph API always returns UTC, regardless of input timezone
-- Central Time requires -5 hours (CDT) or -6 hours (CST) adjustment
-- For accurate conversion, check if Daylight Saving Time is in effect
-- Current implementation assumes CDT (-5), update for CST period
-
-### Format Flexibility
-This recipe can be adapted for different contexts:
-- **Session startup**: Brief summary with just times and subjects
-- **User request**: Full details with organizers and locations
-- **Integration**: JSON output for further processing
-
-### Performance
-- Displaying calendar is fast (< 1 second typically)
-- Most time spent in API call, not formatting
-- Consider caching results for repeated displays in same session
-
-### Carefeed Conventions
-- Always show times in Central Time (never UTC to users)
-- Use 12-hour format (9:45 AM, not 09:45 or 9:45)
-- Show "Teams Meeting" for virtual meetings, actual location for in-person
-- Include organizer for context (who's running the meeting)
-
-## Examples
-
-### Example 1: Quick check during session
-```markdown
-**User:** "What's on my calendar today?"
-
-**Claude:** [Executes this recipe, displays formatted output]
-
-"You have 4 meetings today:
-1. 9:45 AM - Payments Stand up
-2. 10:00 AM - Engineering Jam
-3. 10:45 AM - Core Daily Stand Up
-4. 11:00 AM - On-call review
-
-All meetings are back-to-back from 9:45 AM to 11:30 AM."
+**No events:**
+```
+No calendar events scheduled for 2025-10-24
 ```
 
-### Example 2: Session startup
-```markdown
-🔧 Resuming Coding Session
-
-📅 **Today's Schedule:**
-  9:45 AM - Payments Stand up
- 10:00 AM - Engineering Jam
- 10:45 AM - Core Daily Stand Up
- 11:00 AM - On-call review
-
-[Rest of session startup...]
+**Invalid date format:**
+```
+Error: Invalid date format. Use YYYY-M-DD
 ```
 
-### Example 3: Integration with task planning
-```markdown
-**Claude:** "I see you have meetings until 11:30 AM. Should we focus on tasks
-that can be completed in 30-45 minute blocks, or would you prefer to start
-something longer after your meetings wrap up?"
+**Authentication required:**
+The m365 wrapper automatically handles authentication. If not authenticated, you'll see:
+```
+⚠️  Microsoft 365 authentication required
+
+A browser window will open for you to approve the login.
+Please complete the authentication in your browser.
 ```
 
----
+## Version History
 
-**Version History:**
-- 2025-10-24 (v1): Initial creation, covers basic text and markdown formats
-- 2025-10-24 (v2): Updated to use UTC format in examples (fixes 400 errors). Simplified to show working approach rather than complex bash loops that fail in practice.
+- **2025-10-25 (v3)**: Major refactor
+  - Created calendar.sh helper functions
+  - Fixed bug: now shows all events (was missing 2 of 4)
+  - Fixed bug: handles HTML bodies with control characters
+  - Simplified from 150+ lines of complex bash to simple function calls
+  - Added auto-authentication via m365 wrapper
+  - Reduced complexity from "moderate" to "simple"
+
+- **2025-10-24 (v2)**: Updated to use UTC format in examples (fixes 400 errors)
+
+- **2025-10-24 (v1)**: Initial creation

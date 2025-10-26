@@ -1,53 +1,63 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "mcpServers": {
+    "jira": {
+      "type": "http",
+      "url": "http://localhost:3000/mcp"
+    },
+    "bitbucket": {
+      "type": "http",
+      "url": "http://localhost:3001/mcp"
+    }
+  },
   "permissions": {
     "allow": [
-      "Read(//**)",
+      "Bash(*)",
+      "Bash(~/.claude/lib/*.sh:*)",
+      "Bash(aws_*:*)",
+      "Bash(bitbucket_*:*)",
+      "Bash(carefeed_*:*)",
+      "Bash(datadog_*:*)",
+      "Bash(extract_*:*)",
+      "Bash(get_*:*)",
+      "Bash(github_*:*)",
+      "Bash(infer_*:*)",
+      "Bash(is_*:*)",
+      "Bash(jira_*:*)",
+      "Bash(m365:*)",
+      "Bash(mv:*)",
+      "Bash(op_*:*)",
+      "Bash(sentry_*:*)",
+      "Bash(show_*:*)",
+      "Bash(slack_*:*)",
+      "Bash(validate_*:*)",
+      "Bash(vscode_*:*)",
+      "Edit(**)",
       "Glob(**)",
       "Grep(**)",
-      "Edit(**)",
-      "Write(**)",
-      "WebSearch(**)",
+      "Read(//**)",
       "WebFetch(**)",
-      "Bash(*)",
-      "Bash(mv:*)",
-      "Bash(bitbucket_*:*)",
-      "Bash(jira_*:*)",
-      "Bash(slack_*:*)",
-      "Bash(sentry_*:*)",
-      "Bash(datadog_*:*)",
-      "Bash(aws_*:*)",
-      "Bash(github_*:*)",
-      "Bash(op_*:*)",
-      "Bash(carefeed_*:*)",
-      "Bash(vscode_*:*)",
-      "Bash(is_*:*)",
-      "Bash(get_*:*)",
-      "Bash(validate_*:*)",
-      "Bash(extract_*:*)",
-      "Bash(infer_*:*)",
-      "Bash(show_*:*)",
-      "Bash(~/.claude/lib/*.sh:*)",
-      "Bash(m365:*)"
+      "WebSearch(**)",
+      "Write(**)"
     ],
     "deny": [
-      "Bash(rm -rf /*:*)",
-      "Bash(rm -rf ~:*)",
-      "Bash(rm -rf /:*)",
+      "Bash(DROP DATABASE:*)",
       "Bash(git push --force:*)",
-      "Bash(DROP DATABASE:*)"
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf /*:*)",
+      "Bash(rm -rf ~:*)"
     ],
     "ask": [
-      "Bash(git push:*)",
       "Bash(gh pr create:*)",
       "Bash(gh pr merge:*)",
+      "Bash(git push:*)",
+      "Bash(mv:* /dev/null)",
       "Bash(rm:*)",
       "Bash(rmdir:*)",
-      "Bash(mv:* /dev/null)",
-      "Bash(sudo:* /dev/null)",
+      "Bash(su:*)",
       "Bash(sudo rm:*)",
       "Bash(sudo rmdir:*)",
-      "Bash(su:*)"
+      "Bash(sudo:* /dev/null)"
     ]
   }
 }

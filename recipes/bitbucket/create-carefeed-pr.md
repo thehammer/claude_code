@@ -2,7 +2,7 @@
 
 **Category:** bitbucket
 **Complexity:** moderate
-**Last Updated:** 2025-10-24
+**Last Updated:** 2025-10-25 (Updated for Bitbucket MCP)
 
 ## Goal
 
@@ -10,13 +10,16 @@ Create a pull request in Bitbucket for Carefeed projects that follows team conve
 
 This recipe orchestrates the complete PR creation workflow from branch verification through team notification, ensuring all Carefeed standards are met.
 
+**✨ Updated for Bitbucket MCP:** This recipe now uses the Bitbucket MCP server. Simply ask Claude Code to create a PR - it will use MCP tools to handle all the steps automatically.
+
 ## Prerequisites
 
-- Authenticated with Bitbucket (credentials configured)
+- **Bitbucket MCP server** running and configured in Claude Code
+- **Jira MCP server** configured (for ticket operations)
+- Authenticated with Bitbucket and Jira (credentials configured in MCP)
 - Working in a Carefeed project repository
 - Current branch has commits to be reviewed
 - Branch follows naming convention: `{type}/{JIRA-KEY}-{description}`
-- Jira MCP server configured (for ticket operations)
 - Slack integration configured (for notifications, optional)
 
 ## Inputs
@@ -162,29 +165,27 @@ git diff --name-only origin/master..HEAD | \
 
 ### 6. **Create Pull Request via Bitbucket MCP**
 
-**Using Bitbucket MCP tool:**
+**Using Claude Code with Bitbucket MCP:**
+
+Simply ask Claude:
 ```
-bitbucket_create_pr(
-  repository: "portal_dev",  # Auto-detect from git remote
-  source_branch: "feature/CORE-3982-null-safety-fuzzy-matching",
-  destination_branch: "master",
-  title: "CORE-3982: Handle null facility names in fuzzy matching",
-  description: "[Generated PR description from step 3]",
-  close_source_branch: false,
-  reviewers: ["reviewer1@carefeed.com", "reviewer2@carefeed.com"]
-)
+"Create a PR for this branch to master. Use the Jira ticket for the description."
 ```
 
-**Fallback - Current bash helper:**
-```bash
-bitbucket_create_pr \
-  "$(git rev-parse --abbrev-ref HEAD)" \
-  "master" \
-  "$pr_title" \
-  "$pr_description"
+Claude will:
+1. Detect the current branch and extract Jira key
+2. Fetch Jira ticket details using `mcp__jira__jira_get_issue`
+3. Generate a Carefeed-compliant PR description
+4. Create the PR using `mcp__bitbucket__bb_add_pr`
+5. Add appropriate reviewers based on Jira assignee
+6. Link the PR back to the Jira ticket
+
+**Or be more specific:**
+```
+"Create a PR to master with title 'CORE-3982: Handle null facility names' and add John as a reviewer"
 ```
 
-**Why:** MCP provides better error handling and validation.
+**Why:** MCP handles all the details automatically with better error handling.
 
 ---
 
@@ -259,25 +260,28 @@ fi
 jira_issue=$(mcp__jira__jira_get_issue "$jira_key")
 jira_summary=$(echo "$jira_issue" | jq -r '.fields.summary')
 
-# 4. Generate PR title
-pr_title="${jira_key}: ${jira_summary}"
+## Using This Recipe with Claude Code
 
-# 5. Generate PR description
-pr_description=$(carefeed_pr_description "$jira_key" "$jira_summary")
+Instead of running bash commands, simply ask Claude Code to create the PR:
 
-# 6. Create PR (will use Bitbucket MCP when available)
-pr_result=$(bitbucket_create_pr "$branch" "master" "$pr_title" "$pr_description")
-pr_number=$(echo "$pr_result" | grep -oE "PR #[0-9]+" | grep -oE "[0-9]+")
-pr_url=$(echo "$pr_result" | grep -oE "https://[^ ]+" | head -1)
-
-# 7. Link back to Jira
-mcp__jira__jira_add_comment "$jira_key" \
-  "Pull Request created: [PR #${pr_number}](${pr_url})"
-
-# 8. Notify reviewers (optional)
-echo "✅ PR created: $pr_url"
-echo "📋 Jira ticket updated: https://carefeed.atlassian.net/browse/$jira_key"
+**Simple request:**
 ```
+"Create a Carefeed PR for this branch"
+```
+
+**More detailed request:**
+```
+"Create a PR to master for my current branch. Include the Jira ticket details in the description and add the Jira assignee as a reviewer."
+```
+
+**Step-by-step if you prefer:**
+```
+1. "Get the Jira ticket for my current branch"
+2. "Create a PR description using Carefeed's template"
+3. "Create the PR on Bitbucket and link it to the Jira ticket"
+```
+
+Claude will use the appropriate MCP tools (`mcp__jira__*` and `mcp__bitbucket__*`) to handle all steps automatically.
 
 ---
 
@@ -344,12 +348,11 @@ git push origin HEAD
 # Check if credentials are configured
 bitbucket_is_configured && echo "Configured" || echo "Not configured"
 
-# Verify credentials in ~/.claude/credentials/.env
-# BITBUCKET_ACCESS_TOKEN=your_token
-# BITBUCKET_USERNAME=your_username
+# Verify MCP server is running
+docker ps | grep bitbucket-mcp-server
 
-# Test with simple API call
-bitbucket_list_prs "" "OPEN" 1
+# Test by asking Claude
+"List open PRs for this repository"
 ```
 
 ---
@@ -358,16 +361,12 @@ bitbucket_list_prs "" "OPEN" 1
 **Cause:** Jira key in branch name doesn't exist or user lacks permissions
 
 **Solution:**
-```bash
-# Verify Jira key is correct
-jira_key=$(extract_jira_key "$(git rev-parse --abbrev-ref HEAD)")
-echo "$jira_key"
-
-# Check if ticket exists using Jira MCP
-mcp__jira__jira_get_issue "$jira_key"
-
-# If ticket doesn't exist, create it first or fix branch name
+Ask Claude:
 ```
+"What's the Jira key from my current branch? Does that ticket exist?"
+```
+
+Claude will extract the key and check if it exists. If not, either fix the branch name or create the ticket first.
 
 ---
 
@@ -375,14 +374,14 @@ mcp__jira__jira_get_issue "$jira_key"
 **Cause:** Branch already has an open PR
 
 **Solution:**
-```bash
-# List existing PRs for repo
-bitbucket_list_prs "" "OPEN" | \
-  jq -r '.values[] | select(.source.branch.name == "YOUR_BRANCH")'
+Ask Claude:
+```
+"Does my current branch already have an open PR?"
+```
 
-# Either:
-# 1. Update existing PR: bitbucket_update_pr PR_ID "new title" "new desc"
-# 2. Close old PR and create new one
+Claude will use `mcp__bitbucket__bb_list_prs` to check. If a PR exists:
+- Option 1: Update the existing PR
+- Option 2: Ask Claude to close it and create a new one
 # 3. Continue using existing PR
 ```
 

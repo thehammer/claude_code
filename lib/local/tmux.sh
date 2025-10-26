@@ -71,6 +71,7 @@ tmux_set_claude_window() {
         learning)   window_name="📚 learning" ;;
         personal)   window_name="🏠 personal" ;;
         clauding)   window_name="🔧 clauding" ;;
+        launcher)   window_name="🚀" ;;
         *)          window_name="$session_type" ;;
     esac
 
@@ -218,4 +219,38 @@ tmux_create_coding_layout() {
 
     # Return focus to the Claude pane
     tmux select-pane -t 0
+}
+
+# Create a clauding workspace layout in a new tmux window
+# Layout: Single pane with Claude only (no terminal)
+# Args: $1 = description (optional, passed to /start clauding)
+#       $2 = window name (optional, defaults to "🔧 clauding")
+# Returns: 0 on success, 1 if not in tmux
+tmux_create_clauding_layout() {
+    local description="$1"
+    local window_name="${2:-🔧 clauding}"
+    local work_dir="$HOME/.claude"
+
+    if ! tmux_is_active; then
+        echo "Error: Not in a tmux session" >&2
+        return 1
+    fi
+
+    # Create new window in ~/.claude directory
+    tmux new-window -n "$window_name" -c "$work_dir"
+
+    # Start Claude in the single pane
+    tmux send-keys "claude"
+    tmux send-keys Enter
+
+    # Wait for Claude to fully start before sending /start command
+    sleep 2.5
+
+    # Send /start clauding with optional description
+    if [[ -n "$description" ]]; then
+        tmux send-keys "/start clauding $description"
+    else
+        tmux send-keys "/start clauding"
+    fi
+    tmux send-keys Enter
 }
