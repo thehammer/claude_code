@@ -22,13 +22,18 @@ Quick reminder of available session types:
 - `learning` - Understanding tech
 - `personal` - Side projects
 - `clauding` - Config improvements
+- `reviewing` - Reviewing PRs from others
 
 ### 3. Common Launcher Commands
 Show available launcher commands:
 - `tmux_create_coding_layout <project-dir>` - Create coding workspace
 - `tmux_create_clauding_layout [description]` - Create clauding workspace
+- `tmux_create_reviewing_layout [description]` - Create reviewing workspace
+- `tmux_create_session_layout <type> [description]` - Generic: any session type
 - `tmux new-window -n "name"` - Create blank window
 - Manual: New window → `claude` → `/start <type>`
+
+**Note:** Session windows default to ~/sandbox to avoid permission prompts
 
 ## Skip EVERYTHING ELSE
 
@@ -54,9 +59,13 @@ Tell Hammer:
 Available launcher commands:
   • tmux_create_coding_layout <project-dir>
   • tmux_create_clauding_layout [description]
+  • tmux_create_reviewing_layout [description]
+  • tmux_create_session_layout <type> [description] - Generic for any session type
   • Manual: C-b c (new window) → claude → /start <type>
 
-Available session types: coding, debugging, analysis, planning, presenting, learning, personal, clauding
+Available session types: coding, debugging, analysis, planning, presenting, learning, personal, clauding, reviewing
+
+Session windows default to ~/sandbox to avoid permission prompts.
 
 What would you like to launch?
 ```

@@ -30,6 +30,7 @@ Look for `SESSION_DESCRIPTION:` in the command invocation to extract the descrip
 - `personal` - Side projects, hobbies, personal automation, fun coding
 - `clauding` - Improving Claude configuration and workflows
 - `launcher` - Minimal tmux launcher for creating other session windows
+- `reviewing` - Reviewing pull requests from other engineers
 
 **Validate and infer session type:**
 1. Check if `~/.claude/session-types/{type}.md` exists (exact match)
@@ -44,6 +45,7 @@ Look for `SESSION_DESCRIPTION:` in the command invocation to extract the descrip
      - `personal`, `side`, `hobby`, `fun`, `home` → `personal`
      - `claude`, `clauding`, `config`, `configuration` → `clauding`
      - `launch`, `launcher`, `tmux`, `start` → `launcher`
+     - `review`, `reviewing`, `pr-review`, `code-review` → `reviewing`
    - If inference is obvious (clear match), use the inferred type and inform the user
    - If inference is ambiguous or unclear, list available types and offer to:
      - Use one of the existing session types
@@ -126,6 +128,7 @@ Replace `{session_type}` with the actual session type (coding, debugging, claudi
 - 📚 learning
 - 🏠 personal
 - 🔧 clauding
+- 👀 review
 
 **If not in tmux:** Silent no-op, continues normally.
 
@@ -282,6 +285,14 @@ This applies to preferences, session notes, and TODOs.
 - ✅ Tmux helper functions only
 - ⏭️ Skip: EVERYTHING else (calendar, integrations, session notes, preferences, git, all context)
 
+### For `reviewing` sessions:
+- ✅ Bitbucket and GitHub integrations (pre-load)
+- ✅ Open PRs needing review
+- ✅ Today's calendar
+- ✅ Recent reviewing session notes
+- ✅ Minimal git status (current branch only)
+- ⏭️ Skip: Git history, detailed commit context, TODOs, active development context
+
 **See individual session type files for complete details.**
 
 ---
@@ -330,6 +341,7 @@ Session notes are organized by type:
 - `.claude/session-notes/planning/YYYY-MM-DD.md`
 - `.claude/session-notes/presenting/YYYY-MM-DD.md`
 - `.claude/session-notes/learning/YYYY-MM-DD.md`
+- `.claude/session-notes/reviewing/YYYY-MM-DD.md`
 
 **Templates available:**
 - `~/.claude/templates/session-notes/{type}.md`
@@ -398,6 +410,7 @@ Each session type has a target token budget for startup:
 - `learning`: ~8K tokens (75% savings - focused on topic)
 - `analysis`: ~10K tokens (70% savings - minimal external context)
 - `debugging`: ~12K tokens (65% savings - focused on errors)
+- `reviewing`: ~12K tokens (65% savings - focus on PRs and review context)
 - `presenting`: ~12K tokens (60% savings - recent work only)
 - `coding`: ~15K tokens (50% savings - selective loading)
 
