@@ -22,6 +22,14 @@
 
 ## Communication Preferences
 
+### Verbosity Level: Minimal
+- **Show results, not process** - Only communicate final outcomes and errors
+- **No tool descriptions** - Skip explanations of which tools are being used
+- **No step-by-step narration** - Don't describe each action being taken
+- **Brief confirmations** - "Fixed 3 patterns" not "Fixed pattern X, pattern Y, pattern Z"
+- **Explain complex decisions** - Still provide reasoning when making architectural or non-obvious choices
+- **Always show errors** - Full error context when things fail
+
 ### Style
 - Be concise and direct
 - Use Hammer's name when it feels natural in conversation

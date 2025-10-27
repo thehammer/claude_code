@@ -12,32 +12,13 @@
   },
   "permissions": {
     "allow": [
-      "Bash(*)",
-      "Bash(~/.claude/lib/*.sh:*)",
-      "Bash(aws_*:*)",
-      "Bash(bitbucket_*:*)",
-      "Bash(carefeed_*:*)",
-      "Bash(datadog_*:*)",
-      "Bash(extract_*:*)",
-      "Bash(get_*:*)",
-      "Bash(github_*:*)",
-      "Bash(infer_*:*)",
-      "Bash(is_*:*)",
-      "Bash(jira_*:*)",
-      "Bash(m365:*)",
-      "Bash(mv:*)",
-      "Bash(op_*:*)",
-      "Bash(sentry_*:*)",
-      "Bash(show_*:*)",
-      "Bash(slack_*:*)",
-      "Bash(validate_*:*)",
-      "Bash(vscode_*:*)",
+      "Bash",
       "Edit(**)",
       "Glob(**)",
       "Grep(**)",
       "Read(//**)",
-      "WebFetch(**)",
-      "WebSearch(**)",
+      "WebFetch(domain:**)",
+      "WebSearch",
       "Write(**)"
     ],
     "deny": [
@@ -51,13 +32,13 @@
       "Bash(gh pr create:*)",
       "Bash(gh pr merge:*)",
       "Bash(git push:*)",
-      "Bash(mv:* /dev/null)",
+      "Bash(mv /dev/null:*)",
       "Bash(rm:*)",
       "Bash(rmdir:*)",
       "Bash(su:*)",
+      "Bash(sudo /dev/null:*)",
       "Bash(sudo rm:*)",
-      "Bash(sudo rmdir:*)",
-      "Bash(sudo:* /dev/null)"
+      "Bash(sudo rmdir:*)"
     ]
   }
 }
