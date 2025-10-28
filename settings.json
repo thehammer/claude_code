@@ -1,18 +1,27 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "mcpServers": {
-    "jira": {
-      "type": "http",
-      "url": "http://localhost:3000/mcp"
-    },
-    "bitbucket": {
-      "type": "http",
-      "url": "http://localhost:3001/mcp"
-    }
-  },
   "permissions": {
     "allow": [
       "Bash",
+      "Bash(~/.claude/lib/*.sh:*)",
+      "Bash(aws_:*)",
+      "Bash(bitbucket_:*)",
+      "Bash(carefeed_:*)",
+      "Bash(datadog_:*)",
+      "Bash(extract_:*)",
+      "Bash(get_:*)",
+      "Bash(github_:*)",
+      "Bash(infer_:*)",
+      "Bash(is_:*)",
+      "Bash(jira_:*)",
+      "Bash(m365:*)",
+      "Bash(mv:*)",
+      "Bash(op_:*)",
+      "Bash(sentry_:*)",
+      "Bash(show_:*)",
+      "Bash(slack_:*)",
+      "Bash(validate_:*)",
+      "Bash(vscode_:*)",
       "Edit(**)",
       "Glob(**)",
       "Grep(**)",
@@ -40,5 +49,16 @@
       "Bash(sudo rm:*)",
       "Bash(sudo rmdir:*)"
     ]
+  },
+  "alwaysThinkingEnabled": true,
+  "mcpServers": {
+    "jira": {
+      "type": "http",
+      "url": "http://localhost:3000/mcp"
+    },
+    "bitbucket": {
+      "type": "http",
+      "url": "http://localhost:3001/mcp"
+    }
   }
 }
