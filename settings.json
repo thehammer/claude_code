@@ -3,7 +3,6 @@
   "permissions": {
     "allow": [
       "Bash",
-      "Bash(~/.claude/lib/*.sh:*)",
       "Bash(aws_:*)",
       "Bash(bitbucket_:*)",
       "Bash(carefeed_:*)",
@@ -22,13 +21,20 @@
       "Bash(slack_:*)",
       "Bash(validate_:*)",
       "Bash(vscode_:*)",
+      "Bash(~/.claude/lib/*.sh:*)",
       "Edit(**)",
       "Glob(**)",
       "Grep(**)",
       "Read(//**)",
       "WebFetch(domain:**)",
       "WebSearch",
-      "Write(**)"
+      "Write(**)",
+      "mcp__bitbucket__bb_add_pr",
+      "mcp__bitbucket__bb_ls_prs",
+      "mcp__jira__jira_create_issue",
+      "mcp__jira__jira_get_create_meta",
+      "mcp__jira__jira_get_transitions",
+      "mcp__jira__jira_transition_issue"
     ],
     "deny": [
       "Bash(DROP DATABASE:*)",
