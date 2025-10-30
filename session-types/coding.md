@@ -3,120 +3,181 @@
 ## Purpose
 Building features, fixing bugs, implementing functionality, refactoring code.
 
-## Context to Load
+## Philosophy: Lazy Loading
 
-### 1. Verify Helper Scripts
-**Optional:** Verify helper scripts are available.
+**Target:** 3-5K startup tokens (70-80% reduction from previous 15-20K)
 
-**Why:** Coding sessions frequently use:
-- Jira MCP tools (ticket management)
-- Bitbucket/GitHub (PR creation, pipeline checks)
-- Slack (notifications)
-- Carefeed helpers (branch names, commit messages)
-- AWS, 1Password (deployment tools)
+**Strategy:** Load only essential context at startup. Use Skills and slash commands to load additional context on-demand when user needs it.
 
-**All available as standalone scripts** in `~/.claude/bin/`
+## Context to Load at Startup
 
-**Verify availability:**
-```bash
-ls ~/.claude/bin/services/*/
-```
-Should show all available service scripts (97 total scripts across 8 services).
-
-**Quick reference:** See `~/.claude/INTEGRATIONS_REFERENCE.md` for all available functions.
-
-### 2. Git Status
-```bash
-git status
-git branch --show-current
-git log -5 --oneline
-```
-
-Summarize:
-- Current branch
-- Any uncommitted changes
-- Recent commits
-
-### 3. Today's Calendar
-Use the "Display Today's Calendar" recipe to show today's schedule:
+### 1. Minimal Git Status
 
 ```bash
-m365 request --url "https://graph.microsoft.com/v1.0/me/calendar/calendarView?startDateTime=$(date +%Y-%m-%d)T05:00:00Z&endDateTime=$(date -v+1d +%Y-%m-%d)T05:00:00Z" --method get | jq -r '.value | sort_by(.start.dateTime) | .[] | "\(.start.dateTime)|\(.end.dateTime)|\(.subject)|\(.organizer.emailAddress.name)"'
+git rev-parse --is-inside-work-tree &>/dev/null && \
+echo "📍 Branch: $(git branch --show-current)" && \
+if git diff-index --quiet HEAD -- 2>/dev/null; then
+    echo "✓ Working directory clean"
+else
+    echo "⚠️  Uncommitted changes present"
+fi
 ```
 
-Format concisely:
-- If no meetings: "📅 No meetings today"
-- If meetings: "📅 Today's Schedule: [count] meetings ([first start] - [last end])"
-- Show brief list of meeting times and subjects
+**Purpose:** Know where we are and if we have uncommitted work.
+**Tokens:** ~100-200
 
-**Recipe reference:** `~/.claude/recipes/calendar/display-today-calendar.md`
-
-### 4. Open Pull Requests
-List open PRs across all Carefeed repositories:
+### 2. Context Summary
 
 ```bash
-~/.claude/bin/utilities/list-all-open-prs 10
+source ~/.claude/lib/local/lazy-context.sh
+context_summary
 ```
 
-This will show open PRs from:
-- Bitbucket repos: portal_dev, family-portal
-- GitHub repos: (if any configured)
+**Purpose:** Show what context is **available** without loading full details.
 
-**Note:** Now using standalone script instead of sourcing functions.
+Shows counts/metadata only:
+- Meeting count (not full schedule)
+- PR count (not full list)
+- Last session date (not full notes)
+- TODO count (not full items)
+- Git branch and status
 
-### 4. Recent Session Notes
-Look in `.claude/session-notes/coding/` for most recent note to understand:
-- What we were working on last
-- What's pending/in-progress
-- Files that were changed
+**Tokens:** ~200-300
 
-### 5. Project Context
-Read cascading preferences:
-1. `~/.claude/PREFERENCES.md` (global)
-2. `.claude/preferences/PREFERENCES.md` (project base)
-3. `.claude/preferences/coding.md` (if exists, coding-specific)
+### 3. Project Preferences
 
-### 6. TODO Items
-Check `.claude/todos/features.md` or `.claude/TODO.md` for planned work
+Read cascading preferences (minimal - just read, don't output):
+1. `~/.claude/PREFERENCES.md` (or `~/.claude/CLAUDE.md` if renamed)
+2. `.claude/preferences/PREFERENCES.md` (if exists)
+3. `.claude/preferences/coding.md` (if exists)
+
+**Purpose:** Understand coding style, conventions, preferences.
+**Tokens:** ~1,000-2,000 (necessary, can't defer)
+
+**Total Startup:** ~3-5K tokens
+
+## Lazy Loading Strategy
+
+### Load Context When User Needs It
+
+The `session-context` Skill will automatically detect when to load additional context based on user requests:
+
+| User Says | Load |
+|-----------|------|
+| "What's on my calendar?", "Do I have time?" | `/calendar` |
+| "What PRs are open?", "Show me pull requests" | `/prs` |
+| "What was I working on?", "Catch me up" | `/notes` |
+| "What should I work on?", "What's next?" | `/todos` |
+| "Show recent commits", "What changed?" | `git log` |
+| "Show me everything", "Full context" | `/full-context` |
+
+### Slash Commands for Explicit Control
+
+Users can manually load context:
+- `/calendar` - Today's schedule
+- `/prs [limit]` - Open pull requests
+- `/notes [type] [count]` - Recent session notes
+- `/todos` - TODO items
+- `/full-context` - Load everything
 
 ## Integrations
 
-### Pre-loaded (Always Available)
-Loaded in step 1 via modular loader, immediately available:
-- ✅ **Jira MCP** - MCP tools for ticket management
-- ✅ **Bitbucket** - Create PRs, check pipelines (for Bitbucket repos)
-- ✅ **GitHub** - Create PRs, check Actions (for GitHub repos)
-- ✅ **Slack** - Post notifications
-- ✅ **Carefeed Helpers** - Branch names, commit messages, PR templates
-- ✅ **AWS** - Resource access (auto-login if needed)
-- ✅ **1Password** - Env var management
-- ✅ **Sentry** - Error investigation
-- ✅ **Datadog** - Log search, monitoring
-- ✅ **Notifications** - Smart user notifications
+### Always Available (No Loading Needed)
 
-**No need to re-load** - All functions available from session start via smart loader.
+All integration scripts available in `~/.claude/bin/`:
+- Jira MCP tools (ticket management)
+- Bitbucket (bb_* scripts)
+- GitHub (github_* scripts)
+- Slack (slack_* scripts)
+- Carefeed helpers (carefeed_* scripts)
+- AWS (aws_* scripts)
+- 1Password (op_* scripts)
+- Sentry (sentry_* scripts)
+- Datadog (datadog_* scripts)
 
-**Quick reference:** See `~/.claude/INTEGRATIONS_REFERENCE.md` for function details.
+**No need to load or verify** - Just call scripts directly when needed.
+
+### Load M365 Calendar Helpers On-Demand
+
+Only if user asks about calendar:
+```bash
+source ~/.claude/lib/core/loader.sh clauding
+```
+
+Provides: `show_today_calendar`, `show_tomorrow_calendar`, etc.
 
 ## Summary Format
 
 Tell Hammer:
-- **Last coding session:** [date]
-- **Current branch:** [branch name]
-- **📅 Today's Schedule:** [count] meetings ([time range]) or "No meetings today"
-  - [Brief list: time - subject]
-- **Open PRs:** [count and status]
-- **What we were working on:** [brief summary from notes]
-- **Uncommitted changes:** [yes/no, what files]
-- **Suggested next steps:**
-  1. Continue [pending work]
-  2. Address [any blockers]
-  3. Start something new
 
-Then ask: "What would you like to work on?"
+```
+🔧 **Coding Session Started**
+
+📍 **Branch:** [branch-name] ([clean/uncommitted changes])
+
+📊 **Available Context:**
+  📅 Calendar: [N meetings today]
+  🔀 Open PRs: [N open]
+  📝 Session notes: Last from [date]
+  ✅ TODOs: [N items]
+
+What would you like to work on?
+
+_Use /calendar, /prs, /notes, /todos to load details_
+```
+
+**Keep it concise** - Don't load details unless user asks.
+
+## When to Load Additional Context
+
+### Automatic Loading (via session-context Skill)
+
+Claude will automatically detect and load context when:
+- User asks about schedule/time → Load calendar
+- User asks about PRs → Load PR list
+- User asks "what was I doing" → Load session notes
+- User asks "what's next" → Load TODOs
+- User needs commit context → Load git history
+
+### Don't Pre-Load Unless Needed
+
+**❌ Don't load:**
+- Calendar if user doesn't mention time/schedule
+- PRs if user is just fixing a bug
+- Session notes if user gives explicit task
+- TODOs if user knows what to work on
+- Git history unless reviewing changes
+
+**✅ Do respond to implicit needs:**
+- User says "catch me up" → Load notes + TODOs
+- User says "show me everything" → Load full context
+- User mentions PRs → Load PR list
 
 ## Token Budget Target
-~15K tokens for startup (vs ~30K for full context load)
+
+**Startup:** ~3-5K tokens (vs previous ~15-20K)
+**Savings:** 70-80% reduction
+**Result:** More tokens available for actual work
+
+## Fallback to Old Behavior
+
+If user prefers full context at startup, they can:
+1. Run `/full-context` after startup
+2. Add preference: `context_loading: full` to preferences
+3. Create custom session type with old loading pattern
 
 ## Notes Template
+
 Use `~/.claude/templates/session-notes/coding.md` for session notes structure.
+
+## Testing
+
+To test token usage:
+1. Start session and observe context loaded
+2. Check that only git status + summary appear
+3. Verify Skills trigger when asking about calendar/PRs/etc.
+4. Measure token usage (should be ~3-5K vs ~15-20K)
+
+---
+
+**Remember:** The goal is to minimize startup tokens while keeping all context accessible on-demand. Let user behavior drive what gets loaded.

@@ -39,6 +39,7 @@
       "mcp__jira__jira_ls_issues",
       "mcp__jira__jira_transition_issue",
       "Read(//**)",
+      "WebFetch(**)",
       "WebFetch(domain:**)",
       "WebSearch",
       "Write(**)"
