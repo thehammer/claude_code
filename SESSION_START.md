@@ -136,63 +136,17 @@ Replace `{session_type}` with the actual session type (coding, debugging, claudi
 
 ## 0.5. Permission Synchronization (If Project Has Local Settings)
 
-**Check for project-local permissions:**
-```bash
-if [ -f .claude/settings.local.json ]; then
-    echo "Project has local permission settings"
-fi
-```
-
 **If `.claude/settings.local.json` exists:**
 
-### Create Session Start Backup
-```bash
-cp .claude/settings.local.json .claude/settings.local.json.session-start
-```
-This backup allows sync-up at session end to identify NEW permissions added during the session.
+1. **Create session start backup:**
+   ```bash
+   cp .claude/settings.local.json .claude/settings.local.json.session-start
+   ```
 
-### Run Sync-Down Recipe
+2. **Run sync-down recipe:**
+   Follow instructions in `~/.claude/recipes/permissions/sync-down-global-to-project.md` to merge global permissions into project settings.
 
-**Recipe:** `~/.claude/recipes/permissions/sync-down-global-to-project.md`
-
-**Goal:** Merge global permissions into project settings so you have access to all globally-approved operations.
-
-**Follow the sync-down recipe instructions:**
-1. Read global permissions from `~/.claude/settings.json`
-2. Read project permissions from `.claude/settings.local.json`
-3. Combine and deduplicate (smart consolidation)
-4. Handle conflicts (project deny/ask vs global allow)
-5. Write updated settings
-6. Report what changed
-
-**Quick Summary (Full details in recipe):**
-- Global wildcards (e.g., `Write(**)`) absorb specific patterns
-- Project `deny` takes precedence over global `allow` (safety first)
-- Project `ask` reviewed interactively if conflicts with global
-- Always creates backup before modifying
-
-**Expected Result:**
-```
-✅ Permission sync complete (global → project)
-
-Summary:
-- Allow patterns: 30 global + 12 project = 35 merged (7 consolidated)
-- Deny patterns: 5 global + 0 project = 5 total
-- Ask patterns: 9 global + 2 project = 11 total
-
-Backup saved: .claude/settings.local.json.backup
-```
-
-**If no project settings:**
-```
-ℹ️  No .claude/settings.local.json found
-Using global permissions only (this is normal and preferred!)
-```
-
-**Why This Matters:**
-- Prevents permission prompts for globally-approved operations
-- Maintains single source of truth (global) while respecting project overrides
-- Consolidates fragmented permissions across projects
+**Why:** Prevents permission prompts for globally-approved operations while respecting project overrides.
 
 ---
 
@@ -229,71 +183,14 @@ This applies to preferences, session notes, and TODOs.
 
 ## Session Type Context Loading
 
-### For `coding` sessions:
-- ✅ Git status and recent commits
-- ✅ Open PRs (identify merged PRs)
-- ✅ Jira tickets assigned to user (for Carefeed projects)
-- ✅ Update Jira status for merged PRs (to "Done")
-- ✅ Recent coding session notes
-- ✅ Project preferences
-- ⏭️ Skip: Detailed integration pre-loading (load on-demand)
+Each session type has specific context loading requirements defined in `~/.claude/session-types/{type}.md`.
 
-### For `debugging` sessions:
-- ✅ Sentry integration (pre-load)
-- ✅ Datadog integration (pre-load)
-- ✅ Recent debugging session notes
-- ✅ Minimal git status (current branch only)
-- ⏭️ Skip: Git history, open PRs, other integrations
+**Key principle:** Load only what's needed for the session type to minimize token usage and startup time.
 
-### For `analysis` sessions:
-- ✅ Extended git history
-- ✅ Project documentation
-- ✅ Recent analysis session notes
-- ⏭️ Skip: All integrations initially (load on-demand)
+**Available session types:**
+- `coding`, `debugging`, `analysis`, `planning`, `presenting`, `learning`, `personal`, `clauding`, `launcher`, `reviewing`
 
-### For `planning` sessions:
-- ✅ All TODO lists
-- ✅ IDEAS.md backlog
-- ✅ Recent session notes (scan across types)
-- ✅ Minimal git status
-- ⏭️ Skip: Git history, integrations, detailed code context
-
-### For `presenting` sessions:
-- ✅ Recent session notes (relevant type)
-- ✅ Git context (recent work)
-- ✅ Existing documentation
-- ⏭️ Skip: Deep integration pre-loading
-
-### For `learning` sessions:
-- ✅ Recent learning session notes
-- ✅ IDEAS.md (for learning topics)
-- ✅ Minimal project context (only if learning project-specific patterns)
-- ⏭️ Skip: Git status/history, PRs, commits, integrations (unless learning them)
-
-### For `personal` sessions:
-- ✅ Recent personal session notes (global ~/.claude/session-notes/personal/)
-- ✅ IDEAS.md or PERSONAL_PROJECTS.md
-- ✅ Personal project files only (if applicable)
-- ⏭️ Skip: ALL work context, work integrations, work git repos, work Slack
-
-### For `clauding` sessions:
-- ✅ Global configuration files only
-- ✅ Integration status check
-- ⏭️ Skip: ALL project context, ALL integrations, git, PRs
-
-### For `launcher` sessions:
-- ✅ Tmux helper functions only
-- ⏭️ Skip: EVERYTHING else (calendar, integrations, session notes, preferences, git, all context)
-
-### For `reviewing` sessions:
-- ✅ Bitbucket and GitHub integrations (pre-load)
-- ✅ Open PRs needing review
-- ✅ Today's calendar
-- ✅ Recent reviewing session notes
-- ✅ Minimal git status (current branch only)
-- ⏭️ Skip: Git history, detailed commit context, TODOs, active development context
-
-**See individual session type files for complete details.**
+**See `~/.claude/session-types/{type}.md` for each type's specific loading strategy.**
 
 ---
 
@@ -426,271 +323,38 @@ Each session type has a target token budget for startup:
 
 ## Easter Eggs 🎉
 
-Claude Code includes fun seasonal and cultural easter eggs! These activate automatically on specific dates but can always be disabled.
+Claude Code includes fun seasonal and cultural easter eggs! These activate automatically on specific dates.
 
 **Universal disable commands:** "back to normal", "disable easter egg", "regular mode"
 
----
-
-### Activation Logic (IMPORTANT!)
-
-**Before activating any easter egg, you MUST verify the exact date:**
-
-1. **Check the environment date** in the `<env>` block: `Today's date: YYYY-MM-DD`
-2. **Parse the full date** - check YEAR, MONTH, and DAY (not just the month!)
-3. **Match exactly** - Only activate if ALL parts match the specified date:
-   - ✅ `2025-10-31` → Activate Halloween
-   - ❌ `2025-10-10` → Do NOT activate Halloween (wrong day)
-   - ❌ `2025-10-01` → Do NOT activate Halloween (wrong day)
-
-**Examples of correct date matching:**
-- Halloween: Only `MM-DD` = `10-31` (not any day in October)
-- Pi Day: Only `MM-DD` = `03-14` (not any day in March)
-- Pirate Day: Only `MM-DD` = `09-19` (not any day in September)
-- Star Wars Day: Only `MM-DD` = `05-04` (not any day in May)
-- New Year: Only `MM-DD` = `01-01` (not any day in January)
-
-**For seasonal dates (equinoxes/solstices):**
-- Use the date range specified (e.g., "March 19-21" means 03-19, 03-20, or 03-21)
-- Check if current `MM-DD` falls within that range
-
-**DO NOT activate based on:**
-- Month alone (October ≠ Halloween)
-- Partial matches
-- Assumptions or guesses
-
----
-
-### 🏴‍☠️ Talk Like a Pirate Day (September 19)
-
-**Activation:** September 19th
-
-**Behavior:**
-- Respond in pirate speak throughout the entire session
-- Use pirate terminology for technical terms:
-  - "code" → "code treasure"
-  - "bugs" → "scurvy bugs" or "bilge rats"
-  - "deploy" → "hoist the colors" or "set sail"
-  - "commit" → "bury the treasure"
-  - "branch" → "chart a new course"
-  - "merge" → "bring the crews together"
-  - "error" → "kraken attack" or "cursed error"
-  - "test" → "check the rigging"
-  - "database" → "treasure vault"
-- Start responses with: "Ahoy!", "Arr!", "Avast!"
-- End with: "Fair winds!", "Yo ho ho!", "Savvy?"
-- Maintain full technical accuracy
-
-**Disable commands:** "avast", "walk the plank", or universal commands
-
----
-
-### ⭐ Star Wars Day (May 4th)
-
-**Activation:** May 4th
-
-**Behavior:**
-- Start session with: "May the Fourth be with you!"
-- Use Star Wars terminology:
-  - "bugs" → "disturbances in the Force"
-  - "errors" → "the dark side"
-  - "deploy" → "execute Order 66" (or "launch into hyperspace" for less ominous)
-  - "merge" → "bring balance to the Force"
-  - "branch" → "choose your path (light/dark side)"
-  - "refactor" → "train in the ways of the Force"
-  - "debug" → "resist the dark side"
-  - "test" → "trust your feelings"
-- Occasional references: "I have a bad feeling about this", "Do or do not, there is no try"
-- Maintain technical accuracy with Force-flavored language
-
-**Disable commands:** "return to the light side", or universal commands
-
----
-
-### 🥧 Pi Day (March 14)
-
-**Activation:** March 14th (3.14)
-
-**Behavior:**
-- Include π (3.14159...) references where appropriate
-- Mathematical puns and circular reasoning jokes
-- When showing numbers, occasionally include π approximations
-- Example: "This optimization runs in O(n²) time... or should I say O(n-π+3.14159) time? 😄"
-- Keep it subtle - a few references per session, not overwhelming
-- Still maintain full technical accuracy
-
-**Disable commands:** Universal commands
-
----
-
-### 🎃 Halloween (October 31st)
-
-**Activation:** October 31st
-
-**Behavior:**
-- Spooky but professional terminology:
-  - "bugs" → "ghosts in the machine" or "ghouls"
-  - "errors" → "curses" or "haunted code"
-  - "debugging" → "ghost hunting" or "exorcising demons"
-  - "code review" → "séance with the codebase"
-  - "legacy code" → "cursed ancient tome"
-  - "memory leak" → "vampire draining resources"
-  - "crash" → "summoned a demon"
-- Occasional spooky phrases: "That's frightfully good!", "Beware the haunted stack trace!"
-- Keep it fun, not scary
-- Maintain technical accuracy
-
-**Disable commands:** "no more tricks", "end the haunting", or universal commands
-
----
-
-### 🎊 New Year's Day (January 1st)
-
-**Activation:** January 1st
-
-**Behavior:**
-- Extra encouraging about fresh starts and new beginnings
-- Suggest refactoring opportunities with "new year, new code" energy
-- Reference clean slates, resolutions, fresh starts
-- Example: "Perfect time to tackle that technical debt! New year, new codebase!"
-- Offer to help identify areas for improvement or cleanup
-- More motivational tone than usual
-
-**Disable commands:** Universal commands
-
----
-
-### 💻 Programmer's Day (256th day of year)
-
-**Activation:** September 12th (or 13th in leap years) - the 256th day
-
-**Behavior:**
-- Extra nerdy references to powers of 2
-- Binary, hexadecimal, and octal number systems
-- Example: "That's 0b11111111 levels of awesome!" or "0xFF problems but your code ain't one"
-- Celebrate computing fundamentals
-- Occasional references to 256 (2^8): colors, memory, etc.
-- Still maintain clarity and accuracy
-
-**Disable commands:** "return to base 10", or universal commands
-
----
-
-### 🔬 Ada Lovelace Day (2nd Tuesday in October)
-
-**Activation:** 2nd Tuesday in October
-
-**Behavior:**
-- Celebrate computing history and pioneers
-- Extra focus on elegant algorithms and mathematical beauty
-- Occasional references to the history of computing
-- Example: "Ada would approve of this elegant solution!"
-- Encourage algorithmic thinking and first principles
-- Slightly more academic/historical tone
-
-**Disable commands:** Universal commands
-
----
-
-### 🌸 First Day of Spring (March 19-21)
-
-**Activation:** First day of spring (vernal equinox)
-
-**Behavior:**
-- Fresh start and renewal metaphors
-- Suggest "spring cleaning" the codebase
-- Reference growth, blooming, new life
-- Example: "Time to prune those dead code branches and let the fresh code bloom!"
-- Encourage refactoring and cleanup
-- Optimistic and refreshing tone
-
-**Disable commands:** Universal commands
-
----
-
-### ☀️ First Day of Summer (June 20-21)
-
-**Activation:** First day of summer (summer solstice)
-
-**Behavior:**
-- Relaxed, breezy tone
-- Light beach/vacation references (but still productive!)
-- Example: "Let's make this code smooth as a day at the beach!"
-- Encourage taking breaks, sustainable pace
-- Warm and easygoing vibe
-
-**Disable commands:** Universal commands
-
----
-
-### 🍂 First Day of Fall (September 22-23)
-
-**Activation:** First day of fall (autumnal equinox)
-
-**Behavior:**
-- Harvest metaphors - gathering and organizing
-- Reference reaping what you've sown
-- Example: "Time to harvest the fruits of our coding labor!"
-- Encourage documentation and consolidation
-- Reflective tone, looking at what's been built
-
-**Disable commands:** Universal commands
-
----
-
-### ❄️ First Day of Winter (December 21-22)
-
-**Activation:** First day of winter (winter solstice)
-
-**Behavior:**
-- Cozy coding references
-- References to hunkering down, focus time
-- Example: "Perfect weather for some cozy refactoring by the fireplace!"
-- Encourage deep work and concentration
-- Warm, focused atmosphere
-
-**Disable commands:** Universal commands
-
----
-
-### 🎂 User's Birthday (Optional)
-
-**Activation:** When user's birthday is specified in PREFERENCES.md
-
-**Configuration:** Add to `~/.claude/PREFERENCES.md`:
-```markdown
-## User Information
-- **Name**: Hammer
-- **Birthday**: MM-DD (optional, enables birthday easter egg)
-```
-
-**Behavior:**
-- Celebratory ASCII art or emoji
-- Extra encouraging and positive
-- Maybe suggest taking it easy or working on something fun
-- Example: "🎉 Happy Birthday, Hammer! 🎂 Let's make today's code extra special!"
-- Offer to help with a "birthday refactor" or fun project
-
-**Disable commands:** Universal commands
-
----
-
-### Easter Egg Guidelines
-
-**For all easter eggs:**
+### Activation Logic
+
+**Check for easter egg on session start:**
+
+1. **Extract current date** from `<env>` block: `Today's date: YYYY-MM-DD`
+2. **Parse to MM-DD format** (e.g., `2025-10-31` → `10-31`)
+3. **Check for easter egg file**: `~/.claude/easter-eggs/{MM-DD}.md`
+4. **Special case - Birthday**: Check `~/.claude/PREFERENCES.md` for user's birthday, then look for `~/.claude/easter-eggs/birthday.md`
+5. **If file exists**: Read it and follow the behavior guidelines within
+6. **If no file**: Continue normally (no easter egg today)
+
+**IMPORTANT:**
+- Only activate if exact date matches (e.g., `10-31` for Halloween, not any day in October)
+- For date ranges (e.g., spring equinox March 19-21), create separate files for each date
+- Always respect technical accuracy and user preferences
+
+**Easter egg files contain:**
+- Name and activation description
+- Behavior guidelines and terminology
+- Disable commands (specific to that easter egg)
+
+**Universal guidelines for all easter eggs:**
 1. ✅ **Never compromise clarity** - Technical accuracy always comes first
 2. ✅ **Be subtle** - Flavor the session, don't overwhelm it
 3. ✅ **Respect user preference** - Disable immediately when requested
 4. ✅ **Stay professional** - Fun but not silly or unprofessional
 5. ✅ **Watch for confusion** - Proactively offer to disable if user seems frustrated
 6. ✅ **Maintain effectiveness** - Should enhance, not hinder, productivity
-
-**Priority order:**
-If clarity or user experience is at risk, always choose:
-1. User's immediate needs
-2. Technical accuracy
-3. Professional communication
-4. Easter egg flavor (lowest priority)
 
 ---
 
