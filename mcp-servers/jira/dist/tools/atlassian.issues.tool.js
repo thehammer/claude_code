@@ -1,0 +1,95 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const logger_util_js_1 = require("../utils/logger.util.js");
+const error_util_js_1 = require("../utils/error.util.js");
+const atlassian_issues_types_js_1 = require("./atlassian.issues.types.js");
+const atlassian_issues_controller_js_1 = __importDefault(require("../controllers/atlassian.issues.controller.js"));
+// Create a contextualized logger for this file
+const toolLogger = logger_util_js_1.Logger.forContext('tools/atlassian.issues.tool.ts');
+// Log tool module initialization
+toolLogger.debug('Jira issues tool module initialized');
+/**
+ * MCP Tool: List Jira Issues
+ *
+ * Lists Jira issues with optional filtering using JQL.
+ * Returns a formatted markdown response with issue details. The response
+ * includes the executed JQL query and pagination information.
+ *
+ * @param {ListIssuesToolArgsType} args - Tool arguments for filtering issues
+ * @returns {Promise<{ content: Array<{ type: 'text', text: string }> }>} MCP response with formatted issues list
+ * @throws Will return error message if issue listing fails
+ */
+async function listIssues(args) {
+    const methodLogger = logger_util_js_1.Logger.forContext('tools/atlassian.issues.tool.ts', 'listIssues');
+    methodLogger.debug('Listing Jira issues with filters:', args);
+    try {
+        // This is a pass-through function, so we pass all args directly to the controller
+        const result = await atlassian_issues_controller_js_1.default.list(args);
+        methodLogger.debug('Successfully retrieved issues list');
+        // Content already includes JQL query and pagination information
+        return {
+            content: [
+                {
+                    type: 'text',
+                    text: result.content,
+                },
+            ],
+        };
+    }
+    catch (error) {
+        methodLogger.error('Failed to list issues', error);
+        return (0, error_util_js_1.formatErrorForMcpTool)(error);
+    }
+}
+/**
+ * MCP Tool: Get Jira Issue Details
+ *
+ * Retrieves detailed information about a specific Jira issue.
+ * Returns a formatted markdown response with issue data.
+ *
+ * @param {GetIssueToolArgsType} args - Tool arguments containing the issue ID/key
+ * @returns {Promise<{ content: Array<{ type: 'text', text: string }> }>} MCP response with formatted issue details
+ * @throws Will return error message if issue retrieval fails
+ */
+async function getIssue(args) {
+    const methodLogger = logger_util_js_1.Logger.forContext('tools/atlassian.issues.tool.ts', 'getIssue');
+    methodLogger.debug(`Retrieving issue details for: ${args.issueIdOrKey}`);
+    try {
+        // Pass args directly to the controller
+        const result = await atlassian_issues_controller_js_1.default.get(args);
+        methodLogger.debug('Successfully retrieved issue details');
+        return {
+            content: [
+                {
+                    type: 'text',
+                    text: result.content,
+                },
+            ],
+        };
+    }
+    catch (error) {
+        methodLogger.error('Failed to get issue details', error);
+        return (0, error_util_js_1.formatErrorForMcpTool)(error);
+    }
+}
+/**
+ * Register Atlassian Issues MCP Tools
+ *
+ * Registers the list-issues and get-issue tools with the MCP server.
+ * Each tool is registered with its schema, description, and handler function.
+ *
+ * @param {McpServer} server - The MCP server instance to register tools with
+ */
+function registerTools(server) {
+    const methodLogger = logger_util_js_1.Logger.forContext('tools/atlassian.issues.tool.ts', 'registerTools');
+    methodLogger.debug('Registering Atlassian Issues tools...');
+    // Register the list issues tool
+    server.tool('jira_ls_issues', `Searches for Jira issues using JQL and other filters. Supports filtering by project (\`projectKeyOrId\`), statuses (\`statuses\`), or advanced JQL queries (\`jql\`). Includes pagination via \`limit\` and \`startAt\`. Returns formatted issue summaries including key, type, status, summary, and assignee. The response includes the executed JQL query and pagination information with instructions for viewing the next page. Requires Jira credentials to be configured.`, atlassian_issues_types_js_1.ListIssuesToolArgs.shape, listIssues);
+    // Register the get issue details tool
+    server.tool('jira_get_issue', `Retrieves comprehensive details about a specific Jira issue using its ID or key (\`issueIdOrKey\`). Returns formatted issue information including summary, description, status, reporter, assignee, comments summary, and related development information (commits, branches, pull requests) if available. Requires Jira credentials to be configured.`, atlassian_issues_types_js_1.GetIssueToolArgs.shape, getIssue);
+    methodLogger.debug('Successfully registered Atlassian Issues tools');
+}
+exports.default = { registerTools };

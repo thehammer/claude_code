@@ -1,0 +1,1730 @@
+{
+  "numStartups": 83,
+  "installMethod": "global",
+  "autoUpdates": true,
+  "hasSeenTasksHint": true,
+  "tipsHistory": {
+    "new-user-warmup": 9,
+    "plan-mode-for-complex-tasks": 79,
+    "terminal-setup": 5,
+    "shift-enter": 79,
+    "memory-command": 83,
+    "theme-command": 72,
+    "ide-hotkey": 8,
+    "status-line": 64,
+    "prompt-queue": 8,
+    "enter-to-steer-in-relatime": 72,
+    "todo-list": 76,
+    "vscode-command-install": 10,
+    "# for memory": 76,
+    "install-github-app": 79,
+    "drag-and-drop-images": 73,
+    "paste-images-mac": 73,
+    "double-esc": 9,
+    "continue": 73,
+    "shift-tab": 73,
+    "image-paste": 76,
+    "custom-agents": 83,
+    "permissions": 79,
+    "double-esc-code-restore": 73,
+    "custom-commands": 83,
+    "tab-toggle-thinking": 76,
+    "ultrathink-keyword": 76,
+    "ide-upsell-external-terminal": 73,
+    "git-worktrees": 81
+  },
+  "promptQueueUseCount": 21,
+  "cachedStatsigGates": {
+    "tengu_disable_bypass_permissions_mode": false,
+    "tengu_use_file_checkpoints": true,
+    "tengu_tool_pear": false
+  },
+  "cachedDynamicConfigs": {
+    "tengu-top-of-feed-tip": {
+      "tip": "",
+      "color": ""
+    }
+  },
+  "firstStartTime": "2025-09-22T14:34:23.385Z",
+  "userID": "93efbd0c8ffa578e2dc66f81e12895621ac94b4c3d82b954faeaa79bd8e94623",
+  "projects": {
+    "/Users/hammer/Code/php_graph": {
+      "allowedTools": [],
+      "history": [
+        {
+          "display": "ignore comments as well",
+          "pastedContents": {}
+        },
+        {
+          "display": "On 111, exclude matches inside single or double quotes",
+          "pastedContents": {}
+        },
+        {
+          "display": "On 111, exclude matches where there is a $ directly before the className.",
+          "pastedContents": {}
+        },
+        {
+          "display": "change scan_references to ignore lines that start with any whitespace followed by use.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Change scan_reference so it iterates through the lines of the file rather than matching on the contents. When a match is going to be pushed to the references, and if the classNode className is AutopaymentController, echo the targetClass className and the line that matched.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's group the nodes by namespace",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's rewrite scan_references so that for each classNode, it scans the contents of the file for any of the other classNames as whole words.",
+          "pastedContents": {}
+        },
+        {
+          "display": "given a dot syntax file, what command can I run to generate an svg",
+          "pastedContents": {}
+        },
+        {
+          "display": "replace lines 34 and 35 with a call to the dot function",
+          "pastedContents": {}
+        },
+        {
+          "display": "create a function that users the classNodes array to generate dot syntax using the className and references",
+          "pastedContents": {}
+        },
+        {
+          "display": "now the block on line 122 should instead append the referencedClassName only if there is a different classNode with the same className as the reference.",
+          "pastedContents": {}
+        },
+        {
+          "display": "change scan references to iterate over classNodes, rather than using the path.",
+          "pastedContents": {}
+        },
+        {
+          "display": "back to graph.php, let's move our reference scanning to a separate function that is called after parse_files, and iterates over all the files a second time. This time, when we scan for references, skip any line that starts with whitespace followed by use, namespace, or class, and add references only when there exists a classNode entry with a matching className.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Delete graph_to_dot.php",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's create a new PHP script for command line use that takes one parameter, a path. The script should scan that path and generate a dot syntax output that captures the class dependencies.",
+          "pastedContents": {}
+        },
+        {
+          "display": "And exclude matches that are all caps",
+          "pastedContents": {}
+        },
+        {
+          "display": "Change the match pattern on line 87 to match class names, not constants.",
+          "pastedContents": {}
+        },
+        {
+          "display": "And the same thing for line 73.",
+          "pastedContents": {}
+        },
+        {
+          "display": "If the block on line 55 performed, let's skip to the next line at the end of the block.",
+          "pastedContents": {}
+        },
+        {
+          "display": "On any line that isn't a class, namespace, or use, find all constants that are referenced and add them to the classNode's references array.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's update our matcher on line 55 to only match when nothing other than whitespace precedes the current match pattern.",
+          "pastedContents": {}
+        },
+        {
+          "display": "On line 49, let's skip any line that is just a comment",
+          "pastedContents": {}
+        },
+        {
+          "display": "On line 61, let's only assign if we have a baseClass",
+          "pastedContents": {}
+        },
+        {
+          "display": "On line 56, let's throw an exception",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's add an exception to the block on line 50 when we find a class but the className is already set on the classNode",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's add the uses the same way in the block on line 61",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's move the namepsace assignment to the block on line 61.",
+          "pastedContents": {}
+        },
+        {
+          "display": "I don't see this change showing up in vs code's editor window.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Inside the block on line 40, let's change the code so that we construct a ClassNode instance for each class we find, assigning the path using $file, etc.",
+          "pastedContents": {}
+        },
+        {
+          "display": "The match line doesn't appear to be working.",
+          "pastedContents": {}
+        },
+        {
+          "display": "on line 42, I want to capture the class name as well as the base class if one is specified",
+          "pastedContents": {}
+        },
+        {
+          "display": "on line 38 I want to loop over the lines and scan for certain strings",
+          "pastedContents": {}
+        },
+        {
+          "display": "can you help ,me with graph.php?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "/terminal-setup ",
+          "pastedContents": {}
+        }
+      ],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 4,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0,
+      "lastCost": 0.0005536,
+      "lastAPIDuration": 2826,
+      "lastToolDuration": 0,
+      "lastDuration": 804227017,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 372,
+      "lastTotalOutputTokens": 64,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
+      "lastSessionId": "eb61fbdc-99f8-4d73-8728-1388a60ef5a8"
+    },
+    "/Users/hammer/Code/portal_dev": {
+      "allowedTools": [],
+      "history": [
+        {
+          "display": "Don't get too far ahead of me. We can try creating a PR for the work we're doing, adding redis and the scheduler to the development docker container created by `make up`, and that will tell us what fields we're missing. Then, let's go step by step to figure out what to do.",
+          "pastedContents": {}
+        },
+        {
+          "display": "We'd started working on adding redis and the scheduler to our docker image, but got stuck when creating a jira ticket. Before we go further, we seem to have some challenges figuring out what the available options are for Environment and Carefeed Component. Let's work on trying to find a way to determine what the valid options are for those, using the Jira API. We may need to extend the MCP. Let's talk through this as we go.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start coding continue",
+          "pastedContents": {}
+        },
+        {
+          "display": "/wrapup ",
+          "pastedContents": {}
+        },
+        {
+          "display": "Create a jira ticket.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/wrapup ",
+          "pastedContents": {}
+        },
+        {
+          "display": "All docker seems better to me, so it's part of the project. Let's do this on a fresh branch.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Skip the jira ticket.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Do a git pull on master. Should be a more recent commit.",
+          "pastedContents": {}
+        },
+        {
+          "display": "create a branch off master, and open a pr. Use no-verify when pushing.",
+          "pastedContents": {}
+        },
+        {
+          "display": "So we probably started it by hand. I'd like to find a good way for us to have the scheduler running locally, either via herd or using our make up. And I'd like to have redis running locally as well. Without making any changes just yet, how might we accomplish this?",
+          "pastedContents": {}
+        },
+        {
+          "display": "A recent commit, probably something related to our logging changes, seem to have caused a problem in the staging environment. https://dev.portal.carefeed.com/test/logging is getting a 500. Can you use the staging AWS credentials to see if you can figure out what's wrong? Since we probably broke this with our new observability formatter, see if you can find a bug in what we did.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start debugging",
+          "pastedContents": {}
+        },
+        {
+          "display": "No, instead tell me what runs the portal_scheduler you listed.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Our make up command starts the Jira and Bitbucket MCPs?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's talk about what happens when we call `make up`, and what herd is running for us.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start coding",
+          "pastedContents": {}
+        },
+        {
+          "display": "Push with no-verify and open a PR.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Where is the .ac-php-conf.json file coming from?",
+          "pastedContents": {}
+        },
+        {
+          "display": "1 is the one I want to adjust. Let's move it so it follows the pattern from 3. That will include moving the logic to the controller, and adding tests.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Great. Now let's start a new branch off master, and move some routes around. There are some routes we introduced that have a _test prefix. Can you find them and tell me about them?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Nah, go ahead and push with no-verify, and open a PR.",
+          "pastedContents": {}
+        },
+        {
+          "display": "In config/logging.php, I see that the stdout driver is monolog. Is that what we want?",
+          "pastedContents": {}
+        },
+        {
+          "display": "We built the observability library together, and the source is checked out to ~/Code/observability. If that library should provide a formatter, let's create it there, cut a minor release, update portal_dev to use the new version on a branch, and then update the config to use the observability formatter.",
+          "pastedContents": {}
+        },
+        {
+          "display": "1 please",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you display the results of a call to datadog_search_logs? It sounds like our jq might be off and perhaps I can see what the problem is.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let me help. Tell me what you're running into and maybe I can offer guidance.",
+          "pastedContents": {}
+        },
+        {
+          "display": "We're still having trouble with you being able to access the logs?",
+          "pastedContents": {}
+        },
+        {
+          "display": "I think you ran into issues accessing datadog, so let's see if we can figure out the issue there. We have helper functions but do we also have a recipe?",
+          "pastedContents": {}
+        },
+        {
+          "display": "In a previous session we were investigating a configuration issue wrt logs not using our observability package when being sent to datadog. Please feel free to check recent logs under env:staging service:portal-dev, sent by our /test/logging route. I believe the issue may be in our config/logging.php file, in the stdout section, but don't take my word for it.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start coding",
+          "pastedContents": {}
+        },
+        {
+          "display": "We have a route, /test/logging that I used.",
+          "pastedContents": {}
+        },
+        {
+          "display": "You do have access to datadog. We should have recipes or helper functions.",
+          "pastedContents": {}
+        },
+        {
+          "display": "With that PR up for review, let's take a look at some of the logs to make sure we're \"doing it right\". I've triggered some test log messages to env:staging service:portal_dev. Can you have a look and tell me if they are right?",
+          "pastedContents": {}
+        },
+        {
+          "display": "That looks like it would just add a different uuid for each log message, rather than be a request id that would be consistent for the entire web request. In any case, you know what I'm looking to achieve, so proceed as you think makes the most sense, on a new branch off master, and open a PR.",
+          "pastedContents": {}
+        },
+        {
+          "display": "We don't currently have request id in our enrichment. Is that something that would easy to add?",
+          "pastedContents": {}
+        },
+        {
+          "display": "We dpn",
+          "pastedContents": {}
+        },
+        {
+          "display": "Hold on a sec. So that would have been calling withoutContext on the Laravel logger before perhaps, correct? Let's see if we can maintain the previous behavior, but migrating to our new log facade.",
+          "pastedContents": {}
+        },
+        {
+          "display": "We have a bug:\n/app/Listeners/LogScheduledTaskFailed.php in App\\Listeners\\LogScheduledTaskFailed::handle\nCall to undefined method App\\Services\\LogService::withoutContext()\n\nFix it on a branch and open a PR.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Platform and \"Production \"",
+          "pastedContents": {}
+        },
+        {
+          "display": "Yes",
+          "pastedContents": {}
+        },
+        {
+          "display": "Perf",
+          "pastedContents": {}
+        },
+        {
+          "display": "Our branch has been pushed. Please create a PR.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start coding",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's go ahead and create a branch off master for this, then proceed. As you're doing this work, see if you can find an opportunity for the container build step to be skipped if we'd just be creating the exact same container that we already have. Most deploys don't include changes that would really require a new container build and this could save a lot of time.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Our pipeline has several \"container build\" steps that run concurrently. Could that also be consolidated? What's the arity from task definition to container build?",
+          "pastedContents": {}
+        },
+        {
+          "display": "We have a bunch of ecs task definition files, and it seems like they ought to be able to be consolidated. Can you have a look at them, and the pipeline file, and tell me what you think we should do?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start coding",
+          "pastedContents": {}
+        },
+        {
+          "display": "/wrapup ",
+          "pastedContents": {}
+        },
+        {
+          "display": "Is that what caught the errors we just fixed?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Is there an easy way to scan all the php files to make sure there aren't any syntax issues? Is that something phpstan does?",
+          "pastedContents": {}
+        },
+        {
+          "display": "More PR Checks - Backend errors:\nParse error: ./app/Services/Billing/BillingPersistenceService.php:27\n    25|         private readonly ContactResolutionInterface $contactResolver,\n    26|         private readonly BillingStrategyResolver $strategyResolver,\n  > 27|         private readonly private readonly StatementService $statementService\n    28|     ) {}\n    29|\nMultiple access type modifiers are not allowed\nScript parallel-lint handling the __exec_command event returned with error code 1\nPlugins have been disabled automatically as you are running as root, this may be the cause of the script failure.\nSee also https://getcomposer.org/root\n",
+          "pastedContents": {}
+        },
+        {
+          "display": "When does this get used? Any why shouldn't it also use our new observability and structured logging mechanism?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you show me the app/Logging/CarefeedLogHandler snippet?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Are there any other references to $logger in the code?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Our latest PR is failing the PR Checks - Backend segment of our pipeline, with the following error:\n```\n> Illuminate\\Foundation\\ComposerScripts::postAutoloadDump\n> @php artisan package:discover --ansi\n   RuntimeException \n  CRITICAL: Billing persistence services failed to register in PRODUCTION environment. The application cannot safely process billing statements. Errors: EnhancedBillingPersistenceService: Undefined variable $logger\n  at app/Providers/BillingPersistenceServiceProvider.php:139\n    135▕             $errorSummary = implode('; ', $errors);\n    136▕ \n    137▕             // FAIL FAST in production - prevent silent data loss\n    138▕             if ($this->app->environment('production')) {\n  ➜ 139▕                 throw new \\RuntimeException(\n    140▕                     'CRITICAL: Billing persistence services failed to register in PRODUCTION environment. '.\n    141▕                     'The application cannot safely process billing statements. '.\n    142▕                     \"Errors: {$errorSummary}\"\n    143▕                 );\n  1   app/Providers/BillingPersistenceServiceProvider.php:55\n      App\\Providers\\BillingPersistenceServiceProvider::registerServicesWithRegistry()\n      +6 vendor frames \n  8   artisan:37\n      Illuminate\\Foundation\\Console\\Kernel::handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))\nScript @php artisan package:discover --ansi handling the post-autoload-dump event returned with error code 1\n\n```",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start coding",
+          "pastedContents": {}
+        },
+        {
+          "display": "Remove the .ac-php-conf.json file, and revert our changes to the ecs task definitions.",
+          "pastedContents": {}
+        },
+        {
+          "display": "We have conflicts. Pull master, then rebase, fix, and force push with no-verify",
+          "pastedContents": {}
+        },
+        {
+          "display": "Run all the tests, squash our commits, push no verify, and open a PR.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Yes please. Generally, I see more references to LogService than I expect when I run `ag LogService`. Some are scripts we appear to have created and should clean up when we're done, some are docs that probably should be updated, etc. Please take a pass at those as well. Look for any files that shouldn't be in our PR.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Yes please. Generally, I see more references to LogService than I expect when I run `ag LogService`. Some are scripts we",
+          "pastedContents": {}
+        },
+        {
+          "display": "Yes please, and then have a look at Tests\\Unit\\Modules\\BedBoard\\Services\\Sync\\BedSyncServiceTest and Tests\\Unit\\Modules\\BedBoard\\Services\\Sync\\UnitSyncServiceTest. Those last two seem to be the only remaining test failures.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you scan all the php files and check if we're initializing with a logger anywhere? Since we have the facade we shouldn't be, but let's double check.",
+          "pastedContents": {}
+        },
+        {
+          "display": "There are two test files that we suffixed with .skip. Can you remove that suffix one by one and see if you can fix them? They were running into memory issues before but perhaps other changes we've made will have fixed them.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Check Tests\\Unit\\Console\\Commands\\SyncDomainVerificationStatusTest, Tests\\Unit\\Modules\\BedBoard\\Services\\BedBoardServiceTest, Tests\\Unit\\Modules\\BedBoard\\Services\\Mappers\\MatrixCareBedBoardMapperServiceTest, Tests\\Unit\\Modules\\BedBoard\\Services\\Sync\\BedSyncServiceTest",
+          "pastedContents": {}
+        },
+        {
+          "display": "I think we have some fresh failures in the Feature subtree. Check Tests\\Feature\\Jobs\\ProcessStatementTest and Tests\\Feature\\Services\\DomainFilteringServiceTest",
+          "pastedContents": {}
+        },
+        {
+          "display": "1",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start coding read /tmp/log-facade-migration-progress.md",
+          "pastedContents": {}
+        },
+        {
+          "display": "Deploying. Stand by.",
+          "pastedContents": {}
+        },
+        {
+          "display": "We'll need a fresh PR.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Okay, go.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Pause here with the updates you made to the doc and I'll restart us shortly.",
+          "pastedContents": {}
+        },
+        {
+          "display": "The memory config caused an issue: \n✖ Failed to update the stack.\nAn error occurred (ClientException) when calling the RegisterTaskDefinition operation: No Fargate configuration exists for given values: 512 CPU, 1536 memory. See the Amazon ECS documentation for the valid values.\n\nHold off on a fix for now, but please check what we'll need to change it to when I say go.",
+          "pastedContents": {}
+        },
+        {
+          "display": "continue",
+          "pastedContents": {}
+        },
+        {
+          "display": "1 please.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start coding read /tmp/log-facade-migration-progress.md",
+          "pastedContents": {}
+        },
+        {
+          "display": "Okay, we're back on master. Should we up the memory anyway? It sounds like there's a potential issue that could arise if we don't. Let's go ahead and create a branch, make these changes, commit, push with no verify, and open a PR.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you check the datadog logs? I'm guessing we'd need a way to isolate onq specifically.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's commit what we have for now, along with a doc I can have you read to resume this work in a subsequent session.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Did you see a specific error indicating a memory issue?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Okay, now apply the same approach to tests/Unit/Services. A lot of failures there so you may want to build a list of failures to work through, and perhaps introduce some scripts to help.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Commit b4271e22431caa273d6ec77e3f22108514cb0469 was intended to fix the onq hosts not stabilizing with datadog. Can you use the staging readonly aws credentials to see if you can figure out why the tasks failed health checks, and based on what was in the commit I mentioned, offer a suggestion? Please don't change what we've got checked out right now as another process is running with our code. Please don't make any changes, just investigate and advise.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start coding",
+          "pastedContents": {}
+        },
+        {
+          "display": "No, something is different about the way you're running vs the way I'm running or something. When I run `php artisan test tests/Unit/Traits` I see four failures. And for Support, I see 7.",
+          "pastedContents": {}
+        },
+        {
+          "display": "The Trait and Support tests don't seem to work when I run them with `php artisan test tests/Unit/Trait`, etc",
+          "pastedContents": {}
+        },
+        {
+          "display": "Just to clarify, we should be running these tests using php artisan.",
+          "pastedContents": {}
+        },
+        {
+          "display": "See if you can fix the failing test in tests/Unit/Support",
+          "pastedContents": {}
+        },
+        {
+          "display": "See if you can fix the failing test in tests/Unit/Traits",
+          "pastedContents": {}
+        },
+        {
+          "display": "Okay go ahead and fix the one you found, and then also see if you can fix Tests\\Feature\\Jobs\\ProcessMatrixCareInvoiceJobE2ETest, Tests\\Feature\\Jobs\\ProcessStatementTest, and Tests\\Feature\\Services\\DomainFilteringServiceTest.",
+          "pastedContents": {}
+        },
+        {
+          "display": "We have at least one test that is exhausting the memory limit. I'll see if I can narrow it down, so hold on a sec.",
+          "pastedContents": {}
+        },
+        {
+          "display": "I don't think we can run them in parallel yet.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's continue the migration work. I've added one commit that moves all of our Log facade calls to use our new facade. It's on the most recent commit. Please have a look and let me know if there is anything that doesn't seem right.",
+          "pastedContents": {}
+        },
+        {
+          "display": "s",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start coding",
+          "pastedContents": {}
+        },
+        {
+          "display": "We're back on our conversion branch.",
+          "pastedContents": {}
+        },
+        {
+          "display": "1, and let's do this work on a new branch.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Yes please. I'm filtering to env:staging and service:portal_dev.",
+          "pastedContents": {}
+        },
+        {
+          "display": "We're back on master and a bunch of our changes have been merged. Can you tell me whether our context enrichment logic is wired in? Are we using our observability library? I see json formatted messages in datadog but I'm not sure they have all the fields.",
+          "pastedContents": {}
+        }
+      ],
+      "mcpContextUris": [],
+      "mcpServers": {
+        "jira": {
+          "type": "http",
+          "url": "http://localhost:3000/mcp"
+        },
+        "bitbucket": {
+          "type": "http",
+          "url": "http://localhost:3001/mcp"
+        }
+      },
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 14,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "Handler.php",
+        "CommonUtils.php",
+        "ProcessStatementTest.php",
+        "web.php",
+        "CarefeedTrainingService.php"
+      ],
+      "exampleFilesGeneratedAt": 1761239324101,
+      "lastTotalWebSearchRequests": 0,
+      "lastCost": 9.0765842,
+      "lastAPIDuration": 1254926,
+      "lastToolDuration": 191752,
+      "lastDuration": 4130071,
+      "lastLinesAdded": 784,
+      "lastLinesRemoved": 100,
+      "lastTotalInputTokens": 8663,
+      "lastTotalOutputTokens": 54477,
+      "lastTotalCacheCreationInputTokens": 1202828,
+      "lastTotalCacheReadInputTokens": 12426804,
+      "lastSessionId": "53832dd3-b836-4bf7-8df0-649061631e97"
+    },
+    "/Users/hammer": {
+      "allowedTools": [],
+      "history": [
+        {
+          "display": "/start",
+          "pastedContents": {}
+        },
+        {
+          "display": "Update our integration doc with our current status and then wrap up.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's update our cs function to start in ~/.claude going forward. The ct function should remain as is for now.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Yes.",
+          "pastedContents": {}
+        },
+        {
+          "display": "You seemed to be unsure of whether it worked. How can we resolve that so it's less disruptive for you in the future?",
+          "pastedContents": {}
+        },
+        {
+          "display": "It worked. Both times.",
+          "pastedContents": {}
+        },
+        {
+          "display": "500 error, try again.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's try opening a window for clauding",
+          "pastedContents": {}
+        },
+        {
+          "display": "Pre-approve any m365 command. I thought we already allowed all bash commands anyway. Is the command also failing because the token has expired or something? Do we need to trigger the login?",
+          "pastedContents": {}
+        },
+        {
+          "display": "There should be a recipe for getting my calendar. Is it not providing enough guidance?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start clauding",
+          "pastedContents": {}
+        },
+        {
+          "display": "/wrapup ",
+          "pastedContents": {}
+        },
+        {
+          "display": "Sorry, I didn't realize we needed to reload .zshrc. Let's update our integration doc with our new progress, and then I'll start a new session to continue testing.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you test opening a new window for coding?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's add recipes and/or helpers for opening new tabs for new claude sessions.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Read ~/.claude/TMUX_INTEGRATION_STATUS.md to see where we left off",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you capture where we're at so we can start a new session to test out what we have so far, and then pick up where we leave off? Probably a doc under ~/.claude?",
+          "pastedContents": {}
+        },
+        {
+          "display": "For clauding I think just a single pane makes the most sense, and may later open ephemeral panes. For any /start though I think it would make sense to update the name of the tmux tab to reflect what we're doing.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's go ahead and create the cs function as you've defined it, in the .zshrc if that's where it makes the most sense. We'll skip the aliases for now. Could the function also execute the claude command when it's a new session? Is there a way to provide a command when starting tmux?",
+          "pastedContents": {}
+        },
+        {
+          "display": "I'd like iterm/tmux to be my primary IDE, so most or all of those sound great. Let's envision what my initial experience will be. I think a typical starting flow might be:\n- I open iterm, full screen, and type `tmux new-session`\n- On the newly opened tab, I type `claude`\n- My first command to claude would be someting like `/start clauding`\n\nDoes that initial process sound reasoable? Any improvements you'd suggest up to that point?\n\nOnce we've got that portion sorted out, we can discuss what the subsequent process should look like. ",
+          "pastedContents": {}
+        },
+        {
+          "display": "In general I'd like to favor creating recipes instead of helper functions, but we should be pragmatic about which to implement. Please capture that with our preferences so we'll sustain that going forward. And then, let's discuss what sort of tmux-aware recipes or helper functions we might want.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Normally we've been working in VS Code, but I'd like to explore how we might work in iterm using tmux a bit. Can you detect that we're in a shell, in tmux, and/or in iterm?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start clauding",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "q",
+          "pastedContents": {}
+        },
+        {
+          "display": "/terminal-setup ",
+          "pastedContents": {}
+        }
+      ],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 4,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0,
+      "lastCost": 0.002206,
+      "lastAPIDuration": 2173,
+      "lastToolDuration": 0,
+      "lastDuration": 57957,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 1661,
+      "lastTotalOutputTokens": 109,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
+      "lastSessionId": "72cc0179-28d3-4c62-b92c-5a5d6b48f7bd"
+    },
+    "/Users/hammer/Code/family-portal": {
+      "allowedTools": [],
+      "history": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "ignorePatterns": [],
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "app.ts",
+        "app.blade.php",
+        "app.php",
+        "RedisLoggingAdapter.php",
+        "services.php"
+      ],
+      "exampleFilesGeneratedAt": 1761054620343
+    },
+    "/Users/hammer/Code/homebridge-tesmart": {
+      "allowedTools": [],
+      "history": [
+        {
+          "display": "Let's proceed with the revert, and then remove the led timeout from the homekit interface. It's not important, but we'll keep the buzzer and the auto switch stuff as is.",
+          "pastedContents": {}
+        },
+        {
+          "display": "No, this is all just too messy. Let's just leave it.",
+          "pastedContents": {}
+        },
+        {
+          "display": "I don't want the led options to be three switches. And the tv switch control causes problems. Surely there are other controls we could use, right?",
+          "pastedContents": {}
+        },
+        {
+          "display": "The extra TV service causes problems. Instead of showing the led stuff, it's getting some of the inputs from the main tv list. How else might be change it so those two remain isolated and user friendly? And the summary view is still not showing just the current input.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Was the change to setPrimary something we just did with the latest set of changes?",
+          "pastedContents": {}
+        },
+        {
+          "display": "How did we hide the extra controls from the summary? It doesn't seem to have been working previously.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Continue",
+          "pastedContents": {}
+        },
+        {
+          "display": "The mute buzzer feels backwards. Can the on position indicate that the buzzer is on, and if it's in the off position, the buzzer is muted. And I'm still seeing in the summary view \"3 on - 1 off\" instead of just the current input.",
+          "pastedContents": {}
+        },
+        {
+          "display": "The fan selector is weird. It can't just be a list with labels for 10s, 30s, Always On?",
+          "pastedContents": {}
+        },
+        {
+          "display": "One more. Let's add a control for the accessory in homekit so you can enable or disable polling/automatic input switching. This should be another \"hidden\" from summary control.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can we also change how the led controls work? Rather than a toggle for 10s and another toggle for 30s, could these be combined into a list, similar to how the inputs are presented?",
+          "pastedContents": {}
+        },
+        {
+          "display": "The UX in homekit for our device is a little weird, showing summary details for the toggles we just added. Could the summary include only the current input?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Tag a release.",
+          "pastedContents": {}
+        },
+        {
+          "display": "There's a bug. In the HomeKit UX, I see three toggle switches, but I can't tell which is which. They just show the name of the device, in my case Flex Room HDMI Switch.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Tag a release please.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Yeah, that would be great.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Does the plugin just control the buzzer and such via config, or are those exposed as controls to homekit?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Create a release. I'll publish to npm.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Was a new release created?",
+          "pastedContents": {}
+        },
+        {
+          "display": "If I remember correctly, there's also a way to disable polling or prevent autoswitching inputs. Can you find anything about that? I'd like to add a feature to disable automatic switching, rather than just allowing the polling interval to be changed.",
+          "pastedContents": {}
+        },
+        {
+          "display": "1, 2, and 3.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's do 1.",
+          "pastedContents": {}
+        },
+        {
+          "display": "What's left on our todo list? There are some other API elements we haven't added yet, right?",
+          "pastedContents": {}
+        },
+        {
+          "display": "The plugin currently exposes an on/off functionality that the switch doesn't support. Is there a way to remove this part of the control and only expose the selection of the input?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Yes. I will publish myself though, so we just need to commit, push, and create the release.",
+          "pastedContents": {}
+        },
+        {
+          "display": "There also appears to be an issue with discovery:\n```\n[Pasted text #2 +18 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "[10/15/2025, 12:46:36 PM] [TESmart] Discovery complete. Found 1 TESmart switch(es)\n[10/15/2025, 12:46:36 PM] [TESmart] Adding discovered switch at 192.168.1.240\n[10/15/2025, 12:46:36 PM] [TESmart] Adding new accessory:  undefined\n[10/15/2025, 12:46:36 PM] [TESmart] Failed to setup accessory \"undefined\": AssertionError [ERR_ASSERTION]: Accessories must be created with a non-empty displayName.\n    at new Accessory (/volume1/homebridge/node_modules/homebridge/node_modules/hap-nodejs/src/lib/Accessory.ts:495:11)\n    at new PlatformAccessory (/volume1/homebridge/node_modules/homebridge/src/platformAccessory.ts:72:9)\n    at file:///volume1/homebridge/node_modules/homebridge-tesmart/src/platform.ts:156:29\n    at Array.forEach (<anonymous>)\n    at TESmartSwitchPlatform.discoverDevices (file:///volume1/homebridge/node_modules/homebridge-tesmart/src/platform.ts:134:21)\n    at TESmartSwitchPlatform.initializeDevices (file:///volume1/homebridge/node_modules/homebridge-tesmart/src/platform.ts:124:10)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: undefined,\n  expected: true,\n  operator: '==',\n  diff: 'simple'\n}\n[10/15/2025, 12:46:36 PM] [TESmart] This accessory will be skipped. Please check your configuration and network connection."
+            },
+            "2": {
+              "id": 2,
+              "type": "text",
+              "content": "[10/15/2025, 12:46:36 PM] [TESmart] Discovery complete. Found 1 TESmart switch(es)\n[10/15/2025, 12:46:36 PM] [TESmart] Adding discovered switch at 192.168.1.240\n[10/15/2025, 12:46:36 PM] [TESmart] Adding new accessory:  undefined\n[10/15/2025, 12:46:36 PM] [TESmart] Failed to setup accessory \"undefined\": AssertionError [ERR_ASSERTION]: Accessories must be created with a non-empty displayName.\n    at new Accessory (/volume1/homebridge/node_modules/homebridge/node_modules/hap-nodejs/src/lib/Accessory.ts:495:11)\n    at new PlatformAccessory (/volume1/homebridge/node_modules/homebridge/src/platformAccessory.ts:72:9)\n    at file:///volume1/homebridge/node_modules/homebridge-tesmart/src/platform.ts:156:29\n    at Array.forEach (<anonymous>)\n    at TESmartSwitchPlatform.discoverDevices (file:///volume1/homebridge/node_modules/homebridge-tesmart/src/platform.ts:134:21)\n    at TESmartSwitchPlatform.initializeDevices (file:///volume1/homebridge/node_modules/homebridge-tesmart/src/platform.ts:124:10)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: undefined,\n  expected: true,\n  operator: '==',\n  diff: 'simple'\n}\n[10/15/2025, 12:46:36 PM] [TESmart] This accessory will be skipped. Please check your configuration and network connection."
+            }
+          }
+        },
+        {
+          "display": "I publish and submitted for verification. An automated reply came back with some issues:\nPackage JSON: engines.node property is not compatible with Node 20\nConfig Schema JSON: schema is invalid - required should not be a boolean property on individual fields. In JSON Schema, required must be an array at the object level listing required property names. Remove \"required\": true/false from individual properties and use \"required\": [\"property1\", \"property2\"] at the object level instead.\nGitHub Repo: should contain releases",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's do 3, then 1 and 2.",
+          "pastedContents": {}
+        },
+        {
+          "display": "What are the next steps for this project?",
+          "pastedContents": {}
+        },
+        {
+          "display": "The plugin seems to expose multiple accessories.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Does discovery happen while you're on the config page?",
+          "pastedContents": {}
+        },
+        {
+          "display": "How does discovery work in the UX? It looks like there's a checkbox. Is that correct?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Okay, commit and push.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can we update the project to require node 22?",
+          "pastedContents": {}
+        },
+        {
+          "display": "which nodejs are we running?",
+          "pastedContents": {}
+        },
+        {
+          "display": "1 and 2.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Does our plugin offer a discovery mechanism, scanning the local network for tesmart switches?",
+          "pastedContents": {}
+        },
+        {
+          "display": "yes",
+          "pastedContents": {}
+        },
+        {
+          "display": "Please commit and push the changes.",
+          "pastedContents": {}
+        },
+        {
+          "display": "1 please. There are issues to be resolved.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start coding",
+          "pastedContents": {}
+        },
+        {
+          "display": "Please add the next steps as an entry on the personal todo list.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/wrapup ",
+          "pastedContents": {}
+        },
+        {
+          "display": "Continue.",
+          "pastedContents": {}
+        },
+        {
+          "display": "1. Let's make it awesome.\n2. All phases, and broken up into logical commits.\n3. Whatever works best for you.\n4. I'm comfortable with you working through the whole thing and then review the results together.\n\nI forgot, but there is one bug I think, something about the order of the inputs when they show up in Homekit. There's something about the encoding of the index that isn't right, and iirc I saw some documentation about the way to specify the index in some apple docs or something. If you can't figure out what I mean trivially, let me know and I can track down the site where I found a suggested solution. I may have also partially fixed this, so look for incomplete work maybe.",
+          "pastedContents": {}
+        },
+        {
+          "display": "1. I've only tested with the 16x1 (model HSW1601A1U) but expect it should work with the equivalent 8x1 as well.\n2. I believe I need some sort of UX for configuring the plugin, and/or using it once it's installed.\n3. afaik it's in a good state, but the code may need refactoring or clean up.\n4. More features would be great, and in fact covering everything in the TESmart API would be ideal.\n5. I plan to publish it.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Please pull the repo and check again for customization.",
+          "pastedContents": {}
+        },
+        {
+          "display": "The most recent commit should represent a customization of the template, but has work left to be completed. It's functional, tested manually, but is missing several things that are required for it to be \"Homebridge Verified\". I'd like to have a look at the project, describe what you believe it's purpose to be, and after asking any questions you have for me, I'd like to create a plan that we can follow to get the plugin completed and ready for verification and release.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start ",
+          "pastedContents": {}
+        },
+        {
+          "display": "When does the weekly period start?",
+          "pastedContents": {}
+        },
+        {
+          "display": "When does the weekly limit reset?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start ",
+          "pastedContents": {}
+        }
+      ],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 6,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 5,
+      "exampleFiles": [
+        "switch_api.ts",
+        "platform.ts",
+        "platformAccessory.ts",
+        "index.ts",
+        "settings.ts"
+      ],
+      "exampleFilesGeneratedAt": 1760447034570,
+      "lastCost": 15.773984299999993,
+      "lastAPIDuration": 2733038,
+      "lastToolDuration": 247925,
+      "lastDuration": 508499492,
+      "lastLinesAdded": 897,
+      "lastLinesRemoved": 414,
+      "lastTotalInputTokens": 110942,
+      "lastTotalOutputTokens": 110344,
+      "lastTotalCacheCreationInputTokens": 1779740,
+      "lastTotalCacheReadInputTokens": 24447895,
+      "lastSessionId": "559d9fae-421f-446f-b170-70ef20e4e654"
+    },
+    "/Users/hammer/.claude": {
+      "allowedTools": [],
+      "history": [
+        {
+          "display": "How would you go about testing the lazy-loading?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Open a new coding window for portal_dev please.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's take a stab at optimizing the baseline token/context usage for some of our session types, starting with coding. Is there a way we can make more of it lazy loaded?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Create a new coding window",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you document this in a markdown file in ~/.claude.",
+          "pastedContents": {}
+        },
+        {
+          "display": "New coding window please.",
+          "pastedContents": {}
+        },
+        {
+          "display": "You missed. Try to kill that window please.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you kill the top pane of window 4?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you provide me with an overview of the standard tools that are available in the claude ecosystem? For example, we've started using MCPs recently, and I just learned about Skills. Are there other things we should discuss?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start clauding",
+          "pastedContents": {}
+        },
+        {
+          "display": "start a clauding window please. And then a new coding window.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Where do MCPs fit in all that?",
+          "pastedContents": {}
+        },
+        {
+          "display": "How do skills compare with our recipes and helpers design?",
+          "pastedContents": {}
+        },
+        {
+          "display": "What is a skill, wrt Claude?",
+          "pastedContents": {}
+        },
+        {
+          "display": "create a new coding window for portal_dev",
+          "pastedContents": {}
+        },
+        {
+          "display": "start a learning window please.",
+          "pastedContents": {}
+        },
+        {
+          "display": "create a new coding window",
+          "pastedContents": {}
+        },
+        {
+          "display": "Start a planning window please.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Does that apply to all new sessions? Such as the one we just created for coding?",
+          "pastedContents": {}
+        },
+        {
+          "display": "What is our verbosity level?",
+          "pastedContents": {}
+        },
+        {
+          "display": "portal_dev",
+          "pastedContents": {}
+        },
+        {
+          "display": "Admin portal.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Start a coding session.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Our launcher session didn't show up with just a rocket in the window name.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start launcher",
+          "pastedContents": {}
+        },
+        {
+          "display": "/wrapup ",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's go with 1.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Is there a way to make our claude sessions less verbose? I get a lot of detail about operations you're performing and maybe I don't need to see them all. Is there a way to improve the signal vs noise?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Here's what it's telling me:\n```\n[Pasted text #1 +46 lines]\n```",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "> /doctor\n\n Diagnostics\n └ Currently running: npm-global (2.0.27)\n └ Path: /Users/hammer/.nvm/versions/node/v22.19.0/bin/node\n └ Invoked: /Users/hammer/.nvm/versions/node/v22.19.0/bin/claude\n └ Config install method: global\n └ Auto-updates enabled: default (true)\n └ Update permissions: Yes\n └ Search: OK (vendor)\n\n Invalid Settings\n /Users/hammer/.claude/.claude/settings.local.json\n  └ Invalid or malformed JSON\n /Users/hammer/.claude/settings.json\n  └ permissions\n    ├ allow\n    │ ├ \"Bash(*)\": Use \"Bash\" without parentheses to allow all commands. Remove the parentheses or specify a command pattern. Examples: Bash, Bash(npm:*), Bash(npm install)\n    │ ├ \"Bash(is_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(is_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(jira_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(jira_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(op_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(op_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(sentry_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(sentry_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(show_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(show_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(slack_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(slack_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(validate_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(validate_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(vscode_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(vscode_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(aws_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(aws_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"WebFetch(**)\": WebFetch permissions must use \"domain:\" prefix. Use \"domain:hostname\" format. Examples: WebFetch(domain:example.com), WebFetch(domain:*.google.com)\n    │ ├ \"WebSearch(**)\": WebSearch does not support wildcards. Use exact search terms without * or ?. Examples: WebSearch(claude ai), WebSearch(typescript tutorial)\n    │ ├ \"Bash(bitbucket_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(bitbucket_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(carefeed_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(carefeed_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(datadog_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(datadog_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(extract_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(extract_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(get_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(get_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ ├ \"Bash(github_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(github_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    │ └ \"Bash(infer_*:*)\": Use \":*\" for prefix matching, not just \"*\". Change to \"Bash(infer_:*::*)\" for prefix matching. Examples: Bash(npm run:*), Bash(git:*)\n    └ ask\n      ├ \"Bash(mv:* /dev/null)\": The :* pattern must be at the end. Move :* to the end for prefix matching. Examples: Bash(npm run:*), Bash(git commit:*)\n      └ \"Bash(sudo:* /dev/null)\": The :* pattern must be at the end. Move :* to the end for prefix matching. Examples: Bash(npm run:*), Bash(git commit:*)\n\n\n Context Usage Warnings\n └ ⚠ Large MCP tools context (~34,219 tokens > 25,000)\n   └ MCP servers:\n     └ bitbucket: 23 tools (~21,683 tokens)\n     └ jira: 15 tools (~12,536 tokens)\n"
+            }
+          }
+        },
+        {
+          "display": "Running /doctor suggests we have some issues with our config. Can you fix it?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start clauding",
+          "pastedContents": {}
+        },
+        {
+          "display": "It worked. Let's update our cs command so that the window moves to index 0 on start.",
+          "pastedContents": {}
+        },
+        {
+          "display": "That worked. I think if we're in my home directory, it always asks for permission to trust, so by using an empty directory we can persist the permission and timing is then okay. Let's update our tmux tooling so any new windows will start in ~/sandbox if they don't have a directory specified.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's update our /wrapup mechanism so that, if you're running in a tmux window, the very last thing it does is close the window. If closing a window does not automatically close everything running in all panes, then we should adjust the behavior to close the panes one by one, with the clauding pane last. Some panes may have editors or active commands running in them, so we may need to check if it's okay to close them and assist the user in doing so.",
+          "pastedContents": {}
+        },
+        {
+          "display": "One more time.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's create a directory ~/sandbox, and have review sessions start there. Then try again",
+          "pastedContents": {}
+        },
+        {
+          "display": "It opened a review window, labeled appropriately in tmux, but it's just a vanilla claude session, didn't run a start command.",
+          "pastedContents": {}
+        },
+        {
+          "display": "I closed the windows that opened before. Try opening a new one now.",
+          "pastedContents": {}
+        },
+        {
+          "display": "It seems to be starting claude but not triggering it to start reviewing.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Again",
+          "pastedContents": {}
+        },
+        {
+          "display": "Try one more time please.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Yes please.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start clauding",
+          "pastedContents": {}
+        },
+        {
+          "display": "That didn't seem to work right. It started a session but it defaulted to coding. Why?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you start a reviewing session please?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Give me a clauding session to improve how we wrap up.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Yes please.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's create a new session type, reviewing, that we'll use to review PRs written by other engineers. We'll need to have access to bitbucket and github so we can see the PRs as well as the changes.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's start another coding session for the admin portal.",
+          "pastedContents": {}
+        },
+        {
+          "display": "The path is ~/Code/portal_dev",
+          "pastedContents": {}
+        },
+        {
+          "display": "coding please, for the admin portal.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start launcher",
+          "pastedContents": {}
+        },
+        {
+          "display": "I'll restart and we'll see how it goes.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's have the launcher window name be just the emoji with no text.",
+          "pastedContents": {}
+        },
+        {
+          "display": "continue",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's adjust the cs function to open a \"launcher\" tmux window, which will be a specialized session type with just enough initial context to be able to trivially open other tmux windows.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start clauding",
+          "pastedContents": {}
+        },
+        {
+          "display": "Since it sounds like the cli uses .claude.json instead of ~/.claude/settings.json, let's update our permission sync logic to ensure that our global .claude.json settings are kept in sync with settings.json. That is, follow the same logic we use for merging global and project permissions to ensure that .claude.json has the same permissions, and that mcp servers configured in settings are merged to keep both files matching.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Are we on the most recent version of the claude code cli?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Are we on the latest version of the CLI Claude Code?",
+          "pastedContents": {}
+        },
+        {
+          "display": "List my bitbucket workspaces.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Is the issue you ran into something we need to fix in our config? Or is it just that you can't use yourself to make calls to the MCP server?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's test each of the workspace and repo tools first. Those appear to be read operations only, except add-branch, so let's skip that one.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Okay, bitbucket mcp. What's our status? What's next?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Show me my calendar for Monday?",
+          "pastedContents": {}
+        },
+        {
+          "display": "We ran into an error when doing that, so we should make fixes to the helper and/or recipe. And then we should double check the query logic, because there should have been four meetings returned, not two. You only found the first and last but not the two in the middle.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Show me my calendar for yesterday.",
+          "pastedContents": {}
+        },
+        {
+          "display": "I'm indifferent to whether we create a helper function, a recipe, or some combination of both, but I'd like all calls to m365 to check whether we've got an active authentication first, and if we don't, notify me that I'll need to approve the login in the browser window that opened, and call m365 login, before proceeding to call the original m365 command. Implement this however you think will be most reliable going forward.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Are you able to detect when our m365 login has expired and we need to login again?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start clauding bitbucket mcp testing",
+          "pastedContents": {}
+        },
+        {
+          "display": "That worked. Can you now change the clauding layout to be just a single pane, no terminal?",
+          "pastedContents": {}
+        },
+        {
+          "display": "3, and then start the clauding session described in 1, but in window 3.",
+          "pastedContents": {}
+        },
+        {
+          "display": "That wasn't quite right. You got stuck on permissions and when I came back to this window, you were opening panes in this window and starting a claude session here.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Also start a clauding session for bitbucket mcp testing.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start clauding",
+          "pastedContents": {}
+        },
+        {
+          "display": "Go ahead with a commit and a push, and then wrap up.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Did you update our reclasification doc?",
+          "pastedContents": {}
+        },
+        {
+          "display": "It did. I think we're good. Might still have some permissions stuff to work out but we seem to be off to a great start.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Almost. The C-m might have been sent with the /start coding command rather than as a separate command. Can you check and try one more time?",
+          "pastedContents": {}
+        },
+        {
+          "display": "I'm less concerned about the cs function as that's intended primarily for your use through a recipe. You're welcome to update it as you like, and/or change how the recipes work to rebalance things. I'd like to be able to say to you, \"Please start a coding session for the admin portal.\" and you'll know to create a new window in the ~/Code/portal_dev working directory. So we probably need some guidance in a recipe, perhaps some kind of aliases mechanism. Anything else we'd need?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Option 1.",
+          "pastedContents": {}
+        },
+        {
+          "display": "When we start a coding session, I'd like to have it change to the correct project directory and open up some panes. To start, let's have claude occupy the left half of the screen, and then on the right half, emacs at the top and a shell below.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Tell me where we are with our tmux integration?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you check where we are with our reclassification work? Do we need to restart the bitbucket-mcp docker container? Have we tried using the new tools? Do we have any recipes or helpers to update or clean up?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start clauding",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's create a new window with a clauding session",
+          "pastedContents": {}
+        },
+        {
+          "display": "lets start a new clauding session",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start clauding",
+          "pastedContents": {}
+        },
+        {
+          "display": "Read our tmux integration doc to see where we are, and then let's see if we can figure out a bug in our cs function. Before we're attaching, these messages show up in the shell, and the start command never shows up or is triggered:\ncan't find window: 0\ncan't find window: 0",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start clauding",
+          "pastedContents": {}
+        },
+        {
+          "display": "yes",
+          "pastedContents": {}
+        },
+        {
+          "display": "Yes",
+          "pastedContents": {}
+        },
+        {
+          "display": "Go ahead, and then update our integration doc and wrap up.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Is like 377 starting the session detached, so it keeps the script in the foreground and we have time to send the keystrokes before bringing the tmux session to the foreground? Maybe you're right and we just need to adjust the timeouts.",
+          "pastedContents": {}
+        },
+        {
+          "display": "I think it's more than that. Can you show me the function with line numbers so I can think about what might need to change?",
+          "pastedContents": {}
+        },
+        {
+          "display": "I think there's also an issue with the cs function. Can you display that function for me, with line numbers?",
+          "pastedContents": {}
+        },
+        {
+          "display": "I want to test it, but do we need to start a fresh iterm window to pick up the changes?",
+          "pastedContents": {}
+        },
+        {
+          "display": "It mostly worked though it required me to press enter. The /start coding was already typed for me, and then there was a newline, but it just moved the input to the next line instead of triggering the command.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start coding\n",
+          "pastedContents": {}
+        },
+        {
+          "display": "I think it's sufficient. Let's try it out by starting a coding session.",
+          "pastedContents": {}
+        }
+      ],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "ignorePatterns": [],
+      "projectOnboardingSeenCount": 4,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [
+        "integrations.sh",
+        "SESSION_START.md",
+        "settings.json",
+        "coding.md",
+        "loader.sh"
+      ],
+      "exampleFilesGeneratedAt": 1761410864395,
+      "lastTotalWebSearchRequests": 0
+    },
+    "/Users/hammer/sandbox": {
+      "allowedTools": [],
+      "history": [
+        {
+          "display": "/wrapup ",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you capture this assessment as a markdown doc in ~/.claude?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's create a recipe. Is there an API that confluence provides and that any of our helpers use, or is it all web based, with credentials?",
+          "pastedContents": {}
+        },
+        {
+          "display": "You'll need to use the helpers if we don't have a recipe. What helpers do we have? And how are we managing credentials for this so the helpers work?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Do we have a recipe for access confluence?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Using our confluence tooling, can you read https://carefeed.atlassian.net/wiki/spaces/Engineering/pages/818872333/Splitting+Authentication+vs.+Application+User+Models and tell me what you think of this design/plan?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start learning",
+          "pastedContents": {}
+        },
+        {
+          "display": "Awesome. Now can you delete it?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Should have readwrite permissions now. Can you create a meeting with just me at 5pm today? Just to test,",
+          "pastedContents": {}
+        },
+        {
+          "display": "Nah, I just did it manually.",
+          "pastedContents": {}
+        },
+        {
+          "display": "I'll have to request this from IT. Is it accurate to describe this as a permission for Entra App 5ed00fe7-95a1-438c-bb97-8a97211892a7?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Maybe we're trying to create it on a calendar that doesn't belong to us. Are we trying to create a meeting invite? Creating a calendar event on my calendar and inviting Colin to it?",
+          "pastedContents": {}
+        },
+        {
+          "display": "5ed isn't the default app registration. It should be for me personally and have all of my permissions.",
+          "pastedContents": {}
+        },
+        {
+          "display": "We have an m365 cli. Can you help me schedule a meeting with Colin?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start planning",
+          "pastedContents": {}
+        },
+        {
+          "display": "4072, 2 commits, adds two files, one is a migration na dthe other is a Job.\n4073, 3 commits, two of which are merging master.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's go back to the two other PRs we reviewed, and see if we can apply the same focused review of the specific changes introduced by them.",
+          "pastedContents": {}
+        },
+        {
+          "display": "It's modifying line 546 of CustomCalendarService. The commit sha is 35afc3f.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Something seems off about your assessment. There's only one commit in that PR, and it only changes a single line of code.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you open that PR for me to see in a browser?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Nah, we're just exploring our new review session type. How about #4047?",
+          "pastedContents": {}
+        },
+        {
+          "display": "No, let's look at another PR. Tell me what you think of #4073",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you have a look at PR #4072 and tell me what you think?",
+          "pastedContents": {}
+        },
+        {
+          "display": "Can you list all open PRs on bitbucket?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start debugging test the generic function",
+          "pastedContents": {}
+        },
+        {
+          "display": "/start reviewing",
+          "pastedContents": {}
+        }
+      ],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "ignorePatterns": [],
+      "projectOnboardingSeenCount": 4,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "lastTotalWebSearchRequests": 0,
+      "lastCost": 1.11285875,
+      "lastAPIDuration": 216126,
+      "lastToolDuration": 91983,
+      "lastDuration": 199669185,
+      "lastLinesAdded": 31,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 2594,
+      "lastTotalOutputTokens": 7108,
+      "lastTotalCacheCreationInputTokens": 112145,
+      "lastTotalCacheReadInputTokens": 1941430,
+      "lastSessionId": "4d5a948c-63bd-49f4-97cb-77a460c980a4"
+    }
+  },
+  "oauthAccount": {
+    "accountUuid": "b91d972e-2047-42ae-9796-6ff5714f00a3",
+    "emailAddress": "hammer.miller@carefeed.com",
+    "organizationUuid": "35a6642f-e8a8-4c30-88f3-770e08172e9d",
+    "organizationRole": "admin",
+    "workspaceRole": null,
+    "organizationName": "hammer.miller@carefeed.com's Organization",
+    "displayName": "Hammer",
+    "organizationBillingType": "stripe_subscription"
+  },
+  "claudeCodeFirstTokenDate": "2025-09-22T14:35:47.174985Z",
+  "hasCompletedOnboarding": true,
+  "lastOnboardingVersion": "1.0.120",
+  "hasOpusPlanDefault": false,
+  "subscriptionNoticeCount": 0,
+  "hasAvailableSubscription": false,
+  "s1mAccessCache": {
+    "35a6642f-e8a8-4c30-88f3-770e08172e9d": {
+      "hasAccess": false,
+      "hasAccessNotAsDefault": false,
+      "timestamp": 1761833362472
+    }
+  },
+  "fallbackAvailableWarningThreshold": 0.2,
+  "isQualifiedForDataSharing": false,
+  "iterm2SetupInProgress": false,
+  "iterm2BackupPath": "/Users/hammer/Library/Preferences/com.googlecode.iterm2.plist.bak",
+  "shiftEnterKeyBindingInstalled": true,
+  "cachedChangelog": "# Changelog\n\n## 2.0.28\n\n- Plan mode: introduced new Plan subagent\n- Subagents: claude can now choose to resume subagents\n- Subagents: claude can dynamically choose the model used by its subagents\n- SDK: added --max-budget-usd flag\n- Discovery of custom slash commands, subagents, and output styles no longer respects .gitignore\n- Stop `/terminal-setup` from adding backslash to `Shift + Enter` in VS Code\n- Add branch and tag support for git-based plugins and marketplaces using fragment syntax (e.g., `owner/repo#branch`)\n- Fixed a bug where macOS permission prompts would show up upon initial launch when launching from home directory\n- Various other bug fixes\n\n## 2.0.27\n\n- New UI for permission prompts\n- Added current branch filtering and search to session resume screen for easier navigation\n- Fixed directory @-mention causing \"No assistant message found\" error\n- VSCode Extension: Add config setting to include .gitignored files in file searches\n- VSCode Extension: Bug fixes for unrelated 'Warmup' conversations, and configuration/settings occasionally being reset to defaults\n\n## 2.0.25\n\n- Removed legacy SDK entrypoint. Please migrate to @anthropic-ai/claude-agent-sdk for future SDK updates: https://docs.claude.com/en/docs/claude-code/sdk/migration-guide\n\n## 2.0.24\n\n- Fixed a bug where project-level skills were not loading when --setting-sources 'project' was specified\n- Claude Code Web: Support for Web -> CLI teleport\n- Sandbox: Releasing a sandbox mode for the BashTool on Linux & Mac\n- Bedrock: Display awsAuthRefresh output when auth is required\n\n## 2.0.22\n\n- Fixed content layout shift when scrolling through slash commands\n- IDE: Add toggle to enable/disable thinking.\n- Fix bug causing duplicate permission prompts with parallel tool calls\n- Add support for enterprise managed MCP allowlist and denylist\n\n## 2.0.21\n\n- Support MCP `structuredContent` field in tool responses\n- Added an interactive question tool\n- Claude will now ask you questions more often in plan mode\n- Added Haiku 4.5 as a model option for Pro users\n- Fixed an issue where queued commands don't have access to previous messages' output\n\n## 2.0.20\n\n- Added support for Claude Skills\n\n## 2.0.19\n\n- Auto-background long-running bash commands instead of killing them. Customize with BASH_DEFAULT_TIMEOUT_MS\n- Fixed a bug where Haiku was unnecessarily called in print mode\n\n## 2.0.17\n\n- Added Haiku 4.5 to model selector!\n- Haiku 4.5 automatically uses Sonnet in plan mode, and Haiku for execution (i.e. SonnetPlan by default)\n- 3P (Bedrock and Vertex) are not automatically upgraded yet. Manual upgrading can be done through setting `ANTHROPIC_DEFAULT_HAIKU_MODEL`\n- Introducing the Explore subagent. Powered by Haiku it'll search through your codebase efficiently to save context!\n- OTEL: support HTTP_PROXY and HTTPS_PROXY\n- `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` now disables release notes fetching\n\n## 2.0.15\n\n- Fixed bug with resuming where previously created files needed to be read again before writing\n- Fixed bug with `-p` mode where @-mentioned files needed to be read again before writing\n\n## 2.0.14\n\n- Fix @-mentioning MCP servers to toggle them on/off\n- Improve permission checks for bash with inline env vars\n- Fix ultrathink + thinking toggle\n- Reduce unnecessary logins\n- Document --system-prompt\n- Several improvements to rendering\n- Plugins UI polish\n\n## 2.0.13\n\n- Fixed `/plugin` not working on native build\n\n## 2.0.12\n\n- **Plugin System Released**: Extend Claude Code with custom commands, agents, hooks, and MCP servers from marketplaces\n- `/plugin install`, `/plugin enable/disable`, `/plugin marketplace` commands for plugin management\n- Repository-level plugin configuration via `extraKnownMarketplaces` for team collaboration\n- `/plugin validate` command for validating plugin structure and configuration\n- Plugin announcement blog post at https://www.anthropic.com/news/claude-code-plugins\n- Plugin documentation available at https://docs.claude.com/en/docs/claude-code/plugins\n- Comprehensive error messages and diagnostics via `/doctor` command\n- Avoid flickering in `/model` selector\n- Improvements to `/help`\n- Avoid mentioning hooks in `/resume` summaries\n- Changes to the \"verbose\" setting in `/config` now persist across sessions\n\n## 2.0.11\n\n- Reduced system prompt size by 1.4k tokens\n- IDE: Fixed keyboard shortcuts and focus issues for smoother interaction\n- Fixed Opus fallback rate limit errors appearing incorrectly\n- Fixed /add-dir command selecting wrong default tab\n\n## 2.0.10\n\n- Rewrote terminal renderer for buttery smooth UI\n- Enable/disable MCP servers by @mentioning, or in /mcp\n- Added tab completion for shell commands in bash mode\n- PreToolUse hooks can now modify tool inputs\n- Press Ctrl-G to edit your prompt in your system's configured text editor\n- Fixes for bash permission checks with environment variables in the command\n\n## 2.0.9\n\n- Fix regression where bash backgrounding stopped working\n\n## 2.0.8\n\n- Update Bedrock default Sonnet model to `global.anthropic.claude-sonnet-4-5-20250929-v1:0`\n- IDE: Add drag-and-drop support for files and folders in chat\n- /context: Fix counting for thinking blocks\n- Improve message rendering for users with light themes on dark terminals\n- Remove deprecated .claude.json allowedTools, ignorePatterns, env, and todoFeatureEnabled config options (instead, configure these in your settings.json)\n\n## 2.0.5\n\n- IDE: Fix IME unintended message submission with Enter and Tab\n- IDE: Add \"Open in Terminal\" link in login screen\n- Fix unhandled OAuth expiration 401 API errors\n- SDK: Added SDKUserMessageReplay.isReplay to prevent duplicate messages\n\n## 2.0.1\n\n- Skip Sonnet 4.5 default model setting change for Bedrock and Vertex\n- Various bug fixes and presentation improvements\n\n## 2.0.0\n\n- New native VS Code extension\n- Fresh coat of paint throughout the whole app\n- /rewind a conversation to undo code changes\n- /usage command to see plan limits\n- Tab to toggle thinking (sticky across sessions)\n- Ctrl-R to search history\n- Unshipped claude config command\n- Hooks: Reduced PostToolUse 'tool_use' ids were found without 'tool_result' blocks errors\n- SDK: The Claude Code SDK is now the Claude Agent SDK\n- Add subagents dynamically with `--agents` flag\n\n## 1.0.126\n\n- Enable /context command for Bedrock and Vertex\n- Add mTLS support for HTTP-based OpenTelemetry exporters\n\n## 1.0.124\n\n- Set `CLAUDE_BASH_NO_LOGIN` environment variable to 1 or true to to skip login shell for BashTool\n- Fix Bedrock and Vertex environment variables evaluating all strings as truthy\n- No longer inform Claude of the list of allowed tools when permission is denied\n- Fixed security vulnerability in Bash tool permission checks\n- Improved VSCode extension performance for large files\n\n## 1.0.123\n\n- Bash permission rules now support output redirections when matching (e.g., `Bash(python:*)` matches `python script.py > output.txt`)\n- Fixed thinking mode triggering on negation phrases like \"don't think\"\n- Fixed rendering performance degradation during token streaming\n- Added SlashCommand tool, which enables Claude to invoke your slash commands. https://docs.claude.com/en/docs/claude-code/slash-commands#SlashCommand-tool\n- Enhanced BashTool environment snapshot logging\n- Fixed a bug where resuming a conversation in headless mode would sometimes enable thinking unnecessarily\n- Migrated --debug logging to a file, to enable easy tailing & filtering\n\n## 1.0.120\n\n- Fix input lag during typing, especially noticeable with large prompts\n- Improved VSCode extension command registry and sessions dialog user experience\n- Enhanced sessions dialog responsiveness and visual feedback\n- Fixed IDE compatibility issue by removing worktree support check\n- Fixed security vulnerability where Bash tool permission checks could be bypassed using prefix matching\n\n## 1.0.119\n\n- Fix Windows issue where process visually freezes on entering interactive mode\n- Support dynamic headers for MCP servers via headersHelper configuration\n- Fix thinking mode not working in headless sessions\n- Fix slash commands now properly update allowed tools instead of replacing them\n\n## 1.0.117\n\n- Add Ctrl-R history search to recall previous commands like bash/zsh\n- Fix input lag while typing, especially on Windows\n- Add sed command to auto-allowed commands in acceptEdits mode\n- Fix Windows PATH comparison to be case-insensitive for drive letters\n- Add permissions management hint to /add-dir output\n\n## 1.0.115\n\n- Improve thinking mode display with enhanced visual effects\n- Type /t to temporarily disable thinking mode in your prompt\n- Improve path validation for glob and grep tools\n- Show condensed output for post-tool hooks to reduce visual clutter\n- Fix visual feedback when loading state completes\n- Improve UI consistency for permission request dialogs\n\n## 1.0.113\n\n- Deprecated piped input in interactive mode\n- Move Ctrl+R keybinding for toggling transcript to Ctrl+O\n\n## 1.0.112\n\n- Transcript mode (Ctrl+R): Added the model used to generate each assistant message\n- Addressed issue where some Claude Max users were incorrectly recognized as Claude Pro users\n- Hooks: Added systemMessage support for SessionEnd hooks\n- Added `spinnerTipsEnabled` setting to disable spinner tips\n- IDE: Various improvements and bug fixes\n\n## 1.0.111\n\n- /model now validates provided model names\n- Fixed Bash tool crashes caused by malformed shell syntax parsing\n\n## 1.0.110\n\n- /terminal-setup command now supports WezTerm\n- MCP: OAuth tokens now proactively refresh before expiration\n- Fixed reliability issues with background Bash processes\n\n## 1.0.109\n\n- SDK: Added partial message streaming support via `--include-partial-messages` CLI flag\n\n## 1.0.106\n\n- Windows: Fixed path permission matching to consistently use POSIX format (e.g., `Read(//c/Users/...)`)\n\n## 1.0.97\n\n- Settings: /doctor now validates permission rule syntax and suggests corrections\n\n## 1.0.94\n\n- Vertex: add support for global endpoints for supported models\n- /memory command now allows direct editing of all imported memory files\n- SDK: Add custom tools as callbacks\n- Added /todos command to list current todo items\n\n## 1.0.93\n\n- Windows: Add alt + v shortcut for pasting images from clipboard\n- Support NO_PROXY environment variable to bypass proxy for specified hostnames and IPs\n\n## 1.0.90\n\n- Settings file changes take effect immediately - no restart required\n\n## 1.0.88\n\n- Fixed issue causing \"OAuth authentication is currently not supported\"\n- Status line input now includes `exceeds_200k_tokens`\n- Fixed incorrect usage tracking in /cost.\n- Introduced `ANTHROPIC_DEFAULT_SONNET_MODEL` and `ANTHROPIC_DEFAULT_OPUS_MODEL` for controlling model aliases opusplan, opus, and sonnet.\n- Bedrock: Updated default Sonnet model to Sonnet 4\n\n## 1.0.86\n\n- Added /context to help users self-serve debug context issues\n- SDK: Added UUID support for all SDK messages\n- SDK: Added `--replay-user-messages` to replay user messages back to stdout\n\n## 1.0.85\n\n- Status line input now includes session cost info\n- Hooks: Introduced SessionEnd hook\n\n## 1.0.84\n\n- Fix tool_use/tool_result id mismatch error when network is unstable\n- Fix Claude sometimes ignoring real-time steering when wrapping up a task\n- @-mention: Add ~/.claude/\\* files to suggestions for easier agent, output style, and slash command editing\n- Use built-in ripgrep by default; to opt out of this behavior, set USE_BUILTIN_RIPGREP=0\n\n## 1.0.83\n\n- @-mention: Support files with spaces in path\n- New shimmering spinner\n\n## 1.0.82\n\n- SDK: Add request cancellation support\n- SDK: New additionalDirectories option to search custom paths, improved slash command processing\n- Settings: Validation prevents invalid fields in .claude/settings.json files\n- MCP: Improve tool name consistency\n- Bash: Fix crash when Claude tries to automatically read large files\n\n## 1.0.81\n\n- Released output styles, including new built-in educational output styles \"Explanatory\" and \"Learning\". Docs: https://docs.claude.com/en/docs/claude-code/output-styles\n- Agents: Fix custom agent loading when agent files are unparsable\n\n## 1.0.80\n\n- UI improvements: Fix text contrast for custom subagent colors and spinner rendering issues\n\n## 1.0.77\n\n- Bash tool: Fix heredoc and multiline string escaping, improve stderr redirection handling\n- SDK: Add session support and permission denial tracking\n- Fix token limit errors in conversation summarization\n- Opus Plan Mode: New setting in `/model` to run Opus only in plan mode, Sonnet otherwise\n\n## 1.0.73\n\n- MCP: Support multiple config files with `--mcp-config file1.json file2.json`\n- MCP: Press Esc to cancel OAuth authentication flows\n- Bash: Improved command validation and reduced false security warnings\n- UI: Enhanced spinner animations and status line visual hierarchy\n- Linux: Added support for Alpine and musl-based distributions (requires separate ripgrep installation)\n\n## 1.0.72\n\n- Ask permissions: have Claude Code always ask for confirmation to use specific tools with /permissions\n\n## 1.0.71\n\n- Background commands: (Ctrl-b) to run any Bash command in the background so Claude can keep working (great for dev servers, tailing logs, etc.)\n- Customizable status line: add your terminal prompt to Claude Code with /statusline\n\n## 1.0.70\n\n- Performance: Optimized message rendering for better performance with large contexts\n- Windows: Fixed native file search, ripgrep, and subagent functionality\n- Added support for @-mentions in slash command arguments\n\n## 1.0.69\n\n- Upgraded Opus to version 4.1\n\n## 1.0.68\n\n- Fix incorrect model names being used for certain commands like `/pr-comments`\n- Windows: improve permissions checks for allow / deny tools and project trust. This may create a new project entry in `.claude.json` - manually merge the history field if desired.\n- Windows: improve sub-process spawning to eliminate \"No such file or directory\" when running commands like pnpm\n- Enhanced /doctor command with CLAUDE.md and MCP tool context for self-serve debugging\n- SDK: Added canUseTool callback support for tool confirmation\n- Added `disableAllHooks` setting\n- Improved file suggestions performance in large repos\n\n## 1.0.65\n\n- IDE: Fixed connection stability issues and error handling for diagnostics\n- Windows: Fixed shell environment setup for users without .bashrc files\n\n## 1.0.64\n\n- Agents: Added model customization support - you can now specify which model an agent should use\n- Agents: Fixed unintended access to the recursive agent tool\n- Hooks: Added systemMessage field to hook JSON output for displaying warnings and context\n- SDK: Fixed user input tracking across multi-turn conversations\n- Added hidden files to file search and @-mention suggestions\n\n## 1.0.63\n\n- Windows: Fixed file search, @agent mentions, and custom slash commands functionality\n\n## 1.0.62\n\n- Added @-mention support with typeahead for custom agents. @<your-custom-agent> to invoke it\n- Hooks: Added SessionStart hook for new session initialization\n- /add-dir command now supports typeahead for directory paths\n- Improved network connectivity check reliability\n\n## 1.0.61\n\n- Transcript mode (Ctrl+R): Changed Esc to exit transcript mode rather than interrupt\n- Settings: Added `--settings` flag to load settings from a JSON file\n- Settings: Fixed resolution of settings files paths that are symlinks\n- OTEL: Fixed reporting of wrong organization after authentication changes\n- Slash commands: Fixed permissions checking for allowed-tools with Bash\n- IDE: Added support for pasting images in VSCode MacOS using ⌘+V\n- IDE: Added `CLAUDE_CODE_AUTO_CONNECT_IDE=false` for disabling IDE auto-connection\n- Added `CLAUDE_CODE_SHELL_PREFIX` for wrapping Claude and user-provided shell commands run by Claude Code\n\n## 1.0.60\n\n- You can now create custom subagents for specialized tasks! Run /agents to get started\n\n## 1.0.59\n\n- SDK: Added tool confirmation support with canUseTool callback\n- SDK: Allow specifying env for spawned process\n- Hooks: Exposed PermissionDecision to hooks (including \"ask\")\n- Hooks: UserPromptSubmit now supports additionalContext in advanced JSON output\n- Fixed issue where some Max users that specified Opus would still see fallback to Sonnet\n\n## 1.0.58\n\n- Added support for reading PDFs\n- MCP: Improved server health status display in 'claude mcp list'\n- Hooks: Added CLAUDE_PROJECT_DIR env var for hook commands\n\n## 1.0.57\n\n- Added support for specifying a model in slash commands\n- Improved permission messages to help Claude understand allowed tools\n- Fix: Remove trailing newlines from bash output in terminal wrapping\n\n## 1.0.56\n\n- Windows: Enabled shift+tab for mode switching on versions of Node.js that support terminal VT mode\n- Fixes for WSL IDE detection\n- Fix an issue causing awsRefreshHelper changes to .aws directory not to be picked up\n\n## 1.0.55\n\n- Clarified knowledge cutoff for Opus 4 and Sonnet 4 models\n- Windows: fixed Ctrl+Z crash\n- SDK: Added ability to capture error logging\n- Add --system-prompt-file option to override system prompt in print mode\n\n## 1.0.54\n\n- Hooks: Added UserPromptSubmit hook and the current working directory to hook inputs\n- Custom slash commands: Added argument-hint to frontmatter\n- Windows: OAuth uses port 45454 and properly constructs browser URL\n- Windows: mode switching now uses alt + m, and plan mode renders properly\n- Shell: Switch to in-memory shell snapshot to fix file-related errors\n\n## 1.0.53\n\n- Updated @-mention file truncation from 100 lines to 2000 lines\n- Add helper script settings for AWS token refresh: awsAuthRefresh (for foreground operations like aws sso login) and awsCredentialExport (for background operation with STS-like response).\n\n## 1.0.52\n\n- Added support for MCP server instructions\n\n## 1.0.51\n\n- Added support for native Windows (requires Git for Windows)\n- Added support for Bedrock API keys through environment variable AWS_BEARER_TOKEN_BEDROCK\n- Settings: /doctor can now help you identify and fix invalid setting files\n- `--append-system-prompt` can now be used in interactive mode, not just --print/-p.\n- Increased auto-compact warning threshold from 60% to 80%\n- Fixed an issue with handling user directories with spaces for shell snapshots\n- OTEL resource now includes os.type, os.version, host.arch, and wsl.version (if running on Windows Subsystem for Linux)\n- Custom slash commands: Fixed user-level commands in subdirectories\n- Plan mode: Fixed issue where rejected plan from sub-task would get discarded\n\n## 1.0.48\n\n- Fixed a bug in v1.0.45 where the app would sometimes freeze on launch\n- Added progress messages to Bash tool based on the last 5 lines of command output\n- Added expanding variables support for MCP server configuration\n- Moved shell snapshots from /tmp to ~/.claude for more reliable Bash tool calls\n- Improved IDE extension path handling when Claude Code runs in WSL\n- Hooks: Added a PreCompact hook\n- Vim mode: Added c, f/F, t/T\n\n## 1.0.45\n\n- Redesigned Search (Grep) tool with new tool input parameters and features\n- Disabled IDE diffs for notebook files, fixing \"Timeout waiting after 1000ms\" error\n- Fixed config file corruption issue by enforcing atomic writes\n- Updated prompt input undo to Ctrl+\\_ to avoid breaking existing Ctrl+U behavior, matching zsh's undo shortcut\n- Stop Hooks: Fixed transcript path after /clear and fixed triggering when loop ends with tool call\n- Custom slash commands: Restored namespacing in command names based on subdirectories. For example, .claude/commands/frontend/component.md is now /frontend:component, not /component.\n\n## 1.0.44\n\n- New /export command lets you quickly export a conversation for sharing\n- MCP: resource_link tool results are now supported\n- MCP: tool annotations and tool titles now display in /mcp view\n- Changed Ctrl+Z to suspend Claude Code. Resume by running `fg`. Prompt input undo is now Ctrl+U.\n\n## 1.0.43\n\n- Fixed a bug where the theme selector was saving excessively\n- Hooks: Added EPIPE system error handling\n\n## 1.0.42\n\n- Added tilde (`~`) expansion support to `/add-dir` command\n\n## 1.0.41\n\n- Hooks: Split Stop hook triggering into Stop and SubagentStop\n- Hooks: Enabled optional timeout configuration for each command\n- Hooks: Added \"hook_event_name\" to hook input\n- Fixed a bug where MCP tools would display twice in tool list\n- New tool parameters JSON for Bash tool in `tool_decision` event\n\n## 1.0.40\n\n- Fixed a bug causing API connection errors with UNABLE_TO_GET_ISSUER_CERT_LOCALLY if `NODE_EXTRA_CA_CERTS` was set\n\n## 1.0.39\n\n- New Active Time metric in OpenTelemetry logging\n\n## 1.0.38\n\n- Released hooks. Special thanks to community input in https://github.com/anthropics/claude-code/issues/712. Docs: https://docs.claude.com/en/docs/claude-code/hooks\n\n## 1.0.37\n\n- Remove ability to set `Proxy-Authorization` header via ANTHROPIC_AUTH_TOKEN or apiKeyHelper\n\n## 1.0.36\n\n- Web search now takes today's date into context\n- Fixed a bug where stdio MCP servers were not terminating properly on exit\n\n## 1.0.35\n\n- Added support for MCP OAuth Authorization Server discovery\n\n## 1.0.34\n\n- Fixed a memory leak causing a MaxListenersExceededWarning message to appear\n\n## 1.0.33\n\n- Improved logging functionality with session ID support\n- Added prompt input undo functionality (Ctrl+Z and vim 'u' command)\n- Improvements to plan mode\n\n## 1.0.32\n\n- Updated loopback config for litellm\n- Added forceLoginMethod setting to bypass login selection screen\n\n## 1.0.31\n\n- Fixed a bug where ~/.claude.json would get reset when file contained invalid JSON\n\n## 1.0.30\n\n- Custom slash commands: Run bash output, @-mention files, enable thinking with thinking keywords\n- Improved file path autocomplete with filename matching\n- Added timestamps in Ctrl-r mode and fixed Ctrl-c handling\n- Enhanced jq regex support for complex filters with pipes and select\n\n## 1.0.29\n\n- Improved CJK character support in cursor navigation and rendering\n\n## 1.0.28\n\n- Slash commands: Fix selector display during history navigation\n- Resizes images before upload to prevent API size limit errors\n- Added XDG_CONFIG_HOME support to configuration directory\n- Performance optimizations for memory usage\n- New attributes (terminal.type, language) in OpenTelemetry logging\n\n## 1.0.27\n\n- Streamable HTTP MCP servers are now supported\n- Remote MCP servers (SSE and HTTP) now support OAuth\n- MCP resources can now be @-mentioned\n- /resume slash command to switch conversations within Claude Code\n\n## 1.0.25\n\n- Slash commands: moved \"project\" and \"user\" prefixes to descriptions\n- Slash commands: improved reliability for command discovery\n- Improved support for Ghostty\n- Improved web search reliability\n\n## 1.0.24\n\n- Improved /mcp output\n- Fixed a bug where settings arrays got overwritten instead of merged\n\n## 1.0.23\n\n- Released TypeScript SDK: import @anthropic-ai/claude-code to get started\n- Released Python SDK: pip install claude-code-sdk to get started\n\n## 1.0.22\n\n- SDK: Renamed `total_cost` to `total_cost_usd`\n\n## 1.0.21\n\n- Improved editing of files with tab-based indentation\n- Fix for tool_use without matching tool_result errors\n- Fixed a bug where stdio MCP server processes would linger after quitting Claude Code\n\n## 1.0.18\n\n- Added --add-dir CLI argument for specifying additional working directories\n- Added streaming input support without require -p flag\n- Improved startup performance and session storage performance\n- Added CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR environment variable to freeze working directory for bash commands\n- Added detailed MCP server tools display (/mcp)\n- MCP authentication and permission improvements\n- Added auto-reconnection for MCP SSE connections on disconnect\n- Fixed issue where pasted content was lost when dialogs appeared\n\n## 1.0.17\n\n- We now emit messages from sub-tasks in -p mode (look for the parent_tool_use_id property)\n- Fixed crashes when the VS Code diff tool is invoked multiple times quickly\n- MCP server list UI improvements\n- Update Claude Code process title to display \"claude\" instead of \"node\"\n\n## 1.0.11\n\n- Claude Code can now also be used with a Claude Pro subscription\n- Added /upgrade for smoother switching to Claude Max plans\n- Improved UI for authentication from API keys and Bedrock/Vertex/external auth tokens\n- Improved shell configuration error handling\n- Improved todo list handling during compaction\n\n## 1.0.10\n\n- Added markdown table support\n- Improved streaming performance\n\n## 1.0.8\n\n- Fixed Vertex AI region fallback when using CLOUD_ML_REGION\n- Increased default otel interval from 1s -> 5s\n- Fixed edge cases where MCP_TIMEOUT and MCP_TOOL_TIMEOUT weren't being respected\n- Fixed a regression where search tools unnecessarily asked for permissions\n- Added support for triggering thinking non-English languages\n- Improved compacting UI\n\n## 1.0.7\n\n- Renamed /allowed-tools -> /permissions\n- Migrated allowedTools and ignorePatterns from .claude.json -> settings.json\n- Deprecated claude config commands in favor of editing settings.json\n- Fixed a bug where --dangerously-skip-permissions sometimes didn't work in --print mode\n- Improved error handling for /install-github-app\n- Bugfixes, UI polish, and tool reliability improvements\n\n## 1.0.6\n\n- Improved edit reliability for tab-indented files\n- Respect CLAUDE_CONFIG_DIR everywhere\n- Reduced unnecessary tool permission prompts\n- Added support for symlinks in @file typeahead\n- Bugfixes, UI polish, and tool reliability improvements\n\n## 1.0.4\n\n- Fixed a bug where MCP tool errors weren't being parsed correctly\n\n## 1.0.1\n\n- Added `DISABLE_INTERLEAVED_THINKING` to give users the option to opt out of interleaved thinking.\n- Improved model references to show provider-specific names (Sonnet 3.7 for Bedrock, Sonnet 4 for Console)\n- Updated documentation links and OAuth process descriptions\n\n## 1.0.0\n\n- Claude Code is now generally available\n- Introducing Sonnet 4 and Opus 4 models\n\n## 0.2.125\n\n- Breaking change: Bedrock ARN passed to `ANTHROPIC_MODEL` or `ANTHROPIC_SMALL_FAST_MODEL` should no longer contain an escaped slash (specify `/` instead of `%2F`)\n- Removed `DEBUG=true` in favor of `ANTHROPIC_LOG=debug`, to log all requests\n\n## 0.2.117\n\n- Breaking change: --print JSON output now returns nested message objects, for forwards-compatibility as we introduce new metadata fields\n- Introduced settings.cleanupPeriodDays\n- Introduced CLAUDE_CODE_API_KEY_HELPER_TTL_MS env var\n- Introduced --debug mode\n\n## 0.2.108\n\n- You can now send messages to Claude while it works to steer Claude in real-time\n- Introduced BASH_DEFAULT_TIMEOUT_MS and BASH_MAX_TIMEOUT_MS env vars\n- Fixed a bug where thinking was not working in -p mode\n- Fixed a regression in /cost reporting\n- Deprecated MCP wizard interface in favor of other MCP commands\n- Lots of other bugfixes and improvements\n\n## 0.2.107\n\n- CLAUDE.md files can now import other files. Add @path/to/file.md to ./CLAUDE.md to load additional files on launch\n\n## 0.2.106\n\n- MCP SSE server configs can now specify custom headers\n- Fixed a bug where MCP permission prompt didn't always show correctly\n\n## 0.2.105\n\n- Claude can now search the web\n- Moved system & account status to /status\n- Added word movement keybindings for Vim\n- Improved latency for startup, todo tool, and file edits\n\n## 0.2.102\n\n- Improved thinking triggering reliability\n- Improved @mention reliability for images and folders\n- You can now paste multiple large chunks into one prompt\n\n## 0.2.100\n\n- Fixed a crash caused by a stack overflow error\n- Made db storage optional; missing db support disables --continue and --resume\n\n## 0.2.98\n\n- Fixed an issue where auto-compact was running twice\n\n## 0.2.96\n\n- Claude Code can now also be used with a Claude Max subscription (https://claude.ai/upgrade)\n\n## 0.2.93\n\n- Resume conversations from where you left off from with \"claude --continue\" and \"claude --resume\"\n- Claude now has access to a Todo list that helps it stay on track and be more organized\n\n## 0.2.82\n\n- Added support for --disallowedTools\n- Renamed tools for consistency: LSTool -> LS, View -> Read, etc.\n\n## 0.2.75\n\n- Hit Enter to queue up additional messages while Claude is working\n- Drag in or copy/paste image files directly into the prompt\n- @-mention files to directly add them to context\n- Run one-off MCP servers with `claude --mcp-config <path-to-file>`\n- Improved performance for filename auto-complete\n\n## 0.2.74\n\n- Added support for refreshing dynamically generated API keys (via apiKeyHelper), with a 5 minute TTL\n- Task tool can now perform writes and run bash commands\n\n## 0.2.72\n\n- Updated spinner to indicate tokens loaded and tool usage\n\n## 0.2.70\n\n- Network commands like curl are now available for Claude to use\n- Claude can now run multiple web queries in parallel\n- Pressing ESC once immediately interrupts Claude in Auto-accept mode\n\n## 0.2.69\n\n- Fixed UI glitches with improved Select component behavior\n- Enhanced terminal output display with better text truncation logic\n\n## 0.2.67\n\n- Shared project permission rules can be saved in .claude/settings.json\n\n## 0.2.66\n\n- Print mode (-p) now supports streaming output via --output-format=stream-json\n- Fixed issue where pasting could trigger memory or bash mode unexpectedly\n\n## 0.2.63\n\n- Fixed an issue where MCP tools were loaded twice, which caused tool call errors\n\n## 0.2.61\n\n- Navigate menus with vim-style keys (j/k) or bash/emacs shortcuts (Ctrl+n/p) for faster interaction\n- Enhanced image detection for more reliable clipboard paste functionality\n- Fixed an issue where ESC key could crash the conversation history selector\n\n## 0.2.59\n\n- Copy+paste images directly into your prompt\n- Improved progress indicators for bash and fetch tools\n- Bugfixes for non-interactive mode (-p)\n\n## 0.2.54\n\n- Quickly add to Memory by starting your message with '#'\n- Press ctrl+r to see full output for long tool results\n- Added support for MCP SSE transport\n\n## 0.2.53\n\n- New web fetch tool lets Claude view URLs that you paste in\n- Fixed a bug with JPEG detection\n\n## 0.2.50\n\n- New MCP \"project\" scope now allows you to add MCP servers to .mcp.json files and commit them to your repository\n\n## 0.2.49\n\n- Previous MCP server scopes have been renamed: previous \"project\" scope is now \"local\" and \"global\" scope is now \"user\"\n\n## 0.2.47\n\n- Press Tab to auto-complete file and folder names\n- Press Shift + Tab to toggle auto-accept for file edits\n- Automatic conversation compaction for infinite conversation length (toggle with /config)\n\n## 0.2.44\n\n- Ask Claude to make a plan with thinking mode: just say 'think' or 'think harder' or even 'ultrathink'\n\n## 0.2.41\n\n- MCP server startup timeout can now be configured via MCP_TIMEOUT environment variable\n- MCP server startup no longer blocks the app from starting up\n\n## 0.2.37\n\n- New /release-notes command lets you view release notes at any time\n- `claude config add/remove` commands now accept multiple values separated by commas or spaces\n\n## 0.2.36\n\n- Import MCP servers from Claude Desktop with `claude mcp add-from-claude-desktop`\n- Add MCP servers as JSON strings with `claude mcp add-json <n> <json>`\n\n## 0.2.34\n\n- Vim bindings for text input - enable with /vim or /config\n\n## 0.2.32\n\n- Interactive MCP setup wizard: Run \"claude mcp add\" to add MCP servers with a step-by-step interface\n- Fix for some PersistentShell issues\n\n## 0.2.31\n\n- Custom slash commands: Markdown files in .claude/commands/ directories now appear as custom slash commands to insert prompts into your conversation\n- MCP debug mode: Run with --mcp-debug flag to get more information about MCP server errors\n\n## 0.2.30\n\n- Added ANSI color theme for better terminal compatibility\n- Fixed issue where slash command arguments weren't being sent properly\n- (Mac-only) API keys are now stored in macOS Keychain\n\n## 0.2.26\n\n- New /approved-tools command for managing tool permissions\n- Word-level diff display for improved code readability\n- Fuzzy matching for slash commands\n\n## 0.2.21\n\n- Fuzzy matching for /commands\n",
+  "changelogLastFetched": 1761829249499,
+  "lastReleaseNotesSeen": "2.0.29",
+  "lastPlanModeUse": 1758554306217,
+  "feedbackSurveyState": {
+    "lastShownTime": 1761739241603
+  },
+  "sonnet45MigrationComplete": true,
+  "mcpServers": {
+    "jira": {
+      "type": "http",
+      "url": "http://localhost:3000/mcp"
+    },
+    "bitbucket": {
+      "type": "http",
+      "url": "http://localhost:3001/mcp"
+    }
+  },
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Bash(~/.claude/lib/*.sh:*)",
+      "Bash(aws_:*)",
+      "Bash(bitbucket_:*)",
+      "Bash(carefeed_:*)",
+      "Bash(datadog_:*)",
+      "Bash(extract_:*)",
+      "Bash(get_:*)",
+      "Bash(github_:*)",
+      "Bash(infer_:*)",
+      "Bash(is_:*)",
+      "Bash(jira_:*)",
+      "Bash(m365:*)",
+      "Bash(mv:*)",
+      "Bash(op_:*)",
+      "Bash(sentry_:*)",
+      "Bash(show_:*)",
+      "Bash(slack_:*)",
+      "Bash(validate_:*)",
+      "Bash(vscode_:*)",
+      "Edit(**)",
+      "Glob(**)",
+      "Grep(**)",
+      "mcp__bitbucket__bb_add_pr",
+      "mcp__bitbucket__bb_get_pipeline",
+      "mcp__bitbucket__bb_get_pr",
+      "mcp__bitbucket__bb_list_pipeline_steps",
+      "mcp__bitbucket__bb_list_pipelines",
+      "mcp__bitbucket__bb_ls_prs",
+      "mcp__bitbucket__bb_update_pr",
+      "mcp__jira__jira_create_issue",
+      "mcp__jira__jira_get_create_meta",
+      "mcp__jira__jira_get_issue",
+      "mcp__jira__jira_get_transitions",
+      "mcp__jira__jira_ls_issues",
+      "mcp__jira__jira_transition_issue",
+      "Read(//**)",
+      "WebFetch(domain:**)",
+      "WebSearch",
+      "Write(**)"
+    ],
+    "deny": [
+      "Bash(DROP DATABASE:*)",
+      "Bash(git push --force:*)",
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf /*:*)",
+      "Bash(rm -rf ~:*)"
+    ],
+    "ask": [
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(git push:*)",
+      "Bash(mv /dev/null:*)",
+      "Bash(rm:*)",
+      "Bash(rmdir:*)",
+      "Bash(su:*)",
+      "Bash(sudo /dev/null:*)",
+      "Bash(sudo rm:*)",
+      "Bash(sudo rmdir:*)"
+    ]
+  }
+}

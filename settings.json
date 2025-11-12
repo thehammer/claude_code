@@ -44,10 +44,10 @@
       "Read(//**)",
       "WebFetch(**)",
       "WebFetch(domain:**)",
+      "WebFetch(domain:carefeed.atlassian.net)",
       "WebFetch(domain:carefeed.sentry.io)",
       "WebSearch",
-      "Write(**)",
-      "WebFetch(domain:carefeed.atlassian.net)"
+      "Write(**)"
     ],
     "deny": [
       "Bash(DROP DATABASE:*)",
