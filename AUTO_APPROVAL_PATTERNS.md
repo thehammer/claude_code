@@ -84,7 +84,6 @@ These patterns appear to already be configured based on the system prompt:
 Bash(source ~/.claude/credentials/.env)
 Bash(echo "Token loaded: $ATLASSIAN_API_TOKEN:0:20...")
 Bash(echo "Email: $ATLASSIAN_EMAIL")
-Bash(ATLASSIAN_EMAIL="hammer.miller@carefeed.com" ATLASSIAN_API_TOKEN="ATATT3xFfGF0pNBOmOoa-vBQLSoC_IvrmFspVWY2yTOYeKx8rYm8gaBVg6jlLAJyMwpJ1HeJDBmISkxagKQFRqP4zaF4xi7VpcoysuEhMKguAZvkyuRwQOkHKkJr-yVMj8_uDNju1S2WNditHK9CN5bxhyWs5L8yeJa6XoAIVIkZ5pJXvgymqjg=D940596B")
 ```
 
 ## Complete Function List
