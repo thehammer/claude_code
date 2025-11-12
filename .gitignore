@@ -61,3 +61,6 @@ history.jsonl
 /*.json
 !settings.json
 !/plugins/config.json
+
+# Private Carefeed-specific documentation
+private/

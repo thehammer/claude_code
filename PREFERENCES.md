@@ -9,8 +9,8 @@
 - **Timezone**: America/Chicago (Central Time) - Use CT for all time displays
 
 ## Notifications
-- **Slack User ID**: U09EKM8DKQ8 (Hammer - validated working)
-- **Slack Notification Channel**: #local-testing (fallback)
+- **Slack User ID**: YOUR_SLACK_USER_ID (replace with your Slack user ID)
+- **Slack Notification Channel**: #your-notification-channel (fallback)
 - **Preferred notification method**: Slack DM (working via slack_send_dm)
 - **Current method**: Slack DM
 - **Fallback**: macOS notification
@@ -76,12 +76,12 @@
 - Don't force push to main/master
 - Use conventional commit messages with context
 - **Branch naming**:
-  - **Default personal pattern**: `hammer/<branch-description>` (e.g., `hammer/fix-basecommand-bug`)
+  - **Default personal pattern**: `your-name/<branch-description>` (e.g., `hammer/fix-basecommand-bug`)
   - **Project-specific patterns**: Check `.claude/preferences/PREFERENCES.md` for project conventions
-  - **Carefeed projects**: Use `{type}/{JIRA-KEY}-{description}` (e.g., `feature/CORE-1234-add-auth`)
+  - **Example with Jira**: Use `{type}/{JIRA-KEY}-{description}` (e.g., `feature/PROJ-1234-add-auth`)
 - **Commit messages**:
   - **Default**: Conventional commits with scope
-  - **Carefeed projects**: Include Jira key (e.g., `feat(auth): CORE-1234: add two-factor auth`)
+  - **Example with Jira**: Include Jira key (e.g., `feat(auth): PROJ-1234: add two-factor auth`)
 - **Jira ticket workflow**:
   - **When Jira ticket needed**: Always ask "Do you have a Jira ticket for this, or would you like me to create one?"
   - **When creating tickets**: Infer project, type, priority, and description from context
