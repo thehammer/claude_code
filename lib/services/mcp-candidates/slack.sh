@@ -7,9 +7,22 @@
 # Helper Functions - Slack
 # ==============================================================================
 
+# Get the appropriate Slack token
+# Prefers user token (broader access) over bot token
+function slack_get_token() {
+    if [ -n "$SLACK_USER_TOKEN" ]; then
+        echo "$SLACK_USER_TOKEN"
+    elif [ -n "$SLACK_BOT_TOKEN" ]; then
+        echo "$SLACK_BOT_TOKEN"
+    else
+        echo ""
+    fi
+}
+
 # Test if Slack credentials are configured
 function slack_is_configured() {
-    if [ -z "$SLACK_BOT_TOKEN" ]; then
+    local token=$(slack_get_token)
+    if [ -z "$token" ]; then
         return 1
     fi
     return 0
@@ -23,8 +36,9 @@ function slack_whoami() {
         return 1
     fi
 
+    local token=$(slack_get_token)
     curl -s -X GET "https://slack.com/api/auth.test" \
-        -H "Authorization: Bearer ${SLACK_BOT_TOKEN}"
+        -H "Authorization: Bearer ${token}"
 }
 
 # List conversations (channels, DMs, etc.)
@@ -40,8 +54,9 @@ function slack_list_conversations() {
         return 1
     fi
 
+    local token=$(slack_get_token)
     curl -s -X GET "https://slack.com/api/conversations.list" \
-        -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+        -H "Authorization: Bearer ${token}" \
         -d "types=${types}" \
         -d "limit=${limit}" \
         -d "exclude_archived=true"
@@ -70,12 +85,13 @@ function slack_get_history() {
         return 1
     fi
 
+    local token=$(slack_get_token)
     local params="channel=${channel_id}&limit=${limit}"
     [ -n "$oldest" ] && params="${params}&oldest=${oldest}"
     [ -n "$latest" ] && params="${params}&latest=${latest}"
 
     curl -s -X GET "https://slack.com/api/conversations.history?${params}" \
-        -H "Authorization: Bearer ${SLACK_BOT_TOKEN}"
+        -H "Authorization: Bearer ${token}"
 }
 
 # Search for messages
@@ -105,11 +121,12 @@ function slack_search_messages() {
         return 1
     fi
 
+    local token=$(slack_get_token)
     # URL encode the query
     local encoded_query=$(echo -n "$query" | jq -sRr @uri)
 
     curl -s -X GET "https://slack.com/api/search.messages" \
-        -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+        -H "Authorization: Bearer ${token}" \
         -d "query=${encoded_query}" \
         -d "count=${count}" \
         -d "page=${page}" \
@@ -132,8 +149,9 @@ function slack_get_user_info() {
         return 1
     fi
 
+    local token=$(slack_get_token)
     curl -s -X GET "https://slack.com/api/users.info" \
-        -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+        -H "Authorization: Bearer ${token}" \
         -d "user=${user_id}"
 }
 
@@ -411,10 +429,12 @@ function slack_send_dm() {
     local user_id="$1"
     local message="$2"
 
-    if [[ -z "$SLACK_BOT_TOKEN" ]]; then
-        echo "Error: SLACK_BOT_TOKEN not set. Configure in ~/.claude/credentials/.env"
+    if ! slack_is_configured; then
+        echo "Error: Slack credentials not configured"
         return 1
     fi
+
+    local token=$(slack_get_token)
 
     if [[ -z "$user_id" ]]; then
         echo "Error: user_id required"
@@ -429,7 +449,7 @@ function slack_send_dm() {
 
     # Open DM channel with user
     local response=$(curl -s -X POST https://slack.com/api/conversations.open \
-        -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+        -H "Authorization: Bearer $token" \
         -H "Content-Type: application/json" \
         -d "{\"users\": \"$user_id\"}")
 
@@ -443,7 +463,7 @@ function slack_send_dm() {
 
     # Send message to DM channel
     response=$(curl -s -X POST https://slack.com/api/chat.postMessage \
-        -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+        -H "Authorization: Bearer $token" \
         -H "Content-Type: application/json" \
         -d "{
             \"channel\": \"$channel_id\",
@@ -466,10 +486,12 @@ function slack_post_message() {
     local channel="$1"
     local message="$2"
 
-    if [[ -z "$SLACK_BOT_TOKEN" ]]; then
-        echo "Error: SLACK_BOT_TOKEN not set. Configure in ~/.claude/credentials/.env"
+    if ! slack_is_configured; then
+        echo "Error: Slack credentials not configured"
         return 1
     fi
+
+    local token=$(slack_get_token)
 
     if [[ -z "$channel" ]]; then
         echo "Error: channel required"
@@ -487,7 +509,7 @@ function slack_post_message() {
     channel="${channel#\#}"
 
     local response=$(curl -s -X POST https://slack.com/api/chat.postMessage \
-        -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+        -H "Authorization: Bearer $token" \
         -H "Content-Type: application/json" \
         -d "{
             \"channel\": \"$channel\",
