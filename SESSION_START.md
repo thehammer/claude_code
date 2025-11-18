@@ -61,11 +61,11 @@ Look for `SESSION_DESCRIPTION:` in the command invocation to extract the descrip
 
 ---
 
-## 0.3. Sync Global Configuration Files
+## 0.3. Sync Global Configuration Files (Optional)
 
-**Purpose:** Keep CLI and VSCode extension configs in sync
+**When needed:** Only run if you've modified MCP servers or permissions in VSCode
 
-**Run the sync script:**
+**Run on-demand:**
 ```bash
 ~/.claude/bin/sync-global-configs
 ```
@@ -75,35 +75,7 @@ Look for `SESSION_DESCRIPTION:` in the command invocation to extract the descrip
 - Syncs permissions (allow, deny, ask) between both files
 - Ensures consistent behavior across CLI and VSCode
 
-**Expected Output:**
-```
-MCP servers: already in sync ✓
-Permissions: already in sync ✓
-
-✅ Sync complete!
-
-Both files now have:
-  • 2 MCP servers
-  • 27 allow patterns
-  • 5 deny patterns
-  • 10 ask patterns
-```
-
-**If changes are made:**
-```
-Permissions to sync to .claude.json:
-  + 3 new allow patterns
-
-✅ Sync complete!
-```
-
-**When to skip:** If you haven't modified either config file since last session, the sync will be instant (no-op).
-
-**Why this matters:**
-- CLI uses `~/.claude.json` for MCP servers and permissions
-- VSCode extension uses `~/.claude/settings.json`
-- Without sync, MCP tools may not be available in CLI sessions
-- Permission changes in VSCode won't apply to CLI (and vice versa)
+**Skip unless:** You changed settings in VSCode and need them in CLI
 
 ---
 
@@ -134,37 +106,16 @@ Replace `{session_type}` with the actual session type (coding, debugging, claudi
 
 ---
 
-## 0.5. Permission Synchronization (If Project Has Local Settings)
+## 0.5. Permission Synchronization (Optional)
 
-**If `.claude/settings.local.json` exists:**
+**When needed:** Only if getting repeated permission prompts for common operations
 
-1. **Create session start backup:**
-   ```bash
-   cp .claude/settings.local.json .claude/settings.local.json.session-start
-   ```
+**Run on-demand:**
+- Follow instructions in `~/.claude/recipes/permissions/sync-down-global-to-project.md` to merge global permissions into project settings
 
-2. **Run sync-down recipe:**
-   Follow instructions in `~/.claude/recipes/permissions/sync-down-global-to-project.md` to merge global permissions into project settings.
+**Why:** Prevents permission prompts for globally-approved operations while respecting project overrides
 
-**Why:** Prevents permission prompts for globally-approved operations while respecting project overrides.
-
----
-
-## Security Awareness
-
-**IMPORTANT:** When working with production systems, debug logs, or customer data:
-
-- **Never commit sensitive data** - production logs, customer names, stack traces, credentials
-- Review files before committing (see `~/.claude/SECURITY.md` for full guidelines)
-- Use `.gitignore` patterns to protect study-logs, debug artifacts, conversation history
-- When in doubt about a file, DON'T commit it
-
-**Quick security check before any commit:**
-```bash
-git status && git diff --cached | grep -iE "password|secret|token|api.key|credential"
-```
-
-See [`~/.claude/SECURITY.md`](~/.claude/SECURITY.md) for comprehensive security guidelines.
+**Skip unless:** You're seeing permission prompts that should be globally approved
 
 ---
 
@@ -191,63 +142,6 @@ Each session type has specific context loading requirements defined in `~/.claud
 - `coding`, `debugging`, `analysis`, `planning`, `presenting`, `learning`, `personal`, `clauding`, `launcher`, `reviewing`
 
 **See `~/.claude/session-types/{type}.md` for each type's specific loading strategy.**
-
----
-
-## Integration Loading Strategy
-
-**IMPORTANT:** When integrations are loaded, you have access to 89+ helper functions for external services (Jira, Bitbucket, GitHub, Slack, Sentry, Datadog, AWS, 1Password, etc.).
-
-**Quick Reference:** See `~/.claude/INTEGRATIONS_REFERENCE.md` for:
-- Complete function catalog with examples
-- When to use which service (e.g., Bitbucket vs GitHub for PRs)
-- Common workflows (create PR, debug errors, deploy env vars)
-- Troubleshooting guide
-
-**Loading:**
-- `coding` and `debugging` sessions: Pre-load integrations at session start
-- Other sessions: Load on-demand when needed
-
-```bash
-# Load integrations (if not already loaded by session type)
-source ~/.claude/lib/integrations.sh
-```
-
-**Verify availability:**
-```bash
-declare -F | grep -c "bitbucket_\|jira_\|slack_"
-# Should show 30+ functions if loaded
-```
-
-**Note on permissions**: If you get permission prompts for helper functions, click "Yes, and don't ask again" to persist approvals across sessions. See `~/.claude/PERMISSIONS.md` for recommended pre-approved commands.
-
----
-
-## Session Notes Location
-
-Session notes are organized by type:
-
-**Global (clauding and personal):**
-- `~/.claude/session-notes/clauding/YYYY-MM-DD.md`
-- `~/.claude/session-notes/personal/YYYY-MM-DD.md`
-
-**Project (most sessions):**
-- `.claude/session-notes/coding/YYYY-MM-DD.md`
-- `.claude/session-notes/debugging/YYYY-MM-DD.md`
-- `.claude/session-notes/analysis/YYYY-MM-DD.md`
-- `.claude/session-notes/planning/YYYY-MM-DD.md`
-- `.claude/session-notes/presenting/YYYY-MM-DD.md`
-- `.claude/session-notes/learning/YYYY-MM-DD.md`
-- `.claude/session-notes/reviewing/YYYY-MM-DD.md`
-
-**Templates available:**
-- `~/.claude/templates/session-notes/{type}.md`
-
-**Using Session Description:**
-If a session description was provided via `/start [type] [description]`, use it to:
-1. Add context to the session notes header (e.g., `## Session Focus: {description}`)
-2. Provide initial direction for the session
-3. Include in the SESSION_MARKER for better continuation context
 
 ---
 
@@ -283,35 +177,6 @@ If a session description was provided via `/start [type] [description]`, use it 
 ## End of Session
 
 When the user says it's time to wrap up, follow instructions in `~/.claude/WRAPUP.md`
-
----
-
-## Key Principles
-
-1. ✅ **Be selective** - Load only what's needed for the session type
-2. ✅ **Be efficient** - Minimize token usage by skipping irrelevant context
-3. ✅ **Be proactive** - Use TodoWrite, track progress, document findings
-4. ✅ **Be clear** - Summarize what we're doing and why
-5. ✅ **Be organized** - Keep session notes in the right type folder
-
----
-
-## Token Budget Targets
-
-Each session type has a target token budget for startup:
-
-- `launcher`: ~1-2K tokens (95% savings - tmux helpers only, absolute minimum)
-- `clauding`: ~5K tokens (85% savings - no project context)
-- `personal`: ~5K tokens (85% savings - no work context)
-- `planning`: ~8K tokens (75% savings - focus on TODOs)
-- `learning`: ~8K tokens (75% savings - focused on topic)
-- `analysis`: ~10K tokens (70% savings - minimal external context)
-- `debugging`: ~12K tokens (65% savings - focused on errors)
-- `reviewing`: ~12K tokens (65% savings - focus on PRs and review context)
-- `presenting`: ~12K tokens (60% savings - recent work only)
-- `coding`: ~15K tokens (50% savings - selective loading)
-
-**Previous baseline:** ~30-35K tokens per session startup
 
 ---
 

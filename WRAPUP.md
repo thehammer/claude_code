@@ -4,70 +4,7 @@
 
 When the user says it's time to wrap up:
 
-1. **Sync Permissions Up (If Project Has Local Settings)**
-
-**Check for project-local permissions:**
-```bash
-if [ -f .claude/settings.local.json ]; then
-    echo "Project has local permission settings - running sync-up"
-fi
-```
-
-**If `.claude/settings.local.json` exists:**
-
-### Run Sync-Up Recipe
-
-**Recipe:** `~/.claude/recipes/permissions/sync-up-project-to-global.md`
-
-**Goal:** Promote useful project permissions to global settings, consolidating permission management.
-
-**Follow the sync-up recipe instructions:**
-1. Identify NEW permissions (compare current vs `.session-start` backup)
-2. Categorize permissions:
-   - Auto-promote: Generic wildcards, common tools, safe operations
-   - Review: Project-specific tools, remote operations, integrations
-   - Never promote: Absolute paths, one-off commands, embedded data
-3. Present promotable permissions to user
-4. Update global settings with promoted patterns
-5. Optionally clean up project settings (remove now-global patterns)
-6. Report results
-
-**Quick Summary (Full details in recipe):**
-- Auto-promotes obviously useful patterns (no user input needed)
-- Reviews project-specific patterns interactively
-- Auto-skips one-off commands and absolute paths
-- Simplifies project settings after promotion
-- Always creates backups before modifying
-
-**Expected Result:**
-```
-✅ Permission sync complete (project → global)
-
-Global changes:
-  + 5 new allow patterns
-  + 0 new deny patterns
-  + 0 new ask patterns
-
-Project cleanup:
-  - Removed 25 patterns (now in global)
-  - 8 project-specific patterns remain
-
-Backups saved:
-  - ~/.claude/settings.json.backup
-  - .claude/settings.local.json.backup
-
-Next session: Global permissions available everywhere!
-```
-
-**Why This Matters:**
-- Consolidates useful permissions to global (available in all projects)
-- Reduces project-specific permission bloat
-- Maintains single source of truth for common operations
-- Cleans up "don't ask again" accumulation
-
----
-
-2. **Check Open Pull Requests Status**
+1. **Check Open Pull Requests Status**
 
 If Bitbucket integration is configured, list current open PRs:
 
@@ -109,59 +46,15 @@ Include PR status in session notes.
    - Archive stale ideas if needed
    - This keeps the ideas backlog fresh and actionable
 
-7. **Security Review Before Committing** (CRITICAL):
-   - **Always review files to be committed for sensitive data**
-   - Check for files that might contain:
-     - Production error logs or stack traces
-     - Customer data (names, emails, PHI/PII)
-     - API keys, tokens, passwords, or credentials
-     - Internal system details or architecture
-     - Conversation history with sensitive discussions
-     - Debug artifacts or data exports
-   - Run security check:
-     ```bash
-     # Review what will be committed
-     git status
-     git diff --cached
-
-     # Check for potential secrets in staged files
-     git diff --cached | grep -iE "password|secret|token|api.key|credential" || echo "No obvious secrets found"
-     ```
-   - **If sensitive files found:**
-     - Unstage them: `git reset HEAD <file>`
-     - Add to .gitignore if appropriate
-     - Never commit production data, customer info, or secrets
-   - **Proceed only after verification**
-
-8. **Commit changes to ~/.claude repository** (for clauding sessions):
-   - Check git status in ~/.claude
-   - If there are changes to configuration files:
-     ```bash
-     cd ~/.claude
-     git add .
-     git status
-     ```
-   - **Run security review (step 7)** before committing
-   - Show Hammer what files changed
-   - Create commit with descriptive message about what was improved
-   - Push to remote if desired
-   - Example:
-     ```bash
-     git commit -m "Add command safety policy and fuzzy session type matching
-
-     - Created COMMAND_SAFETY.md with 4-tier safety categorization
-     - Updated PERMISSIONS.md to reference safety categories
-     - Updated SESSION_START.md to infer session types intelligently
-     - Updated WRAPUP.md to commit config changes
-
-     🤖 Generated with Claude Code
-
-     Co-Authored-By: Claude <noreply@anthropic.com>"
-     git push origin master
-     ```
-
 ---
 
-**Note**:
-- Session notes are project-specific and stored in each project's `.claude/session-notes/` directory
-- Configuration changes should be committed to `~/.claude/.git` for version control
+## Optional Tasks (As-Needed)
+
+**Sync Permissions:**
+- Run `~/.claude/recipes/permissions/sync-up-project-to-global.md` to promote project permissions to global
+
+**Security Review:**
+- See `~/.claude/SECURITY.md` for comprehensive security checklist before committing
+
+**Commit Config Changes:**
+- For clauding sessions, commit changes to `~/.claude` repository as needed
