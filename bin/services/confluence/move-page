@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Move a Confluence page to a new parent
+# Usage: move-page <page_id> <new_parent_id>
+# Example: move-page 123456789 987654321
+set -eo pipefail
+
+LIB_DIR="$HOME/.claude/lib"
+
+source "$LIB_DIR/core/credentials.sh"
+source "$LIB_DIR/services/_bash/confluence.sh"
+
+confluence_move_page "$@"

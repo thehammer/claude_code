@@ -250,16 +250,37 @@ cd ~/.claude/bin/services/bitbucket
 
 ---
 
-## Confluence Scripts (2 scripts)
+## Confluence Scripts (8 scripts)
 
 | Script | Purpose | Example |
 |--------|---------|---------|
 | `search <query>` | Search pages | `search "deployment process"` |
+| `get-page <page_id> [expand]` | Get page details | `get-page 123456789` |
+| `get-page-id <url_or_space> [title]` | Get page ID from URL or space+title | `get-page-id "ENG" "My Page"` |
+| `list-children <parent_id> [limit]` | List child pages | `list-children 123456789 50` |
+| `list-space-pages <space_key> [limit]` | List all pages in space | `list-space-pages ENG 100` |
+| `move-page <page_id> <new_parent_id>` | Move page to new parent | `move-page 111 222` |
+| `move-pages-bulk <parent_id> <ids...>` | Move multiple pages | `move-pages-bulk 222 111 333 444` |
 | `is-configured` | Check if credentials are set | `is-configured` |
 
 **Full paths:**
 ```bash
 ~/.claude/bin/services/confluence/search "API documentation"
+~/.claude/bin/services/confluence/get-page 123456789
+~/.claude/bin/services/confluence/list-children 123456789 50
+~/.claude/bin/services/confluence/move-pages-bulk 987654321 111111 222222 333333
+```
+
+**Workflow: Moving pages to a subfolder:**
+```bash
+# 1. Find the target parent page ID
+~/.claude/bin/services/confluence/get-page-id "https://carefeed.atlassian.net/wiki/spaces/ENG/pages/123/Target+Folder"
+
+# 2. List pages to move (e.g., children of current parent)
+~/.claude/bin/services/confluence/list-children 456789 | jq -r '.results[].id'
+
+# 3. Move them in bulk
+~/.claude/bin/services/confluence/move-pages-bulk 123 id1 id2 id3
 ```
 
 ---

@@ -64,3 +64,20 @@ history.jsonl
 
 # Private Carefeed-specific documentation
 private/
+
+# Session handoff files (contain company-specific context)
+SESSION_HANDOFF*.md
+
+# Regression/incident plans (contain company-specific details)
+*REGRESSION*.md
+*PREVENTION_PLAN*.md
+
+# Bootstrap logs
+bootstrap.log
+
+# Plugin state files
+plugins/*.json
+
+# MCP server build artifacts (should be built locally)
+mcp-servers/*/dist/
+mcp-servers/*/node_modules/

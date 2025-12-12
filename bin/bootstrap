@@ -1,0 +1,571 @@
+#!/bin/bash
+#
+# Claude Code Dotfiles Bootstrap Script
+# =====================================
+# Adaptive, idempotent setup for Claude Code configuration.
+#
+# Usage:
+#   ~/.claude/bin/bootstrap           # Full bootstrap
+#   ~/.claude/bin/bootstrap --check   # Check status only
+#   ~/.claude/bin/bootstrap --update  # Update only (skip initial setup)
+#
+# This script is safe to run multiple times.
+#
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Symbols
+CHECK="${GREEN}✓${NC}"
+CROSS="${RED}✗${NC}"
+ARROW="${BLUE}→${NC}"
+WARN="${YELLOW}⚠${NC}"
+
+CLAUDE_DIR="${HOME}/.claude"
+BOOTSTRAP_VERSION="1.0.0"
+LOG_FILE="${CLAUDE_DIR}/bootstrap.log"
+
+# -----------------------------------------------------------------------------
+# Utility Functions
+# -----------------------------------------------------------------------------
+
+log() {
+    echo -e "$1"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE" 2>/dev/null || true
+}
+
+log_section() {
+    echo ""
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}  $1${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+}
+
+check_command() {
+    command -v "$1" &>/dev/null
+}
+
+status_ok() {
+    echo -e "  ${CHECK} $1"
+}
+
+status_fail() {
+    echo -e "  ${CROSS} $1"
+}
+
+status_warn() {
+    echo -e "  ${WARN} $1"
+}
+
+status_info() {
+    echo -e "  ${ARROW} $1"
+}
+
+# -----------------------------------------------------------------------------
+# Check Functions
+# -----------------------------------------------------------------------------
+
+check_prerequisites() {
+    log_section "Checking Prerequisites"
+
+    local all_good=true
+
+    # Required
+    if check_command git; then
+        status_ok "git installed"
+    else
+        status_fail "git not installed (required)"
+        all_good=false
+    fi
+
+    if check_command claude; then
+        status_ok "claude CLI installed"
+    else
+        status_fail "claude CLI not installed"
+        echo -e "      ${ARROW} Install: npm install -g @anthropic-ai/claude-code"
+        all_good=false
+    fi
+
+    # Optional but recommended
+    if check_command docker; then
+        status_ok "docker installed (for MCP servers)"
+    else
+        status_warn "docker not installed (optional, needed for MCP servers)"
+    fi
+
+    if check_command yq; then
+        status_ok "yq installed (for YAML parsing)"
+    else
+        status_warn "yq not installed (optional)"
+        echo -e "      ${ARROW} Install: brew install yq"
+    fi
+
+    if check_command jq; then
+        status_ok "jq installed (for JSON parsing)"
+    else
+        status_warn "jq not installed (recommended)"
+        echo -e "      ${ARROW} Install: brew install jq"
+    fi
+
+    if check_command node; then
+        local node_version=$(node --version | sed 's/v//')
+        status_ok "node installed (${node_version})"
+    else
+        status_warn "node not installed (needed for some integrations)"
+    fi
+
+    # Optional integrations
+    if check_command m365; then
+        status_ok "m365 CLI installed (for calendar)"
+    else
+        status_info "m365 CLI not installed (optional, for calendar integration)"
+    fi
+
+    if check_command gh; then
+        status_ok "gh CLI installed (for GitHub)"
+    else
+        status_info "gh CLI not installed (optional)"
+    fi
+
+    if check_command op; then
+        status_ok "1Password CLI installed"
+    else
+        status_info "1Password CLI not installed (optional)"
+    fi
+
+    $all_good
+}
+
+check_directory_structure() {
+    log_section "Checking Directory Structure"
+
+    local dirs=(
+        "bin"
+        "commands"
+        "credentials"
+        "lib"
+        "mcp-servers"
+        "recipes"
+        "session-notes"
+        "session-types"
+        "skills"
+        "templates"
+    )
+
+    local missing=()
+
+    for dir in "${dirs[@]}"; do
+        if [[ -d "${CLAUDE_DIR}/${dir}" ]]; then
+            status_ok "${dir}/"
+        else
+            status_fail "${dir}/ missing"
+            missing+=("$dir")
+        fi
+    done
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        return 1
+    fi
+    return 0
+}
+
+check_core_files() {
+    log_section "Checking Core Files"
+
+    local files=(
+        "CLAUDE.md"
+        "SESSION_START.md"
+        "WRAPUP.md"
+        "PREFERENCES.md"
+        "settings.json"
+    )
+
+    local missing=()
+
+    for file in "${files[@]}"; do
+        if [[ -f "${CLAUDE_DIR}/${file}" ]]; then
+            status_ok "${file}"
+        else
+            status_fail "${file} missing"
+            missing+=("$file")
+        fi
+    done
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        return 1
+    fi
+    return 0
+}
+
+check_session_types() {
+    log_section "Checking Session Types"
+
+    local count=$(ls -1 "${CLAUDE_DIR}/session-types/"*.md 2>/dev/null | wc -l | tr -d ' ')
+
+    if [[ $count -gt 0 ]]; then
+        status_ok "${count} session types found"
+        for f in "${CLAUDE_DIR}/session-types/"*.md; do
+            local name=$(basename "$f" .md)
+            status_info "  ${name}"
+        done
+    else
+        status_fail "No session types found"
+        return 1
+    fi
+}
+
+check_skills() {
+    log_section "Checking Skills"
+
+    local count=$(ls -1d "${CLAUDE_DIR}/skills/"*/ 2>/dev/null | wc -l | tr -d ' ')
+
+    if [[ $count -gt 0 ]]; then
+        status_ok "${count} skills found"
+        for d in "${CLAUDE_DIR}/skills/"*/; do
+            local name=$(basename "$d")
+            status_info "  ${name}"
+        done
+    else
+        status_warn "No skills found"
+    fi
+}
+
+check_commands() {
+    log_section "Checking Slash Commands"
+
+    local count=$(ls -1 "${CLAUDE_DIR}/commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
+
+    if [[ $count -gt 0 ]]; then
+        status_ok "${count} slash commands found"
+        for f in "${CLAUDE_DIR}/commands/"*.md; do
+            local name=$(basename "$f" .md)
+            status_info "  /${name}"
+        done
+    else
+        status_warn "No slash commands found"
+    fi
+}
+
+check_mcp_servers() {
+    log_section "Checking MCP Servers"
+
+    if ! check_command docker; then
+        status_info "Docker not installed, skipping MCP server checks"
+        return 0
+    fi
+
+    # Check for running containers
+    local jira_running=$(docker ps --filter "name=jira-mcp-server" --format "{{.Status}}" 2>/dev/null || echo "")
+    local bitbucket_running=$(docker ps --filter "name=bitbucket-mcp-server" --format "{{.Status}}" 2>/dev/null || echo "")
+
+    if [[ -n "$jira_running" ]]; then
+        status_ok "Jira MCP server running"
+    else
+        status_warn "Jira MCP server not running"
+        status_info "  Start: cd ~/.claude/mcp-servers/jira && docker-compose up -d"
+    fi
+
+    if [[ -n "$bitbucket_running" ]]; then
+        status_ok "Bitbucket MCP server running"
+    else
+        status_warn "Bitbucket MCP server not running"
+        status_info "  Start: cd ~/.claude/mcp-servers/bitbucket && docker-compose up -d"
+    fi
+}
+
+check_credentials() {
+    log_section "Checking Credentials"
+
+    local creds_dir="${CLAUDE_DIR}/credentials"
+
+    if [[ -f "${creds_dir}/.env" ]]; then
+        status_ok "credentials/.env exists"
+
+        # Check for required vars (without revealing values)
+        local env_content=$(cat "${creds_dir}/.env" 2>/dev/null || echo "")
+
+        if echo "$env_content" | grep -q "ATLASSIAN_"; then
+            status_ok "  Atlassian credentials configured"
+        else
+            status_warn "  Atlassian credentials missing"
+        fi
+
+        if echo "$env_content" | grep -q "GITHUB_"; then
+            status_ok "  GitHub credentials configured"
+        else
+            status_info "  GitHub credentials not configured (optional)"
+        fi
+
+        if echo "$env_content" | grep -q "SLACK_"; then
+            status_ok "  Slack credentials configured"
+        else
+            status_info "  Slack credentials not configured (optional)"
+        fi
+    else
+        status_warn "credentials/.env not found"
+        status_info "  Create from template: cp credentials/.env.example credentials/.env"
+    fi
+}
+
+# -----------------------------------------------------------------------------
+# Setup Functions
+# -----------------------------------------------------------------------------
+
+create_directories() {
+    log_section "Creating Directory Structure"
+
+    local dirs=(
+        "bin"
+        "commands"
+        "credentials"
+        "debug"
+        "lib"
+        "lib/core"
+        "lib/local"
+        "mcp-servers"
+        "recipes"
+        "session-notes"
+        "session-notes/coding"
+        "session-notes/debugging"
+        "session-notes/clauding"
+        "session-types"
+        "skills"
+        "templates"
+        "templates/session-notes"
+    )
+
+    for dir in "${dirs[@]}"; do
+        if [[ ! -d "${CLAUDE_DIR}/${dir}" ]]; then
+            mkdir -p "${CLAUDE_DIR}/${dir}"
+            status_ok "Created ${dir}/"
+        else
+            status_info "${dir}/ exists"
+        fi
+    done
+}
+
+create_credentials_template() {
+    local template="${CLAUDE_DIR}/credentials/.env.example"
+
+    if [[ ! -f "$template" ]]; then
+        cat > "$template" << 'EOF'
+# Claude Code Credentials Template
+# Copy this to .env and fill in your values
+# NEVER commit .env to version control!
+
+# Atlassian (Jira, Confluence, Bitbucket)
+ATLASSIAN_SITE_NAME=your-site.atlassian.net
+ATLASSIAN_USER_EMAIL=your-email@company.com
+ATLASSIAN_API_TOKEN=your-api-token
+
+# Bitbucket (if using Bitbucket MCP)
+BITBUCKET_DEFAULT_WORKSPACE=your-workspace
+
+# GitHub (optional)
+GITHUB_TOKEN=ghp_xxxxxxxxxxxx
+
+# Slack (optional)
+SLACK_BOT_TOKEN=xoxb-xxxxxxxxxxxx
+SLACK_USER_TOKEN=xoxp-xxxxxxxxxxxx
+
+# Datadog (optional)
+DATADOG_API_KEY=your-api-key
+DATADOG_APP_KEY=your-app-key
+
+# Sentry (optional)
+SENTRY_AUTH_TOKEN=your-auth-token
+SENTRY_ORG=your-org
+EOF
+        status_ok "Created credentials/.env.example"
+    fi
+}
+
+setup_gitignore() {
+    local gitignore="${CLAUDE_DIR}/.gitignore"
+
+    # Check if essential patterns are present
+    if [[ -f "$gitignore" ]]; then
+        if grep -q "credentials/.env" "$gitignore"; then
+            status_info ".gitignore already configured"
+            return 0
+        fi
+    fi
+
+    # Append essential patterns if missing
+    cat >> "$gitignore" << 'EOF'
+
+# Credentials (NEVER commit!)
+credentials/.env
+credentials/**/*.json
+**/.env
+!**/.env.example
+
+# Debug and logs
+debug/
+*.log
+
+# Session data (may contain sensitive info)
+session-notes/
+shell-snapshots/
+history.jsonl
+EOF
+
+    status_ok "Updated .gitignore with security patterns"
+}
+
+make_scripts_executable() {
+    log_section "Making Scripts Executable"
+
+    # Make all scripts in bin executable
+    if [[ -d "${CLAUDE_DIR}/bin" ]]; then
+        find "${CLAUDE_DIR}/bin" -type f \( -name "*.sh" -o ! -name "*.*" \) -exec chmod +x {} \;
+        status_ok "bin/ scripts are executable"
+    fi
+
+    # Make lib scripts executable
+    if [[ -d "${CLAUDE_DIR}/lib" ]]; then
+        find "${CLAUDE_DIR}/lib" -type f -name "*.sh" -exec chmod +x {} \;
+        status_ok "lib/ scripts are executable"
+    fi
+}
+
+update_from_git() {
+    log_section "Checking for Updates"
+
+    if [[ ! -d "${CLAUDE_DIR}/.git" ]]; then
+        status_info "Not a git repository, skipping update check"
+        return 0
+    fi
+
+    cd "${CLAUDE_DIR}"
+
+    # Fetch latest
+    if git fetch origin 2>/dev/null; then
+        local behind=$(git rev-list HEAD..origin/main --count 2>/dev/null || echo "0")
+
+        if [[ "$behind" -gt 0 ]]; then
+            status_warn "${behind} commits behind origin/main"
+            echo -e "      ${ARROW} Run: cd ~/.claude && git pull"
+        else
+            status_ok "Up to date with origin/main"
+        fi
+    else
+        status_warn "Could not fetch from origin"
+    fi
+
+    cd - > /dev/null
+}
+
+# -----------------------------------------------------------------------------
+# Main
+# -----------------------------------------------------------------------------
+
+show_help() {
+    cat << EOF
+Claude Code Dotfiles Bootstrap v${BOOTSTRAP_VERSION}
+
+Usage:
+  bootstrap           Full bootstrap (check + setup)
+  bootstrap --check   Check status only, don't modify anything
+  bootstrap --update  Update only (git pull + refresh)
+  bootstrap --help    Show this help
+
+This script is idempotent - safe to run multiple times.
+
+For first-time setup:
+  1. Clone the dotfiles repo to ~/.claude
+  2. Run: ~/.claude/bin/bootstrap
+  3. Follow prompts to configure credentials
+
+For updates after git pull:
+  Run: ~/.claude/bin/bootstrap --update
+
+EOF
+}
+
+main() {
+    local mode="${1:-full}"
+
+    case "$mode" in
+        --help|-h)
+            show_help
+            exit 0
+            ;;
+        --check)
+            echo -e "${CYAN}Claude Code Dotfiles - Status Check${NC}"
+            echo -e "Version: ${BOOTSTRAP_VERSION}"
+            echo ""
+            check_prerequisites || true
+            check_directory_structure || true
+            check_core_files || true
+            check_session_types || true
+            check_skills || true
+            check_commands || true
+            check_mcp_servers || true
+            check_credentials || true
+            ;;
+        --update)
+            echo -e "${CYAN}Claude Code Dotfiles - Update${NC}"
+            echo ""
+            update_from_git
+            make_scripts_executable
+            echo ""
+            log "Update complete!"
+            ;;
+        full|"")
+            echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${CYAN}  Claude Code Dotfiles Bootstrap v${BOOTSTRAP_VERSION}${NC}"
+            echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+
+            # Check prerequisites first
+            if ! check_prerequisites; then
+                echo ""
+                log "${RED}Prerequisites not met. Please install required tools first.${NC}"
+                exit 1
+            fi
+
+            # Setup
+            create_directories
+            create_credentials_template
+            setup_gitignore
+            make_scripts_executable
+
+            # Status checks
+            check_directory_structure || true
+            check_core_files || true
+            check_session_types || true
+            check_skills || true
+            check_commands || true
+            check_mcp_servers || true
+            check_credentials || true
+            update_from_git || true
+
+            log_section "Bootstrap Complete!"
+            echo ""
+            echo -e "  ${CHECK} Basic setup complete"
+            echo ""
+            echo -e "  ${ARROW} Next steps:"
+            echo -e "      1. Configure credentials: ${CYAN}cp ~/.claude/credentials/.env.example ~/.claude/credentials/.env${NC}"
+            echo -e "      2. Edit credentials: ${CYAN}vim ~/.claude/credentials/.env${NC}"
+            echo -e "      3. Read the guide: ${CYAN}cat ~/.claude/GETTING_STARTED.md${NC}"
+            echo -e "      4. Start Claude: ${CYAN}claude${NC}"
+            echo -e "      5. Try: ${CYAN}/start coding${NC}"
+            echo ""
+            ;;
+        *)
+            echo "Unknown option: $mode"
+            echo "Run 'bootstrap --help' for usage"
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

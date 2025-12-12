@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# List all pages in a Confluence space
+# Usage: list-space-pages <space_key> [limit]
+# Example: list-space-pages ENG
+# Example: list-space-pages ENG 100
+set -eo pipefail
+
+LIB_DIR="$HOME/.claude/lib"
+
+source "$LIB_DIR/core/credentials.sh"
+source "$LIB_DIR/services/_bash/confluence.sh"
+
+confluence_list_space_pages "$@"
