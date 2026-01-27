@@ -55,7 +55,11 @@ tmux_rename_window() {
         return 1
     fi
 
-    tmux rename-window "$new_name"
+    # Get the window ID where this command is running (not the active window)
+    # This prevents renaming the wrong window if user switches tabs
+    local window_id
+    window_id=$(tmux display-message -p '#{window_id}')
+    tmux rename-window -t "$window_id" "$new_name"
 }
 
 # Rename window based on Claude session type
@@ -84,7 +88,11 @@ tmux_set_claude_window() {
         *)          window_name="$session_type" ;;
     esac
 
-    tmux rename-window "$window_name"
+    # Get the window ID where this command is running (not the active window)
+    # This prevents renaming the wrong window if user switches tabs
+    local window_id
+    window_id=$(tmux display-message -p '#{window_id}')
+    tmux rename-window -t "$window_id" "$window_name"
 }
 
 # Split current pane horizontally and run a command
