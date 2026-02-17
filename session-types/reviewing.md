@@ -1,7 +1,7 @@
 # Reviewing Session
 
 ## Purpose
-Review pull requests from other engineers across Bitbucket and GitHub repositories.
+Review pull requests from other engineers across GitHub repositories.
 
 ## PR Review Workflow
 
@@ -41,49 +41,75 @@ Present: "Found X PRs. Y are trivial and could be batch-approved. Want me to app
 
 ## Fetching PR Diffs
 
-**Use local git with triple-dot syntax** (merge-base diff):
-
-```bash
-git fetch origin <branch-name>
-git diff --stat origin/master...origin/<branch-name>  # Summary
-git diff origin/master...origin/<branch-name>         # Full diff
-```
-
-**Do NOT use `bb_diff_branches`** - it shows two-point diff with unrelated master commits.
+GitHub handles merge commits correctly, so `gh pr diff` shows only the PR's actual changes.
 
 **Workflow:**
-1. `bb_get_pr` / `gh pr view` - metadata, description, linked tickets
-2. `bb_ls_pr_comments` / `gh pr view --comments` - existing comments
-3. Local git diff - actual code review
-
-## Bitbucket Configuration
-
-| Project | Repo Slug |
-|---------|-----------|
-| Portal | `portal_dev` |
-| Patient App | `patient_dev` |
-| Infrastructure | `infrastructure` |
-
-**Workspace:** `Bitbucketpassword1`
-
-**Approve PRs:**
-```bash
-# MCP tool has issues - use curl fallback:
-source ~/.claude/credentials/.env && curl -s -X POST \
-  -u "hammer@carefeed.com:$BITBUCKET_ACCESS_TOKEN" \
-  "https://api.bitbucket.org/2.0/repositories/Bitbucketpassword1/<repo>/pullrequests/<id>/approve"
-```
+1. `gh pr view <number> --repo <repo>` - metadata, description, linked tickets
+2. `gh pr view <number> --repo <repo> --comments` - existing comments
+3. `gh pr diff <number> --repo <repo>` - actual code review
 
 ## GitHub Configuration
 
-**Repositories:** `carefeed/family-portal`, `carefeed/payments`
+**Repositories** are configured per-project. Use `gh pr list --repo <org>/<repo>` to list PRs.
 
 ```bash
-gh pr list --repo carefeed/family-portal --state open
-gh pr view <number> --repo carefeed/family-portal
-gh pr diff <number> --repo carefeed/family-portal
-gh pr review <number> --repo carefeed/family-portal --approve
+gh pr list --repo <org>/<repo> --state open
+gh pr view <number> --repo <org>/<repo>
+gh pr diff <number> --repo <org>/<repo>
+gh pr review <number> --repo <org>/<repo> --approve
 ```
+
+## Plugin Commands
+
+**Use these plugins for automated, thorough reviews:**
+
+### /code-review (Recommended for Complex PRs)
+Runs 4 parallel agents with confidence scoring:
+- Agents 1 & 2: CLAUDE.md compliance
+- Agent 3: Bug scanning
+- Agent 4: Git blame/history analysis
+
+Only posts issues with ≥80 confidence (filters false positives).
+
+```bash
+# On a PR branch:
+/code-review
+```
+
+### pr-review-toolkit Agents
+Specialized review agents for targeted analysis:
+
+| Agent | Focus | Trigger |
+|-------|-------|---------|
+| **comment-analyzer** | Comment accuracy, doc completeness | "Check if comments are accurate" |
+| **pr-test-analyzer** | Test coverage, critical gaps | "Analyze test coverage for this PR" |
+| **error-handler-reviewer** | Error handling quality | "Review error handling" |
+| **type-design-reviewer** | Type safety, API design | "Review type design" |
+| **code-quality-reviewer** | General quality issues | "Review code quality" |
+| **code-simplifier** | Complexity reduction | "Simplify this code" |
+
+## Available Agents
+
+**Delegate to agents** for context-heavy review tasks. Agents run in isolated context and return summaries, keeping the main conversation lean.
+
+| Agent | Use For | Invocation |
+|-------|---------|------------|
+| **pr-reviewer** | Deep code review with detailed feedback | "Use pr-reviewer to analyze PR #123 in admin-portal" |
+| **jira-agent** | Check related tickets, find context | "Use jira-agent to find tickets related to this PR" |
+| **codebase-explainer** | Understand unfamiliar code areas | "Use codebase-explainer to explain how this service works" |
+| **pipeline-debugger** | Check if PR has failing builds | "Use pipeline-debugger to check CI status for this branch" |
+
+**When to use agents vs direct tools:**
+- **Use agents** when: Large diffs (50+ lines), unfamiliar codebase areas, need deep analysis
+- **Use direct tools** when: Small/trivial PRs, quick metadata lookup, batch approvals
+- **Use /code-review** when: Want automated parallel analysis with confidence filtering
+
+**Recommended workflow for complex PRs:**
+1. Quick triage with `gh pr list`
+2. For complex PRs, run `/code-review` for parallel automated analysis
+3. Or delegate to **pr-reviewer** agent for isolated manual analysis
+4. Use pr-review-toolkit agents for specific concerns (tests, types, errors)
+5. Review findings and approve or request changes
 
 ## Session Startup
 

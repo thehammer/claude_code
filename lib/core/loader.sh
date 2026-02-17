@@ -64,13 +64,11 @@ fi
 # Convention Helpers (Context-Aware)
 # ==============================================================================
 
-# Carefeed conventions (if in Carefeed project)
-if [ -f ~/.claude/lib/conventions/carefeed.sh ]; then
-    # Check if we're in a Carefeed project
-    if [ -f "composer.json" ] && grep -q "carefeed" composer.json 2>/dev/null; then
-        source ~/.claude/lib/conventions/carefeed.sh
-    elif git remote get-url origin 2>/dev/null | grep -q "Bitbucketpassword1\|carefeed"; then
-        source ~/.claude/lib/conventions/carefeed.sh
+# Project conventions (loaded from layer if available)
+if [ -f ~/.claude/lib/core/layers.sh ]; then
+    source ~/.claude/lib/core/layers.sh
+    if git remote get-url origin 2>/dev/null | grep -qi "carefeed"; then
+        layer_source "lib/conventions/carefeed.sh" 2>/dev/null
     fi
 fi
 

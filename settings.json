@@ -5,8 +5,7 @@
       "Bash",
       "Bash(~/.claude/lib/*.sh:*)",
       "Bash(aws_:*)",
-      "Bash(AWS_*:*)",
-      "Bash(bitbucket_:*)",
+      "Bash(AWS_:*)",
       "Bash(carefeed_:*)",
       "Bash(datadog_:*)",
       "Bash(extract_:*)",
@@ -26,15 +25,6 @@
       "Edit(**)",
       "Glob(**)",
       "Grep(**)",
-      "mcp__bitbucket__bb_add_pr",
-      "mcp__bitbucket__bb_add_pr_comment",
-      "mcp__bitbucket__bb_get_pipeline",
-      "mcp__bitbucket__bb_get_pr",
-      "mcp__bitbucket__bb_list_pipeline_steps",
-      "mcp__bitbucket__bb_list_pipelines",
-      "mcp__bitbucket__bb_ls_pr_comments",
-      "mcp__bitbucket__bb_ls_prs",
-      "mcp__bitbucket__bb_update_pr",
       "mcp__jira__jira_add_comment",
       "mcp__jira__jira_create_issue",
       "mcp__jira__jira_get_create_meta",
@@ -44,11 +34,21 @@
       "mcp__jira__jira_ls_issues",
       "mcp__jira__jira_ls_projects",
       "mcp__jira__jira_transition_issue",
+      "mcp__session-memory__search_sessions",
+      "mcp__session-memory__list_sessions",
+      "mcp__session-memory__get_session",
+      "mcp__session-memory__index_sessions",
+      "mcp__datadog__datadog_validate",
+      "mcp__datadog__datadog_search_logs",
+      "mcp__datadog__datadog_logs_from_slack",
+      "mcp__datadog__datadog_query_metrics",
+      "mcp__datadog__datadog_list_monitors",
+      "mcp__datadog__datadog_get_monitor",
+      "mcp__datadog__datadog_search_traces",
+      "mcp__datadog__datadog_service_stats",
+      "mcp__datadog__datadog_resource_stats",
       "Read(//**)",
-      "WebFetch(**)",
       "WebFetch(domain:**)",
-      "WebFetch(domain:carefeed.atlassian.net)",
-      "WebFetch(domain:carefeed.sentry.io)",
       "WebSearch",
       "Write(**)"
     ],
@@ -72,15 +72,74 @@
       "Bash(sudo rmdir:*)"
     ]
   },
+  "model": "opus",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/workspace-lock.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/doc-file-guard.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/typescript-check.sh",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/console-log-warning.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh"
+  },
+  "enabledPlugins": {
+    "ralph-loop@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "hookify@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true
+  },
   "alwaysThinkingEnabled": true,
   "mcpServers": {
     "jira": {
       "type": "http",
       "url": "http://localhost:3000/mcp"
     },
-    "bitbucket": {
+    "session-memory": {
       "type": "http",
-      "url": "http://localhost:3001/mcp"
+      "url": "http://localhost:3002/mcp"
+    },
+    "datadog": {
+      "type": "http",
+      "url": "http://localhost:3004/mcp"
     }
-  }
+  },
+  "skipDangerousModePermissionPrompt": true
 }

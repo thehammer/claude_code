@@ -1,21 +1,45 @@
 # MCP Servers - Deployment Architecture
 
-This directory contains **Docker deployment configurations** for Carefeed's MCP servers.
+This directory contains **Docker deployment configurations** for MCP servers.
 
 **Important:** This directory does NOT contain source code. All source code lives in:
-- **Carefeed GitHub forks:** `github.com/Carefeed/[repo-name]`
+- **GitHub forks:** `github.com/<your-org>/[repo-name]`
 - **Local development:** `~/Code/[repo-name]`
 
 ## Directory Structure
 
 ```
 ~/.claude/mcp-servers/
-├── README.md          # This file
-└── [server-name]/     # One directory per MCP server
+├── README.md              # This file
+├── bin/                   # Management scripts
+│   ├── mcp-up             # Start all services
+│   ├── mcp-down           # Stop all services
+│   └── mcp-status         # Show service status
+├── shared/                # Shared infrastructure
+│   ├── docker-compose.yml # PostgreSQL + pgvector
+│   ├── init.sql           # Database initialization
+│   └── .env               # Database credentials
+└── [server-name]/         # One directory per MCP server
     ├── Dockerfile           # Build config
     ├── docker-compose.yml   # Runtime config
     ├── .env                 # Symlink to credentials
     └── README.md            # Server-specific docs
+```
+
+## Quick Start
+
+```bash
+# Start all MCP servers and shared infrastructure
+~/.claude/mcp-servers/bin/mcp-up
+
+# Check status
+~/.claude/mcp-servers/bin/mcp-status
+
+# Stop specific server
+~/.claude/mcp-servers/bin/mcp-down jira
+
+# Stop everything including database
+~/.claude/mcp-servers/bin/mcp-down --all --include-shared
 ```
 
 ## Current MCP Servers
@@ -25,7 +49,7 @@ This directory contains **Docker deployment configurations** for Carefeed's MCP 
 **Status:** ✅ Production (HTTP mode, port 3000)
 
 **Source:**
-- Fork: https://github.com/Carefeed/mcp-server-atlassian-jira
+- Fork: https://github.com/<your-org>/mcp-server-atlassian-jira
 - Local: `~/Code/mcp-server-atlassian-jira`
 - Upstream: https://github.com/aashari/mcp-server-atlassian-jira
 
@@ -71,14 +95,14 @@ This directory contains **Docker deployment configurations** for Carefeed's MCP 
 
 ```bash
 # Via GitHub web UI or CLI
-gh repo fork upstream/repo-name --org Carefeed
+gh repo fork upstream/repo-name --org <your-org>
 ```
 
 ### 2. Clone Fork Locally
 
 ```bash
 cd ~/Code
-git clone git@github.com:Carefeed/[repo-name].git
+git clone git@github.com:<your-org>/[repo-name].git
 cd [repo-name]
 
 # Add upstream for pulling updates
@@ -110,7 +134,7 @@ EOF
 cat > docker-compose.yml << 'EOF'
 services:
   server-name-mcp:
-    image: carefeed-[server-name]-mcp:latest
+    image: my-[server-name]-mcp:latest
     container_name: [server-name]-mcp-server
     ports:
       - "3000:3000"
@@ -141,7 +165,7 @@ npm run build
 
 # Build Docker image
 docker build -f ~/.claude/mcp-servers/[server-name]/Dockerfile \
-  -t carefeed-[server-name]-mcp:latest .
+  -t my-[server-name]-mcp:latest .
 
 # Deploy
 cd ~/.claude/mcp-servers/[server-name]
@@ -200,7 +224,7 @@ git push origin feature/my-feature
 
 # 4. Rebuild Docker image
 docker build -f ~/.claude/mcp-servers/[server-name]/Dockerfile \
-  -t carefeed-[server-name]-mcp:latest .
+  -t my-[server-name]-mcp:latest .
 
 # 5. Restart container
 cd ~/.claude/mcp-servers/[server-name]
@@ -288,7 +312,7 @@ CMD ["node", "dist/index.js"]
 
 ### DO ✅
 - Keep source code in `~/Code/[repo-name]`
-- Fork to Carefeed organization for team access
+- Fork to your organization for team access
 - Use Docker for consistent deployments
 - Test changes before committing
 - Document custom features in README
@@ -309,11 +333,11 @@ Here's a complete example of adding workflow transitions to Jira MCP:
 
 ```bash
 # 1. Fork upstream
-gh repo fork aashari/mcp-server-atlassian-jira --org Carefeed
+gh repo fork aashari/mcp-server-atlassian-jira --org <your-org>
 
 # 2. Clone locally
 cd ~/Code
-git clone git@github.com:Carefeed/mcp-server-atlassian-jira.git
+git clone git@github.com:<your-org>/mcp-server-atlassian-jira.git
 cd mcp-server-atlassian-jira
 
 # 3. Create feature branch
@@ -341,7 +365,7 @@ git push origin main
 
 # 9. Build Docker image
 docker build -f ~/.claude/mcp-servers/jira/Dockerfile \
-  -t carefeed-jira-mcp:latest .
+  -t my-jira-mcp:latest .
 
 # 10. Deploy
 cd ~/.claude/mcp-servers/jira
@@ -355,9 +379,58 @@ docker-compose up -d
 
 ---
 
+## Shared Infrastructure
+
+The `shared/` directory contains infrastructure used by multiple MCP servers:
+
+### PostgreSQL with pgvector
+
+Provides semantic search capabilities for MCPs that need embedding storage and vector similarity search.
+
+**Configuration:**
+
+```yaml
+# shared/docker-compose.yml
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: mcp-postgres
+    ports:
+      - "5433:5432"  # Port 5433 to avoid conflicts
+    environment:
+      POSTGRES_USER: mcp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: mcp
+```
+
+**Initial Schema:**
+
+The `shared/init.sql` script creates:
+- `pgvector` extension for vector similarity search
+- `session_memory` schema for Claude Code session storage
+- Tables for sessions and messages with embedding columns
+- IVFFlat indexes for efficient semantic search
+
+**Connecting from MCPs:**
+
+MCPs can connect to the shared database via the Docker network:
+
+```
+postgresql://mcp:password@mcp-postgres:5432/mcp
+```
+
+Or from the host:
+
+```
+postgresql://mcp:password@localhost:5433/mcp
+```
+
+---
+
 ## Future MCP Servers
 
 **Planned:**
+- **Session Memory MCP** (semantic search over Claude Code sessions) - *Next up*
 - Slack MCP (for notifications, channel management)
 - Sentry MCP (for error tracking, issue management)
 - Datadog MCP (for log search, monitoring)
@@ -368,5 +441,5 @@ docker-compose up -d
 
 ---
 
-**Last Updated:** 2025-10-24
-**Maintained By:** Carefeed Platform Team
+**Last Updated:** 2025-12-23
+**Maintained By:** your team

@@ -27,6 +27,9 @@ projects/
 ide/
 *.local.*
 
+# Layers (external config repos cloned here)
+layers/
+
 # macOS
 .DS_Store
 
@@ -81,3 +84,17 @@ plugins/*.json
 # MCP server build artifacts (should be built locally)
 mcp-servers/*/dist/
 mcp-servers/*/node_modules/
+
+# Internal project plans (may contain company-specific details)
+plans/
+
+# Bin scripts for company-specific tools
+bin/carefeed/
+
+# Paste cache and task state
+paste-cache/
+tasks/
+
+# Plugin caches
+plugins/cache/
+plugins/marketplaces/
