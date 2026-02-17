@@ -1,0 +1,75 @@
+#!/bin/bash
+# figma_ui - Get a UI-focused summary of a Figma design
+#
+# Usage:
+#   figma_ui <file_key> [node_id]
+#   figma_ui <figma_url>
+#
+# Output: Clean summary focused on UI elements - labels, buttons, sections
+
+set -euo pipefail
+
+SCRIPT_DIR="$(dirname "$0")"
+
+# Get raw JSON from figma_get
+JSON=$("$SCRIPT_DIR/figma_get" "$@")
+
+# Check for errors
+if echo "$JSON" | jq -e '.err' > /dev/null 2>&1; then
+    echo "Error from Figma API:" >&2
+    echo "$JSON" | jq -r '.err' >&2
+    exit 1
+fi
+
+echo "# Figma Design Summary"
+echo ""
+
+# File info
+FILE_NAME=$(echo "$JSON" | jq -r '.name // .nodes[].document.name // "Unknown"')
+LAST_MOD=$(echo "$JSON" | jq -r '.lastModified // "Unknown"')
+echo "**File:** $FILE_NAME"
+echo "**Last Modified:** $LAST_MOD"
+echo ""
+
+# Extract all unique text content, sorted and cleaned
+echo "## UI Text Content"
+echo ""
+echo "$JSON" | jq -r '
+  [.. | select(.characters? != null and .characters != "") | .characters]
+  | unique
+  | sort
+  | .[]
+' | while read -r line; do
+    echo "- $line"
+done
+
+echo ""
+echo "## Component Hierarchy"
+echo ""
+
+# Extract structure with indentation
+echo "$JSON" | jq -r '
+  def indent($level): " " * ($level * 2);
+
+  def show_node($level):
+    if .type == "TEXT" and .characters and .characters != "" then
+      "\(indent($level))📝 \(.characters)"
+    elif .type == "INSTANCE" then
+      "\(indent($level))🧩 \(.name)"
+    elif .type == "FRAME" then
+      "\(indent($level))📦 \(.name)"
+    elif .type == "SECTION" then
+      "\(indent($level))📑 \(.name)"
+    elif .type == "GROUP" then
+      "\(indent($level))📁 \(.name)"
+    else
+      empty
+    end,
+    if .children then
+      (.children[] | show_node($level + 1))
+    else
+      empty
+    end;
+
+  (.document // .nodes[].document) | show_node(0)
+' | head -200

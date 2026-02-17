@@ -1,0 +1,56 @@
+#!/bin/bash
+# figma_get - Fetch Figma file or node data
+#
+# Usage:
+#   figma_get <file_key> [node_id]
+#   figma_get <figma_url>
+#
+# Examples:
+#   figma_get YaPDSjB8dFg4MjY0O5qWhr
+#   figma_get YaPDSjB8dFg4MjY0O5qWhr 4644-36948
+#   figma_get "https://www.figma.com/design/YaPDSjB8dFg4MjY0O5qWhr/Permissions?node-id=4644-36948"
+#
+# Output: JSON representation of the file/node
+
+set -euo pipefail
+
+TOKEN_FILE="${HOME}/.config/figma/token"
+
+if [[ ! -f "$TOKEN_FILE" ]]; then
+    echo "Error: Figma token not found at $TOKEN_FILE" >&2
+    echo "Create a personal access token at:" >&2
+    echo "  Figma → Settings → Account → Personal access tokens" >&2
+    exit 1
+fi
+
+FIGMA_TOKEN=$(cat "$TOKEN_FILE" | tr -d '[:space:]')
+
+# Parse input - could be URL or file_key [node_id]
+if [[ "$1" == http* ]]; then
+    # Parse URL: https://www.figma.com/design/FILE_KEY/Name?node-id=NODE_ID
+    URL="$1"
+    FILE_KEY=$(echo "$URL" | grep -oE 'design/[^/]+' | cut -d'/' -f2 || \
+               echo "$URL" | grep -oE 'file/[^/]+' | cut -d'/' -f2)
+    NODE_ID=$(echo "$URL" | grep -oE 'node-id=[^&]+' | cut -d'=' -f2 | sed 's/-/:/' || true)
+else
+    FILE_KEY="$1"
+    NODE_ID="${2:-}"
+    # Convert 4644-36948 to 4644:36948 format if needed
+    if [[ -n "$NODE_ID" ]]; then
+        NODE_ID=$(echo "$NODE_ID" | sed 's/-/:/')
+    fi
+fi
+
+if [[ -z "$FILE_KEY" ]]; then
+    echo "Error: Could not parse file key from input" >&2
+    exit 1
+fi
+
+# Build API URL
+API_URL="https://api.figma.com/v1/files/${FILE_KEY}"
+if [[ -n "$NODE_ID" ]]; then
+    API_URL="${API_URL}/nodes?ids=${NODE_ID}"
+fi
+
+# Fetch from Figma API
+curl -sS -H "X-Figma-Token: ${FIGMA_TOKEN}" "$API_URL"

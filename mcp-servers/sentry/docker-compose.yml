@@ -1,0 +1,30 @@
+name: sentry-mcp
+
+services:
+  sentry-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sentry-mcp:latest
+    container_name: sentry-mcp-server
+    ports:
+      - "3005:3005"
+    environment:
+      - TRANSPORT_MODE=http
+      - PORT=3005
+      - SENTRY_API_TOKEN=${SENTRY_API_TOKEN}
+      - SENTRY_ORG=${SENTRY_ORG:-carefeed}
+      - DEBUG=${DEBUG:-false}
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3005/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  mcp-network:
+    external: true

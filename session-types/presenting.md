@@ -66,17 +66,38 @@ Then ask: "What would you like to present?" with options:
 4. Prepare demo notes
 5. Create status report
 
+## Available Agents
+
+**Delegate to agents** when preparing presentations requires gathering context.
+
+| Agent | Use For | Invocation |
+|-------|---------|------------|
+| **session-researcher** | Find work done, approaches used | "Use session-researcher to find what we did on the auth feature" |
+| **pr-reviewer** | Understand PR scope and changes | "Use pr-reviewer to analyze the changes in my branch" |
+| **confluence-reader** | Read existing docs to update | "Use confluence-reader to get the current API documentation" |
+| **jira-agent** | Find related tickets for linking | "Use jira-agent to find all tickets related to this feature" |
+
+**When to use agents vs direct tools:**
+- **Use agents** when: Gathering context from multiple sources, need comprehensive view
+- **Use direct tools** when: Reading local files, quick git commands, creating the final output
+
+**Presentation workflow with agents:**
+1. Use **session-researcher** to understand the full scope of work
+2. Direct tools for git log/diff
+3. Use **jira-agent** to find tickets to link
+4. Direct tools to create the PR/docs/report
+
 ## Common Workflows
 
 1. **Create Pull Request:**
-   - Read session notes for context
-   - Review commits and changes
+   - Use **session-researcher** to recall the full scope of work
+   - Review commits and changes (direct git)
+   - Use **jira-agent** to find tickets to link
    - Generate PR title and description
-   - Link to Jira tickets
    - Show PR before creating
 
 2. **Update Documentation:**
-   - Read current documentation
+   - Use **confluence-reader** to get current documentation
    - Identify sections to update
    - Draft new content
    - Show changes before saving

@@ -1,0 +1,343 @@
+#!/bin/bash
+# Claude Layer Management CLI
+# Manage configuration layers for Claude Code
+#
+# Usage: claude-layer <command> [args]
+
+set -e
+
+CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
+LAYERS_DIR="$CLAUDE_HOME/layers"
+MANIFEST_FILE="$LAYERS_DIR/.manifest"
+
+source "$CLAUDE_HOME/lib/core/layers.sh"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+usage() {
+    cat << 'EOF'
+Claude Layer Management
+
+Usage: claude-layer <command> [arguments]
+
+Commands:
+  add <git-url> [name]     Clone a layer from git repository
+  remove <name>            Remove a layer (deletes files)
+  activate <name>          Add layer to manifest (enable it)
+  deactivate <name>        Remove layer from manifest (disable without deleting)
+  list                     Show installed layers and their status
+  update [name]            Pull updates for layer(s)
+  sync                     Sync commands/hooks from layers into main dirs
+  info <name>              Show layer metadata
+
+Examples:
+  claude-layer add git@github.com:YourOrg/claude-config.git myteam
+  claude-layer add https://github.com/someone/claude-layer.git
+  claude-layer list
+  claude-layer update myteam
+  claude-layer sync
+
+Layer Structure:
+  A layer repository should contain:
+  ├── LAYER.md           # Required: Layer metadata
+  ├── commands/          # Slash commands (*.md)
+  ├── lib/               # Shell libraries
+  ├── hooks/             # Git/tool hooks
+  ├── session-types/     # Session type definitions
+  └── PREFERENCES.md     # Default preferences
+
+EOF
+}
+
+cmd_add() {
+    local git_url="$1"
+    local name="$2"
+
+    if [[ -z "$git_url" ]]; then
+        echo -e "${RED}Error: Git URL required${NC}"
+        echo "Usage: claude-layer add <git-url> [name]"
+        exit 1
+    fi
+
+    # Infer name from URL if not provided
+    if [[ -z "$name" ]]; then
+        name=$(basename "$git_url" .git | tr '[:upper:]' '[:lower:]')
+        # Clean up common suffixes
+        name=${name%-claude}
+        name=${name%-config}
+        name=${name#claude-}
+    fi
+
+    local layer_path="$LAYERS_DIR/$name"
+
+    if [[ -d "$layer_path" ]]; then
+        echo -e "${YELLOW}Layer '$name' already exists at $layer_path${NC}"
+        echo "Use 'claude-layer update $name' to pull updates"
+        echo "Or 'claude-layer remove $name' first to reinstall"
+        exit 1
+    fi
+
+    echo -e "${BLUE}Adding layer '$name' from $git_url${NC}"
+    mkdir -p "$LAYERS_DIR"
+
+    if git clone "$git_url" "$layer_path"; then
+        echo -e "${GREEN}Cloned successfully${NC}"
+
+        # Activate by default
+        layer_activate "$name"
+        echo -e "${GREEN}Layer '$name' activated${NC}"
+
+        # Show layer info if available
+        if [[ -f "$layer_path/LAYER.md" ]]; then
+            echo ""
+            echo -e "${BLUE}Layer Info:${NC}"
+            head -20 "$layer_path/LAYER.md" | grep -E '^(#|[a-zA-Z]+:)' | head -5
+        fi
+
+        # Run sync
+        echo ""
+        echo -e "${BLUE}Syncing commands and hooks...${NC}"
+        layer_sync
+
+        # Check for bootstrap script
+        if [[ -f "$layer_path/bootstrap.sh" ]]; then
+            echo ""
+            echo -e "${YELLOW}This layer has a bootstrap script.${NC}"
+            echo "Run it with: $layer_path/bootstrap.sh"
+        fi
+    else
+        echo -e "${RED}Failed to clone repository${NC}"
+        exit 1
+    fi
+}
+
+cmd_remove() {
+    local name="$1"
+
+    if [[ -z "$name" ]]; then
+        echo -e "${RED}Error: Layer name required${NC}"
+        echo "Usage: claude-layer remove <name>"
+        exit 1
+    fi
+
+    local layer_path="$LAYERS_DIR/$name"
+
+    if [[ ! -d "$layer_path" ]]; then
+        echo -e "${RED}Layer '$name' not found${NC}"
+        exit 1
+    fi
+
+    echo -e "${YELLOW}Removing layer '$name'...${NC}"
+
+    # Deactivate first
+    layer_deactivate "$name"
+
+    # Remove directory
+    rm -rf "$layer_path"
+
+    # Clean up symlinks
+    layer_cleanup_symlinks "$CLAUDE_HOME/commands" > /dev/null
+    layer_cleanup_symlinks "$CLAUDE_HOME/hooks" > /dev/null
+
+    echo -e "${GREEN}Layer '$name' removed${NC}"
+}
+
+cmd_activate() {
+    local name="$1"
+
+    if [[ -z "$name" ]]; then
+        echo -e "${RED}Error: Layer name required${NC}"
+        exit 1
+    fi
+
+    if ! layer_exists "$name"; then
+        echo -e "${RED}Layer '$name' not found${NC}"
+        echo "Use 'claude-layer add <url> $name' to install it first"
+        exit 1
+    fi
+
+    layer_activate "$name"
+    echo -e "${GREEN}Layer '$name' activated${NC}"
+
+    # Sync after activation
+    layer_sync
+}
+
+cmd_deactivate() {
+    local name="$1"
+
+    if [[ -z "$name" ]]; then
+        echo -e "${RED}Error: Layer name required${NC}"
+        exit 1
+    fi
+
+    layer_deactivate "$name"
+    echo -e "${GREEN}Layer '$name' deactivated${NC}"
+
+    # Clean up symlinks
+    layer_cleanup_symlinks "$CLAUDE_HOME/commands" > /dev/null
+    layer_cleanup_symlinks "$CLAUDE_HOME/hooks" > /dev/null
+}
+
+cmd_list() {
+    echo -e "${BLUE}Installed Layers:${NC}"
+    echo ""
+
+    local has_layers=false
+
+    for layer_dir in "$LAYERS_DIR"/*/; do
+        [[ -d "$layer_dir" ]] || continue
+        has_layers=true
+
+        local name=$(basename "$layer_dir")
+        local status="inactive"
+        local status_color="$YELLOW"
+
+        if layer_is_active "$name"; then
+            status="active"
+            status_color="$GREEN"
+        fi
+
+        local description=$(layer_meta "$name" "description" 2>/dev/null || echo "No description")
+        local url=$(cd "$layer_dir" && git remote get-url origin 2>/dev/null || echo "local")
+
+        printf "  ${status_color}%-12s${NC} [%s]\n" "$name" "$status"
+        printf "    %s\n" "$description"
+        printf "    ${BLUE}%s${NC}\n" "$url"
+        echo ""
+    done
+
+    if [[ "$has_layers" == "false" ]]; then
+        echo "  No layers installed."
+        echo ""
+        echo "  Add a layer with:"
+        echo "    claude-layer add <git-url> [name]"
+    fi
+}
+
+cmd_update() {
+    local name="$1"
+
+    if [[ -n "$name" ]]; then
+        # Update specific layer
+        local layer_path="$LAYERS_DIR/$name"
+        if [[ ! -d "$layer_path" ]]; then
+            echo -e "${RED}Layer '$name' not found${NC}"
+            exit 1
+        fi
+
+        echo -e "${BLUE}Updating layer '$name'...${NC}"
+        (cd "$layer_path" && git pull)
+        echo -e "${GREEN}Updated${NC}"
+    else
+        # Update all layers
+        echo -e "${BLUE}Updating all layers...${NC}"
+        for layer_dir in "$LAYERS_DIR"/*/; do
+            [[ -d "$layer_dir/.git" ]] || continue
+            local layer_name=$(basename "$layer_dir")
+            echo -e "  ${BLUE}$layer_name${NC}"
+            (cd "$layer_dir" && git pull --quiet)
+        done
+        echo -e "${GREEN}All layers updated${NC}"
+    fi
+
+    # Sync after update
+    echo ""
+    layer_sync
+}
+
+cmd_sync() {
+    echo -e "${BLUE}Syncing layers...${NC}"
+    layer_sync
+    echo -e "${GREEN}Done${NC}"
+}
+
+cmd_info() {
+    local name="$1"
+
+    if [[ -z "$name" ]]; then
+        echo -e "${RED}Error: Layer name required${NC}"
+        exit 1
+    fi
+
+    local layer_path="$LAYERS_DIR/$name"
+    if [[ ! -d "$layer_path" ]]; then
+        echo -e "${RED}Layer '$name' not found${NC}"
+        exit 1
+    fi
+
+    echo -e "${BLUE}Layer: $name${NC}"
+    echo ""
+
+    if [[ -f "$layer_path/LAYER.md" ]]; then
+        cat "$layer_path/LAYER.md"
+    else
+        echo "No LAYER.md found"
+    fi
+
+    echo ""
+    echo -e "${BLUE}Contents:${NC}"
+    for dir in commands lib hooks session-types; do
+        if [[ -d "$layer_path/$dir" ]]; then
+            local count=$(find "$layer_path/$dir" -type f 2>/dev/null | wc -l | tr -d ' ')
+            echo "  $dir/: $count files"
+        fi
+    done
+
+    echo ""
+    echo -e "${BLUE}Git Info:${NC}"
+    (cd "$layer_path" && git remote -v 2>/dev/null | head -1)
+    (cd "$layer_path" && echo "  Branch: $(git branch --show-current 2>/dev/null)")
+    (cd "$layer_path" && echo "  Last commit: $(git log -1 --format='%h %s' 2>/dev/null)")
+}
+
+# Main command dispatch
+case "${1:-}" in
+    add)
+        shift
+        cmd_add "$@"
+        ;;
+    remove|rm)
+        shift
+        cmd_remove "$@"
+        ;;
+    activate|enable)
+        shift
+        cmd_activate "$@"
+        ;;
+    deactivate|disable)
+        shift
+        cmd_deactivate "$@"
+        ;;
+    list|ls)
+        cmd_list
+        ;;
+    update|pull)
+        shift
+        cmd_update "$@"
+        ;;
+    sync)
+        cmd_sync
+        ;;
+    info|show)
+        shift
+        cmd_info "$@"
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+    "")
+        usage
+        ;;
+    *)
+        echo -e "${RED}Unknown command: $1${NC}"
+        echo ""
+        usage
+        exit 1
+        ;;
+esac

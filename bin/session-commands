@@ -1,0 +1,79 @@
+#!/bin/bash
+# Extract Bash commands from a Claude session transcript
+# Usage: session-commands <session-id-or-pattern> [grep-filter]
+#
+# Examples:
+#   session-commands 1a4e1696          # Find session by ID prefix
+#   session-commands 1a4e1696 magick   # Filter to magick commands only
+#   session-commands . composite       # Search all sessions for composite
+
+set -euo pipefail
+
+SESSION_PATTERN="${1:-}"
+FILTER="${2:-}"
+
+if [[ -z "$SESSION_PATTERN" ]]; then
+    echo "Usage: session-commands <session-id-or-pattern> [grep-filter]"
+    echo ""
+    echo "Examples:"
+    echo "  session-commands 1a4e1696          # Find session by ID prefix"
+    echo "  session-commands 1a4e1696 magick   # Filter to magick commands"
+    echo "  session-commands . composite       # Search all sessions"
+    exit 1
+fi
+
+PROJECTS_DIR="$HOME/.claude/projects"
+
+# Find matching session files
+if [[ "$SESSION_PATTERN" == "." ]]; then
+    # Search all sessions
+    FILES=$(find "$PROJECTS_DIR" -name "*.jsonl" -type f 2>/dev/null)
+else
+    # Find by session ID pattern
+    FILES=$(find "$PROJECTS_DIR" -name "*${SESSION_PATTERN}*.jsonl" -type f 2>/dev/null)
+fi
+
+if [[ -z "$FILES" ]]; then
+    echo "No sessions found matching: $SESSION_PATTERN"
+    exit 1
+fi
+
+# Extract commands
+extract_commands() {
+    local file="$1"
+    local session_id=$(basename "$file" .jsonl)
+
+    # Extract Bash tool commands
+    grep -o '"command":"[^"]*"' "$file" 2>/dev/null | \
+        sed 's/"command":"//; s/"$//' | \
+        while IFS= read -r cmd; do
+            # Decode escaped newlines for readability
+            echo "$cmd" | sed 's/\\n/\n/g'
+            echo "---"
+        done
+}
+
+echo "=== Session Commands ==="
+echo ""
+
+for file in $FILES; do
+    session_id=$(basename "$file" .jsonl)
+    project=$(basename "$(dirname "$file")")
+
+    if [[ -n "$FILTER" ]]; then
+        # Check if file contains filter term
+        if grep -q "$FILTER" "$file" 2>/dev/null; then
+            echo "📁 Session: $session_id"
+            echo "📂 Project: $project"
+            echo ""
+            extract_commands "$file" | grep -A5 "$FILTER" 2>/dev/null || true
+            echo ""
+        fi
+    else
+        echo "📁 Session: $session_id"
+        echo "📂 Project: $project"
+        echo ""
+        extract_commands "$file" | head -50
+        echo ""
+    fi
+done

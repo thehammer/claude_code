@@ -103,4 +103,52 @@ Once you've identified the session type:
 
 ---
 
+## ECS Production Safety Rules
+
+**CRITICAL**: When working with ECS connections via `/shell` or the ECS tooling:
+
+### Absolute Prohibitions
+
+1. **NEVER send commands to tmux panes connected to production systems**
+   - If you open a tmux pane with `/shell production ... pane`, you MUST NOT use `tmux send-keys` or any other mechanism to execute commands in that pane
+   - The user must manually type all commands in production shells
+   - This includes demo and canada environments - treat ALL remote ECS connections as production
+
+2. **NEVER execute `ecs_connect` directly**
+   - Only use `ecs_build_command` or `ecs_copy_command` to generate commands
+   - Let the user execute the connection command themselves
+
+3. **NEVER run destructive commands through ECS**
+   - No `migrate:fresh`, `db:wipe`, or similar destructive operations
+   - No bulk delete operations
+   - No cache clearing without explicit user request
+
+### Allowed Actions
+
+- Generate and display ECS connection commands
+- Copy commands to clipboard
+- Open a tmux pane that runs the connection (but never send additional commands)
+- Provide instructions for what the user should run manually
+
+### When User Asks You to Run Something in Production
+
+If the user asks you to "run this in production" or similar:
+
+1. **Generate the command** they need
+2. **Copy it to clipboard** if requested
+3. **Explain what it does** and any risks
+4. **Tell them to execute it manually**
+5. **REFUSE to execute it yourself** in any remote shell
+
+Example response:
+```
+I've copied the command to your clipboard. Please paste and run it manually in the production shell:
+
+php artisan cache:clear
+
+I cannot execute commands in production environments for safety reasons.
+```
+
+---
+
 **This file is automatically read by Claude Code on every message.**

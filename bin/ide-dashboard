@@ -1,0 +1,692 @@
+#!/bin/bash
+# IDE Dashboard - Command Center for Claude Code Sessions
+#
+# Features:
+# - Real-time view of all active sessions
+# - Highlight sessions waiting for input
+# - Quick jump to any session
+# - Spawn new sessions
+# - Auto-refresh
+#
+# Usage: ide-dashboard [--once]
+#   --once: Show once and exit (no auto-refresh)
+
+set -e
+
+source "$HOME/.claude/lib/core/ide.sh"
+source "$HOME/.claude/lib/core/locks.sh" 2>/dev/null || true
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[0;37m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m' # No Color
+
+# Dashboard state
+REFRESH_INTERVAL=5
+ONE_SHOT=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --once|-1)
+            ONE_SHOT=true
+            shift
+            ;;
+        --interval|-i)
+            REFRESH_INTERVAL="$2"
+            shift 2
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+# Get terminal dimensions
+get_dimensions() {
+    TERM_COLS=$(tput cols)
+    TERM_ROWS=$(tput lines)
+}
+
+# Clear screen and move cursor to top
+clear_screen() {
+    printf '\033[2J\033[H'
+}
+
+# Draw a horizontal line
+draw_line() {
+    local char="${1:-─}"
+    local width="${2:-$TERM_COLS}"
+    printf '%*s' "$width" '' | tr ' ' "$char"
+}
+
+# Get status color
+get_status_color() {
+    local status="$1"
+    case "$status" in
+        running) echo -e "${GREEN}" ;;
+        waiting) echo -e "${RED}${BOLD}" ;;
+        idle)    echo -e "${DIM}" ;;
+        *)       echo -e "${NC}" ;;
+    esac
+}
+
+# Get status icon
+get_status_icon() {
+    local status="$1"
+    case "$status" in
+        running) echo "🟢" ;;
+        waiting) echo "🔴" ;;
+        idle)    echo "💤" ;;
+        *)       echo "⚪" ;;
+    esac
+}
+
+# Get type icon
+get_type_icon() {
+    local type="$1"
+    case "$type" in
+        coding)     echo "💻" ;;
+        debugging)  echo "🐛" ;;
+        analysis)   echo "🔍" ;;
+        planning)   echo "📋" ;;
+        presenting) echo "📊" ;;
+        learning)   echo "📚" ;;
+        personal)   echo "🏠" ;;
+        clauding)   echo "🔧" ;;
+        reviewing)  echo "👀" ;;
+        commander)  echo "🎛️" ;;
+        *)          echo "📝" ;;
+    esac
+}
+
+# Draw header
+draw_header() {
+    local now=$(date "+%Y-%m-%d %H:%M:%S")
+    local session_count=$(ide_count_sessions)
+
+    echo -e "${BOLD}${CYAN}"
+    echo "╔══════════════════════════════════════════════════════════════════════════════╗"
+    printf "║  ${WHITE}CLAUDE CODE COMMAND CENTER${CYAN}                                    ${DIM}%s${NC}${CYAN}  ║\n" "$now"
+    echo "╠══════════════════════════════════════════════════════════════════════════════╣"
+    echo -e "${NC}"
+}
+
+# Draw session table
+draw_sessions() {
+    local sessions_json=$(ide_list_sessions json)
+    local session_count=$(echo "$sessions_json" | jq 'length')
+
+    if [[ "$session_count" == "0" ]]; then
+        echo -e "${DIM}  No active sessions${NC}"
+        echo ""
+        echo -e "  ${CYAN}Press 'n' to spawn a new session${NC}"
+        return
+    fi
+
+    # Table header
+    printf "${BOLD}  %-3s │ %-2s │ %-9s │ %-24s │ %-18s │ %-8s │ %s${NC}\n" \
+        "#" "" "Type" "Project" "Branch" "Status" "Win"
+    echo -e "  ${DIM}────┼────┼───────────┼──────────────────────────┼────────────────────┼──────────┼─────${NC}"
+
+    # Session rows
+    local index=1
+    echo "$sessions_json" | jq -r '.[] | [
+        .id,
+        .type,
+        .project,
+        (if .branch == "" or .branch == null then "-" else .branch end),
+        .status,
+        (.tmux_window // "-")
+    ] | join("|")' | \
+    while IFS='|' read -r id type project branch status window; do
+        local type_icon=$(get_type_icon "$type")
+        local status_icon=$(get_status_icon "$status")
+        local status_color=$(get_status_color "$status")
+
+        # Truncate project to last component
+        local project_short=$(basename "$project")
+        [[ ${#project_short} -gt 24 ]] && project_short="${project_short:0:21}..."
+
+        # Truncate branch if needed
+        [[ ${#branch} -gt 18 ]] && branch="${branch:0:15}..."
+
+        printf "  ${CYAN}%-3s${NC} │ %s │ %-9s │ %-24s │ %-18s │ ${status_color}%s %-7s${NC} │ %s\n" \
+            "$index" "$type_icon" "$type" "$project_short" "$branch" "$status_icon" "$status" "$window"
+
+        ((index++))
+    done
+}
+
+# Draw locks section
+draw_locks() {
+    # Check if lock functions exist
+    type lock_list &>/dev/null || return
+
+    local locks_json=$(lock_list json 2>/dev/null || echo "[]")
+    local lock_count=$(echo "$locks_json" | jq 'length')
+
+    if [[ "$lock_count" == "0" || "$lock_count" == "" ]]; then
+        return
+    fi
+
+    echo ""
+    echo -e "${BOLD}${YELLOW}  🔒 Active Locks ($lock_count)${NC}"
+    echo -e "  ${DIM}────────────────────────────────────────────────────────────────${NC}"
+
+    echo "$locks_json" | jq -r '.[] | [
+        .lock_name,
+        .session_id,
+        (.tmux_window // "-"),
+        (.description // "-")
+    ] | join("|")' | \
+    while IFS='|' read -r name session window desc; do
+        # Truncate if needed
+        [[ ${#name} -gt 25 ]] && name="${name:0:22}..."
+        [[ ${#desc} -gt 30 ]] && desc="${desc:0:27}..."
+
+        printf "  ${YELLOW}🔐${NC} %-25s │ win %-3s │ %s\n" "$name" "$window" "$desc"
+    done
+}
+
+# Draw footer with commands
+draw_footer() {
+    local waiting_count=$(ide_get_waiting_sessions | jq 'length' 2>/dev/null || echo "0")
+
+    echo ""
+    echo -e "${DIM}──────────────────────────────────────────────────────────────────────────────────${NC}"
+
+    # Show waiting indicator if any sessions are waiting
+    if [[ "$waiting_count" -gt 0 ]]; then
+        echo -e "  ${RED}${BOLD}🔴 $waiting_count session(s) waiting for input - press [w] to jump${NC}"
+    fi
+
+    echo -e "  ${CYAN}[1-9]${NC} jump  ${CYAN}[n]${NC}ew  ${CYAN}[s]${NC}ession info  ${CYAN}[k]${NC}ill  ${CYAN}[m]${NC}ark status  ${CYAN}[w]${NC}aiting  ${CYAN}[h]${NC}istory  ${CYAN}[c]${NC}leanup  ${CYAN}[q]${NC}uit"
+    echo ""
+}
+
+# Draw the full dashboard
+draw_dashboard() {
+    get_dimensions
+    clear_screen
+    draw_header
+    draw_sessions
+    draw_locks
+    draw_footer
+}
+
+# Jump to a session by number
+jump_to_session() {
+    local num="$1"
+    local sessions_json=$(ide_list_sessions json)
+    local session=$(echo "$sessions_json" | jq -r ".[$((num-1))]")
+
+    if [[ "$session" == "null" ]]; then
+        echo "Invalid session number"
+        sleep 1
+        return
+    fi
+
+    local window=$(echo "$session" | jq -r '.tmux_window')
+    local tmux_session=$(echo "$session" | jq -r '.tmux_session')
+
+    if [[ -n "$window" && "$window" != "null" ]]; then
+        # Switch to the window
+        if [[ -n "$tmux_session" && "$tmux_session" != "null" ]]; then
+            tmux select-window -t "${tmux_session}:${window}"
+        else
+            tmux select-window -t "$window"
+        fi
+    fi
+}
+
+# Get list of recent/common project directories
+get_project_list() {
+    local projects=()
+
+    # Add common project directories
+    [[ -d "$HOME/code" ]] && for d in "$HOME/code"/*; do [[ -d "$d/.git" ]] && projects+=("$d"); done
+    [[ -d "$HOME/projects" ]] && for d in "$HOME/projects"/*; do [[ -d "$d/.git" ]] && projects+=("$d"); done
+    [[ -d "$HOME/sandbox" ]] && projects+=("$HOME/sandbox")
+    [[ -d "$HOME/.claude" ]] && projects+=("$HOME/.claude")
+
+    # Add projects from recent session history (last 20 unique)
+    if [[ -f "$HOME/.claude/ide/history.jsonl" ]]; then
+        local hist_projects=$(tail -n 50 "$HOME/.claude/ide/history.jsonl" | jq -r '.project' 2>/dev/null | sort -u | head -20)
+        while IFS= read -r p; do
+            [[ -d "$p" ]] && projects+=("$p")
+        done <<< "$hist_projects"
+    fi
+
+    # Remove duplicates and sort
+    printf '%s\n' "${projects[@]}" | sort -u
+}
+
+# Get branches for a project
+get_branch_list() {
+    local project_dir="$1"
+    if [[ -d "$project_dir/.git" ]]; then
+        (cd "$project_dir" && git branch --format='%(refname:short)' 2>/dev/null | head -20)
+    fi
+}
+
+# Project picker with fzf or manual selection
+pick_project() {
+    local projects=$(get_project_list)
+    local project_count=$(echo "$projects" | grep -c .)
+
+    # Try fzf if available
+    if command -v fzf &>/dev/null && [[ "$project_count" -gt 0 ]]; then
+        local selected=$(echo "$projects" | fzf --height=15 --reverse --header="Select project (or type path):" --print-query | tail -1)
+        if [[ -n "$selected" ]]; then
+            echo "$selected"
+            return
+        fi
+    fi
+
+    # Fallback to numbered list
+    if [[ "$project_count" -gt 0 ]]; then
+        echo -e "\n${CYAN}Recent Projects:${NC}"
+        local i=1
+        while IFS= read -r p; do
+            local short=$(basename "$p")
+            printf "  ${CYAN}%d)${NC} %s\n" "$i" "$short"
+            ((i++))
+            [[ $i -gt 8 ]] && break
+        done <<< "$projects"
+        echo ""
+    fi
+
+    echo -n "  Enter path or number (Enter for ~/sandbox): "
+    read choice
+
+    if [[ -z "$choice" ]]; then
+        echo "$HOME/sandbox"
+    elif [[ "$choice" =~ ^[0-9]+$ ]]; then
+        echo "$projects" | sed -n "${choice}p"
+    else
+        # Expand ~ in path
+        echo "${choice/#\~/$HOME}"
+    fi
+}
+
+# Branch picker with fzf or manual selection
+pick_branch() {
+    local project_dir="$1"
+    local branches=$(get_branch_list "$project_dir")
+    local branch_count=$(echo "$branches" | grep -c . 2>/dev/null || echo 0)
+
+    if [[ "$branch_count" -eq 0 ]]; then
+        return
+    fi
+
+    # Try fzf if available
+    if command -v fzf &>/dev/null; then
+        local selected=$(echo "$branches" | fzf --height=10 --reverse --header="Select branch (Enter for current):" --print-query | tail -1)
+        if [[ -n "$selected" && "$selected" != "$(cd "$project_dir" && git branch --show-current 2>/dev/null)" ]]; then
+            echo "$selected"
+        fi
+        return
+    fi
+
+    # Fallback to numbered list
+    local current_branch=$(cd "$project_dir" && git branch --show-current 2>/dev/null)
+    echo -e "\n${CYAN}Branches (current: $current_branch):${NC}"
+    local i=1
+    while IFS= read -r b; do
+        local marker=""
+        [[ "$b" == "$current_branch" ]] && marker=" ${GREEN}*${NC}"
+        printf "  ${CYAN}%d)${NC} %s%s\n" "$i" "$b" "$marker"
+        ((i++))
+        [[ $i -gt 6 ]] && break
+    done <<< "$branches"
+    echo ""
+
+    echo -n "  Enter branch number or name (Enter for current): "
+    read choice
+
+    if [[ -z "$choice" ]]; then
+        return
+    elif [[ "$choice" =~ ^[0-9]+$ ]]; then
+        echo "$branches" | sed -n "${choice}p"
+    else
+        echo "$choice"
+    fi
+}
+
+# Spawn new session menu
+spawn_session_menu() {
+    clear_screen
+    echo -e "${BOLD}${CYAN}━━━ Spawn New Session ━━━${NC}"
+    echo ""
+    echo "  1) 💻 coding     - Build features, fix bugs"
+    echo "  2) 🐛 debugging  - Investigate errors"
+    echo "  3) 🔍 analysis   - Understand codebase"
+    echo "  4) 📋 planning   - Task prioritization"
+    echo "  5) 👀 reviewing  - Review pull requests"
+    echo "  6) 🔧 clauding   - Improve Claude config"
+    echo "  7) 📚 learning   - Learning and experiments"
+    echo "  8) 🏠 personal   - Side projects"
+    echo ""
+    echo -n "  Select type (1-8) or 'c' to cancel: "
+
+    read -n1 choice
+    echo ""
+
+    local session_type=""
+    case "$choice" in
+        1) session_type="coding" ;;
+        2) session_type="debugging" ;;
+        3) session_type="analysis" ;;
+        4) session_type="planning" ;;
+        5) session_type="reviewing" ;;
+        6) session_type="clauding" ;;
+        7) session_type="learning" ;;
+        8) session_type="personal" ;;
+        c|C) return ;;
+        *) echo "  Invalid choice"; sleep 1; return ;;
+    esac
+
+    # For clauding, always use ~/.claude
+    local project_dir=""
+    local branch=""
+
+    if [[ "$session_type" == "clauding" ]]; then
+        project_dir="$HOME/.claude"
+    else
+        # Pick project
+        project_dir=$(pick_project)
+        if [[ -z "$project_dir" || ! -d "$project_dir" ]]; then
+            echo "  Invalid directory"
+            sleep 1
+            return
+        fi
+
+        # Pick branch (optional)
+        branch=$(pick_branch "$project_dir")
+    fi
+
+    echo ""
+    echo -n "  Description (optional): "
+    read description
+
+    echo ""
+    echo -e "  ${GREEN}Spawning $session_type session...${NC}"
+
+    # If branch specified and different from current, switch or create worktree
+    if [[ -n "$branch" ]]; then
+        local current_branch=$(cd "$project_dir" && git branch --show-current 2>/dev/null)
+        if [[ "$branch" != "$current_branch" ]]; then
+            echo "  Switching to branch: $branch"
+            (cd "$project_dir" && git checkout "$branch" 2>/dev/null) || true
+        fi
+    fi
+
+    # Use tmux to create new window and start Claude
+    source "$HOME/.claude/lib/local/tmux.sh"
+    tmux_create_session_layout "$session_type" "$description" "" "$project_dir"
+
+    echo "  Session spawned!"
+    sleep 1
+}
+
+# Show session details
+show_session_details() {
+    local num="$1"
+    local sessions_json=$(ide_list_sessions json)
+    local session=$(echo "$sessions_json" | jq -r ".[$((num-1))]")
+
+    if [[ "$session" == "null" ]]; then
+        echo "Invalid session number"
+        sleep 1
+        return
+    fi
+
+    clear_screen
+    echo -e "${BOLD}${CYAN}━━━ Session Details ━━━${NC}"
+    echo ""
+
+    local id=$(echo "$session" | jq -r '.id')
+    local type=$(echo "$session" | jq -r '.type')
+    local project=$(echo "$session" | jq -r '.project')
+    local branch=$(echo "$session" | jq -r '.branch // "-"')
+    local status=$(echo "$session" | jq -r '.status')
+    local desc=$(echo "$session" | jq -r '.description // "-"')
+    local started=$(echo "$session" | jq -r '.started_at')
+    local updated=$(echo "$session" | jq -r '.updated_at')
+    local window=$(echo "$session" | jq -r '.tmux_window // "-"')
+    local pane=$(echo "$session" | jq -r '.tmux_pane // "-"')
+
+    local type_icon=$(get_type_icon "$type")
+    local status_icon=$(get_status_icon "$status")
+
+    echo -e "  ${BOLD}Session ID:${NC}  $id"
+    echo -e "  ${BOLD}Type:${NC}        $type_icon $type"
+    echo -e "  ${BOLD}Project:${NC}     $project"
+    echo -e "  ${BOLD}Branch:${NC}      $branch"
+    echo -e "  ${BOLD}Status:${NC}      $status_icon $status"
+    echo -e "  ${BOLD}Description:${NC} $desc"
+    echo ""
+    echo -e "  ${BOLD}Window:${NC}      $window"
+    echo -e "  ${BOLD}Pane:${NC}        $pane"
+    echo -e "  ${BOLD}Started:${NC}     $started"
+    echo -e "  ${BOLD}Updated:${NC}     $updated"
+    echo ""
+
+    # Check for locks held by this session
+    local locks=$(lock_list json 2>/dev/null | jq --arg id "$id" '[.[] | select(.session_id == $id)]' 2>/dev/null)
+    local lock_count=$(echo "$locks" | jq 'length' 2>/dev/null || echo "0")
+    if [[ "$lock_count" -gt 0 ]]; then
+        echo -e "  ${YELLOW}🔒 Locks held:${NC}"
+        echo "$locks" | jq -r '.[] | "    - \(.lock_name)"' 2>/dev/null
+        echo ""
+    fi
+
+    echo -e "${DIM}Press any key to return...${NC}"
+    read -n1
+}
+
+# Kill a session
+kill_session_menu() {
+    local num="$1"
+    local sessions_json=$(ide_list_sessions json)
+    local session=$(echo "$sessions_json" | jq -r ".[$((num-1))]")
+
+    if [[ "$session" == "null" ]]; then
+        echo "Invalid session number"
+        sleep 1
+        return
+    fi
+
+    local id=$(echo "$session" | jq -r '.id')
+    local type=$(echo "$session" | jq -r '.type')
+    local project=$(basename "$(echo "$session" | jq -r '.project')")
+    local pane=$(echo "$session" | jq -r '.tmux_pane // ""')
+
+    clear_screen
+    echo -e "${BOLD}${RED}━━━ Kill Session ━━━${NC}"
+    echo ""
+    echo -e "  Session: ${CYAN}$id${NC}"
+    echo -e "  Type:    $(get_type_icon "$type") $type"
+    echo -e "  Project: $project"
+    echo ""
+    echo -e "  ${YELLOW}⚠️  This will:${NC}"
+    echo "    - Kill the Claude process in this session"
+    echo "    - Remove session from registry"
+    echo "    - Release any locks held"
+    echo ""
+    echo -n "  Are you sure? (y/N): "
+
+    read -n1 confirm
+    echo ""
+
+    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+        echo "  Cancelled"
+        sleep 1
+        return
+    fi
+
+    # Kill the tmux pane if it exists
+    if [[ -n "$pane" && "$pane" != "null" ]]; then
+        echo "  Killing pane $pane..."
+        tmux kill-pane -t "$pane" 2>/dev/null || true
+    fi
+
+    # Deregister the session (this also releases locks)
+    echo "  Deregistering session..."
+    ide_deregister_session "$id" 2>/dev/null || true
+
+    # Clean up any locks held by this session
+    if type lock_list &>/dev/null; then
+        local locks=$(lock_list json 2>/dev/null | jq -r --arg id "$id" '.[] | select(.session_id == $id) | .lock_name' 2>/dev/null)
+        if [[ -n "$locks" ]]; then
+            while IFS= read -r lock_name; do
+                echo "  Releasing lock: $lock_name"
+                lock_release "$lock_name" "true" 2>/dev/null || true
+            done <<< "$locks"
+        fi
+    fi
+
+    echo -e "  ${GREEN}Session killed${NC}"
+    sleep 1
+}
+
+# Main interactive loop
+main_interactive() {
+    # Cleanup stale sessions and locks on start
+    ide_cleanup_stale_sessions > /dev/null 2>&1
+    lock_cleanup_stale > /dev/null 2>&1 || true
+
+    while true; do
+        draw_dashboard
+
+        if $ONE_SHOT; then
+            exit 0
+        fi
+
+        # Wait for input with timeout for refresh
+        if read -t "$REFRESH_INTERVAL" -n1 key; then
+            case "$key" in
+                q|Q)
+                    clear_screen
+                    exit 0
+                    ;;
+                r|R)
+                    # Manual refresh - just continue loop
+                    ;;
+                c|C)
+                    # Cleanup stale sessions and locks
+                    echo ""
+                    ide_cleanup_stale_sessions
+                    lock_cleanup_stale 2>/dev/null || true
+                    sleep 1
+                    ;;
+                n|N)
+                    spawn_session_menu
+                    ;;
+                s|S)
+                    # Show session details
+                    echo -n " Session #: "
+                    read -n1 num
+                    if [[ "$num" =~ ^[0-9]+$ ]]; then
+                        show_session_details "$num"
+                    fi
+                    ;;
+                k|K)
+                    # Kill session
+                    echo -n " Kill session #: "
+                    read -n1 num
+                    if [[ "$num" =~ ^[0-9]+$ ]]; then
+                        kill_session_menu "$num"
+                    fi
+                    ;;
+                m|M)
+                    # Mark session status
+                    echo -n " Mark session #: "
+                    read -n1 num
+                    echo ""
+                    if [[ "$num" =~ ^[0-9]+$ ]]; then
+                        local sessions_json=$(ide_list_sessions json)
+                        local session=$(echo "$sessions_json" | jq -r ".[$((num-1))]")
+                        if [[ "$session" != "null" ]]; then
+                            local id=$(echo "$session" | jq -r '.id')
+                            local current_status=$(echo "$session" | jq -r '.status')
+                            echo ""
+                            echo -e "  Current status: ${CYAN}$current_status${NC}"
+                            echo "  1) 🟢 running"
+                            echo "  2) 🔴 waiting"
+                            echo "  3) 💤 idle"
+                            echo -n "  New status (1-3): "
+                            read -n1 status_choice
+                            echo ""
+                            local new_status=""
+                            case "$status_choice" in
+                                1) new_status="running" ;;
+                                2) new_status="waiting" ;;
+                                3) new_status="idle" ;;
+                                *) echo "  Invalid choice"; sleep 1; continue ;;
+                            esac
+                            ide_update_status "$new_status" "$id"
+                            echo -e "  ${GREEN}Status updated to $new_status${NC}"
+                            sleep 1
+                        fi
+                    fi
+                    ;;
+                w|W)
+                    # Jump to first waiting session
+                    local waiting=$(ide_get_waiting_sessions | jq -r '.[0]' 2>/dev/null)
+                    if [[ "$waiting" != "null" && -n "$waiting" ]]; then
+                        local window=$(echo "$waiting" | jq -r '.tmux_window')
+                        local tmux_session=$(echo "$waiting" | jq -r '.tmux_session')
+                        if [[ -n "$window" && "$window" != "null" ]]; then
+                            if [[ -n "$tmux_session" && "$tmux_session" != "null" ]]; then
+                                tmux select-window -t "${tmux_session}:${window}"
+                            else
+                                tmux select-window -t "$window"
+                            fi
+                        fi
+                    else
+                        echo -e "\n  ${DIM}No sessions waiting${NC}"
+                        sleep 1
+                    fi
+                    ;;
+                h|H)
+                    # Show history
+                    clear_screen
+                    echo -e "${BOLD}${CYAN}Recent Session History${NC}"
+                    echo ""
+                    ide_get_history 15 table
+                    echo ""
+                    echo -e "${DIM}Press any key to return...${NC}"
+                    read -n1
+                    ;;
+                j|J)
+                    echo -n " Session #: "
+                    read -n1 num
+                    if [[ "$num" =~ ^[0-9]+$ ]]; then
+                        jump_to_session "$num"
+                    fi
+                    ;;
+                [1-9])
+                    # Quick jump - number key goes directly to session
+                    jump_to_session "$key"
+                    ;;
+            esac
+        fi
+        # Timeout - auto refresh
+    done
+}
+
+# Check if running in tmux
+if [[ -z "$TMUX" ]]; then
+    echo "Warning: Not running in tmux. Some features may not work."
+fi
+
+main_interactive

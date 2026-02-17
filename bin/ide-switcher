@@ -1,0 +1,159 @@
+#!/bin/bash
+# IDE Quick Session Switcher
+# Designed to run in a tmux popup for fast session switching
+#
+# Usage:
+#   Direct: ide-switcher
+#   Popup:  tmux display-popup -w 50% -h 50% -E "~/.claude/bin/ide-switcher"
+#
+# Keybinding suggestion (add to .tmux.conf):
+#   bind-key Space display-popup -w 50% -h 50% -E "~/.claude/bin/ide-switcher"
+
+source "$HOME/.claude/lib/core/ide.sh"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m'
+
+# Get sessions
+sessions_json=$(ide_list_sessions json)
+session_count=$(echo "$sessions_json" | jq 'length')
+
+# Header
+echo -e "${BOLD}${CYAN}━━━ Quick Switch ━━━${NC}"
+echo ""
+
+if [[ "$session_count" == "0" ]]; then
+    echo -e "${DIM}  No active sessions${NC}"
+    echo ""
+    echo -e "  Press any key to close..."
+    read -n1
+    exit 0
+fi
+
+# Get type icon
+get_icon() {
+    case "$1" in
+        coding)     echo "💻" ;;
+        debugging)  echo "🐛" ;;
+        analysis)   echo "🔍" ;;
+        planning)   echo "📋" ;;
+        presenting) echo "📊" ;;
+        learning)   echo "📚" ;;
+        personal)   echo "🏠" ;;
+        clauding)   echo "🔧" ;;
+        reviewing)  echo "👀" ;;
+        commander)  echo "🎛️" ;;
+        *)          echo "📝" ;;
+    esac
+}
+
+# Get status indicator
+get_status() {
+    case "$1" in
+        running) echo "${GREEN}●${NC}" ;;
+        waiting) echo "${RED}${BOLD}●${NC}" ;;
+        idle)    echo "${DIM}●${NC}" ;;
+        *)       echo "○" ;;
+    esac
+}
+
+# Build session list for display
+declare -a session_lines
+declare -a session_windows
+declare -a session_tmux_sessions
+
+index=1
+while IFS='|' read -r id type project branch status window tmux_sess; do
+    icon=$(get_icon "$type")
+    status_dot=$(get_status "$status")
+    project_short=$(basename "$project")
+    [[ ${#project_short} -gt 20 ]] && project_short="${project_short:0:17}..."
+
+    # Format branch
+    branch_display=""
+    if [[ -n "$branch" && "$branch" != "-" && "$branch" != "null" ]]; then
+        [[ ${#branch} -gt 15 ]] && branch="${branch:0:12}..."
+        branch_display="${DIM}[$branch]${NC}"
+    fi
+
+    # Highlight waiting sessions
+    if [[ "$status" == "waiting" ]]; then
+        line="  ${CYAN}${BOLD}$index${NC}  $status_dot $icon ${BOLD}$project_short${NC} $branch_display"
+    else
+        line="  ${CYAN}$index${NC}  $status_dot $icon $project_short $branch_display"
+    fi
+
+    session_lines+=("$line")
+    session_windows+=("$window")
+    session_tmux_sessions+=("$tmux_sess")
+    ((index++))
+done < <(echo "$sessions_json" | jq -r '.[] | [
+    .id,
+    .type,
+    .project,
+    (if .branch == "" or .branch == null then "-" else .branch end),
+    .status,
+    (.tmux_window // "-"),
+    (.tmux_session // "-")
+] | join("|")')
+
+# Display sessions
+for line in "${session_lines[@]}"; do
+    echo -e "$line"
+done
+
+echo ""
+echo -e "${DIM}  [1-9] switch  [w] first waiting  [q] cancel${NC}"
+echo ""
+echo -n "  > "
+
+# Read single keypress
+read -n1 key
+
+case "$key" in
+    q|Q|$'\e')  # q or Escape
+        exit 0
+        ;;
+    w|W)
+        # Jump to first waiting session
+        waiting_idx=""
+        for i in "${!session_lines[@]}"; do
+            status=$(echo "$sessions_json" | jq -r ".[$i].status")
+            if [[ "$status" == "waiting" ]]; then
+                waiting_idx=$i
+                break
+            fi
+        done
+        if [[ -n "$waiting_idx" ]]; then
+            window="${session_windows[$waiting_idx]}"
+            tmux_sess="${session_tmux_sessions[$waiting_idx]}"
+            if [[ -n "$window" && "$window" != "-" ]]; then
+                if [[ -n "$tmux_sess" && "$tmux_sess" != "-" ]]; then
+                    tmux select-window -t "${tmux_sess}:${window}"
+                else
+                    tmux select-window -t "$window"
+                fi
+            fi
+        fi
+        ;;
+    [1-9])
+        idx=$((key - 1))
+        if [[ $idx -lt ${#session_windows[@]} ]]; then
+            window="${session_windows[$idx]}"
+            tmux_sess="${session_tmux_sessions[$idx]}"
+            if [[ -n "$window" && "$window" != "-" ]]; then
+                if [[ -n "$tmux_sess" && "$tmux_sess" != "-" ]]; then
+                    tmux select-window -t "${tmux_sess}:${window}"
+                else
+                    tmux select-window -t "$window"
+                fi
+            fi
+        fi
+        ;;
+esac

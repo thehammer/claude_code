@@ -1,0 +1,52 @@
+#!/bin/bash
+# Search all Claude sessions for a command pattern
+# Usage: search-session-commands <pattern>
+#
+# Examples:
+#   search-session-commands magick
+#   search-session-commands "git rebase"
+#   search-session-commands docker
+
+set -euo pipefail
+
+PATTERN="${1:-}"
+
+if [[ -z "$PATTERN" ]]; then
+    echo "Usage: search-session-commands <pattern>"
+    echo ""
+    echo "Searches all Claude session transcripts for Bash commands matching pattern."
+    exit 1
+fi
+
+PROJECTS_DIR="$HOME/.claude/projects"
+
+echo "Searching for commands matching: $PATTERN"
+echo "==========================================="
+echo ""
+
+# Find all sessions containing the pattern in a command
+grep -l "\"command\":\"[^\"]*${PATTERN}" "$PROJECTS_DIR"/*/*.jsonl 2>/dev/null | while read -r file; do
+    session_id=$(basename "$file" .jsonl)
+    project=$(basename "$(dirname "$file")" | sed 's/^-//' | sed 's/-/\//g')
+
+    # Get session date from file modification time
+    mod_date=$(stat -f "%Sm" -t "%Y-%m-%d" "$file" 2>/dev/null || date -r "$file" "+%Y-%m-%d" 2>/dev/null || echo "unknown")
+
+    echo "📁 Session: $session_id"
+    echo "📂 Project: $project"
+    echo "📅 Date: $mod_date"
+    echo ""
+
+    # Extract matching commands
+    grep -o "\"command\":\"[^\"]*${PATTERN}[^\"]*\"" "$file" 2>/dev/null | \
+        sed 's/"command":"//; s/"$//' | \
+        head -5 | \
+        while IFS= read -r cmd; do
+            # Show first line of command (often has comment)
+            echo "  $(echo "$cmd" | sed 's/\\n.*//')"
+        done
+
+    echo ""
+    echo "---"
+    echo ""
+done

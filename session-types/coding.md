@@ -80,6 +80,29 @@ Users can manually load context:
 - `/todos` - TODO items
 - `/full-context` - Load everything
 
+## Available Agents
+
+**Delegate to agents** for context-heavy operations. Agents run in isolated context and return summaries, keeping the main conversation lean and preserving tokens for actual work.
+
+| Agent | Use For | Invocation |
+|-------|---------|------------|
+| **codebase-explainer** | Understand how code works before modifying | "Use codebase-explainer to explain how the payment flow works" |
+| **git-historian** | Find when/why something changed | "Use git-historian to find when the auth logic changed" |
+| **test-writer** | Generate tests for new code | "Use test-writer to create tests for this service" |
+| **laravel-expert** | Debug Laravel issues, find patterns | "Use laravel-expert to help with this Eloquent query" |
+| **jira-agent** | Find related tickets, context | "Use jira-agent to find tickets about this feature" |
+| **session-researcher** | Find how we did something before | "Use session-researcher to find how we set up caching" |
+
+**When to use agents vs direct tools:**
+- **Use agents** when: Understanding unfamiliar code, exploring large areas, generating multiple tests
+- **Use direct tools** when: Quick file reads, simple edits, you know exactly what you need
+
+**Recommended patterns:**
+- Before modifying unfamiliar code → **codebase-explainer**
+- After implementing feature → **test-writer**
+- Debugging framework issues → **laravel-expert**
+- Finding past approaches → **session-researcher**
+
 ## Integrations
 
 ### Always Available (No Loading Needed)

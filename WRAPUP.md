@@ -58,3 +58,25 @@ Include PR status in session notes.
 
 **Commit Config Changes:**
 - For clauding sessions, commit changes to `~/.claude` repository as needed
+
+---
+
+## Final Step: Release Locks and Deregister Session
+
+**Always run at the end of wrapup:**
+
+1. **Release any workspace locks:**
+```bash
+source ~/.claude/lib/core/locks.sh
+PROJECT_NAME="$(basename "$(pwd)")"
+lock_release "${PROJECT_NAME}:workspace" 2>/dev/null || true
+```
+
+2. **Deregister from IDE:**
+```bash
+~/.claude/bin/ide deregister
+```
+
+This releases workspace locks and removes the session from the IDE registry, keeping the dashboard accurate and allowing other sessions to modify files.
+
+**Note:** If the tmux window is closed without running wrapup, the session will be cleaned up automatically by `ide cleanup` (run periodically or on dashboard load).

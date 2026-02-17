@@ -89,6 +89,12 @@
   - **Show ticket details** before creating for confirmation
   - **After creation**: Use the ticket key for branch/commit/PR
 - **Creating PRs**: Always use API access (Bitbucket API via `bitbucket_create_pr` or similar) instead of opening browser, unless API fails
+- **Worktree workflow**: When creating branches for feature work:
+  - Use git worktrees to isolate work (keeps main repo clean, enables parallel work)
+  - Worktrees are created as sibling directories: `project-branchname/`
+  - Use `/branch <name>` command to create branch + worktree together
+  - Helper functions available in `~/.claude/lib/core/worktree.sh`
+  - After creating worktree, user needs to `cd` to it or open new terminal
 
 ### Remote-Changing Operations
 - **ALWAYS confirm before executing** operations that modify remote systems
@@ -107,6 +113,18 @@
 - Mark todos as in_progress before starting work
 - Mark completed immediately after finishing (don't batch)
 - One task in_progress at a time
+
+### Workspace Lock Management
+When multiple Claude sessions may work in the same project:
+- **Lock is auto-acquired** on first file modification (Edit, Write, modifying Bash)
+- **Release lock when idle** - After completing a batch of changes, release the lock:
+  ```bash
+  source ~/.claude/lib/core/locks.sh && lock_release "$(basename $(pwd)):workspace"
+  ```
+- **Release before mode switches** - Release when switching from coding to research/reading
+- **Check lock status** - Use `/lock` or `/lock status` to see current state
+- **Take lock when needed** - Use `/lock take` to acquire lock from another session
+- **Wrapup releases automatically** - `/wrapup` releases locks as part of cleanup
 
 ## Global vs Project Configuration Structure
 
@@ -159,4 +177,4 @@ When starting a new session (via `/start` command):
 
 ---
 
-**Last Updated**: 2025-10-04
+**Last Updated**: 2026-02-05

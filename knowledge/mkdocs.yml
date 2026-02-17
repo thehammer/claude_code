@@ -1,0 +1,72 @@
+site_name: Knowledge Base
+site_description: Personal knowledge management system
+site_url: http://localhost:8000
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+  - tags:
+      tags_file: tags.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+extra:
+  social: []
+
+nav:
+  - Home: index.md
+  - Config:
+    - Overview: config/index.md
+    - Session Types: config/session-types.md
+    - Agents: config/agents.md
+    - Hooks: config/hooks.md
+  - Guides:
+    - Overview: guides/index.md
+  - Reference:
+    - Overview: reference/index.md
+    - MCP Servers: reference/mcp-servers.md
+    - Integrations: reference/integrations.md
+  - Projects:
+    - Overview: projects/index.md
+  - Decisions:
+    - Overview: decisions/index.md
+  - Sessions:
+    - Overview: sessions/index.md
+  - Tags: tags.md

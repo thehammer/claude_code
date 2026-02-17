@@ -100,24 +100,45 @@ Tell Hammer:
 
 Then ask: "What issue would you like to investigate?" or "Which error should we debug?"
 
+## Available Agents
+
+**Delegate to agents** for context-heavy investigations. Agents run in isolated context and return summaries, keeping the main conversation lean.
+
+| Agent | Use For | Invocation |
+|-------|---------|------------|
+| **sentry-agent** | Investigate errors, find patterns, analyze stack traces | "Use the sentry-agent to investigate recent 500 errors" |
+| **datadog-agent** | Search logs, traces, metrics across services | "Use the datadog-agent to find errors in the portal service" |
+| **slack-url-to-logs** | Correlate Slack error reports with Datadog logs | "Use slack-url-to-logs to find logs for [Slack URL]" |
+| **pipeline-debugger** | Investigate CI/CD failures, test failures | "Use the pipeline-debugger to check why the build failed" |
+| **codebase-explainer** | Understand unfamiliar code before fixing | "Use codebase-explainer to explain how the auth flow works" |
+
+**When to use agents vs direct tools:**
+- **Use agents** when: Multiple searches needed, large log outputs expected, exploring unfamiliar areas
+- **Use direct tools** when: Quick single lookup, you know exactly what you need, small output expected
+
 ## Common Workflows
 
 1. **Investigate Sentry Issue:**
-   - Fetch issue details from Sentry
-   - Query related Datadog logs
-   - Find failing code
+   - Use **sentry-agent** to fetch issue details and patterns
+   - Use **datadog-agent** to find correlated logs
+   - Find failing code (direct Read/Grep)
    - Analyze root cause
    - Create fix branch and PR
 
 2. **Production Error Spike:**
-   - Query Datadog for error patterns
-   - Correlate with Sentry issues
-   - Check recent deployments
+   - Use **datadog-agent** to find error patterns
+   - Use **sentry-agent** to correlate with tracked issues
+   - Check recent deployments (direct git)
    - Identify cause
    - Document findings
 
-3. **Performance Issue:**
-   - Query Datadog metrics
+3. **Slack Error Report:**
+   - Use **slack-url-to-logs** with the Slack message URL
+   - Review correlated Datadog logs in the summary
+   - Drill down with direct tools if needed
+
+4. **Performance Issue:**
+   - Use **datadog-agent** to find slow traces
    - Analyze slow endpoints
    - Check database queries
    - Profile code sections

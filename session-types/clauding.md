@@ -92,6 +92,21 @@ Then ask: "What would you like to improve?" with options:
 6. Add new slash commands
 7. Update documentation
 
+## Available Agents
+
+**Delegate to agents** for context-heavy operations when improving Claude configuration.
+
+| Agent | Use For | Invocation |
+|-------|---------|------------|
+| **session-researcher** | Find past config changes, how we did something | "Use session-researcher to find when we added the jira integration" |
+| **codebase-explainer** | Understand Claude Code internals if needed | "Use codebase-explainer to understand how MCP servers work" |
+
+**When to use agents vs direct tools:**
+- **Use agents** when: Searching past clauding sessions, exploring unfamiliar areas
+- **Use direct tools** when: Reading/editing config files directly (most clauding work)
+
+**Note:** Clauding sessions are mostly direct file manipulation, so agents are used less frequently here than in other session types.
+
 ## Common Workflows
 
 1. **Add Session Type:**

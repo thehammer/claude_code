@@ -1,0 +1,64 @@
+#!/bin/bash
+# figma_describe - Get a human-readable description of a Figma design
+#
+# Usage:
+#   figma_describe <file_key> [node_id]
+#   figma_describe <figma_url>
+#
+# Examples:
+#   figma_describe YaPDSjB8dFg4MjY0O5qWhr 4644-36948
+#   figma_describe "https://www.figma.com/design/YaPDSjB8dFg4MjY0O5qWhr/Permissions?node-id=4644-36948"
+#
+# Output: Structured description of the design including:
+#   - File/node name
+#   - Component hierarchy
+#   - All text content
+#   - Component types and counts
+
+set -euo pipefail
+
+SCRIPT_DIR="$(dirname "$0")"
+
+# Get raw JSON from figma_get
+JSON=$("$SCRIPT_DIR/figma_get" "$@")
+
+# Check for errors
+if echo "$JSON" | jq -e '.err' > /dev/null 2>&1; then
+    echo "Error from Figma API:" >&2
+    echo "$JSON" | jq -r '.err' >&2
+    exit 1
+fi
+
+# Extract and format the design information
+echo "$JSON" | jq -r '
+# Helper function to recursively extract node info
+def extract_nodes:
+  . as $node |
+  {
+    name: $node.name,
+    type: $node.type,
+    characters: $node.characters
+  } +
+  if $node.children then
+    { children: [$node.children[] | extract_nodes] }
+  else
+    {}
+  end;
+
+# Helper to collect all text
+def collect_text:
+  .. | select(.characters? != null) | .characters;
+
+# Helper to count component types
+def count_types:
+  [.. | select(.type? != null) | .type] | group_by(.) | map({(.[0]): length}) | add;
+
+# Main output
+{
+  file_name: (.name // .nodes[].document.name // "Unknown"),
+  last_modified: .lastModified,
+  component_counts: ((.document // .nodes[].document) | count_types),
+  text_content: [(.document // .nodes[].document) | collect_text] | unique,
+  structure: ((.document // .nodes[].document) | extract_nodes)
+}
+'

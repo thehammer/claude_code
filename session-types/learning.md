@@ -56,6 +56,25 @@ Learning sessions focus on understanding concepts, not current project work.
 - All project integrations (Jira, Confluence, Sentry, Datadog, Slack, Bitbucket)
 - These aren't needed for learning sessions
 
+## Available Agents
+
+**Delegate to agents** for deep exploration during learning sessions.
+
+| Agent | Use For | Invocation |
+|-------|---------|------------|
+| **codebase-explainer** | Deep dive into how code works (Archaeological Mode) | "Use codebase-explainer to explain how the authentication system works" |
+| **confluence-reader** | Read documentation, design docs | "Use confluence-reader to get the API design document" |
+| **session-researcher** | Find previous learning sessions, approaches | "Use session-researcher to find when we learned about WebSockets" |
+
+**When to use agents vs direct tools:**
+- **Use agents** when: Exploring unfamiliar code areas, need comprehensive understanding, tracing complex flows
+- **Use direct tools** when: Reading single files, running experiments, quick lookups
+
+**Learning workflows with agents:**
+1. **Archaeological Mode** → Use **codebase-explainer** to understand existing patterns
+2. **Documentation Mode** → Use **confluence-reader** for internal docs, WebFetch for external
+3. **Building on Past Learning** → Use **session-researcher** to find previous sessions on similar topics
+
 ## Summary Format
 
 Tell Hammer:

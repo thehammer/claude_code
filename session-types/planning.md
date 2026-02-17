@@ -78,16 +78,39 @@ Then ask: "What would you like to plan?" with options:
 4. Sprint planning / capacity allocation
 5. Evaluate ideas for promotion to TODO
 
+## Available Agents
+
+**Delegate to agents** for gathering context during planning.
+
+| Agent | Use For | Invocation |
+|-------|---------|------------|
+| **jira-agent** | Search tickets, check status, find context | "Use jira-agent to find all open tickets for the auth feature" |
+| **session-researcher** | Find previous work, approaches used | "Use session-researcher to find our past work on payments" |
+| **confluence-reader** | Read roadmap docs, requirements | "Use confluence-reader to get the Q1 roadmap page" |
+| **codebase-explainer** | Understand scope for estimation | "Use codebase-explainer to assess complexity of the auth module" |
+
+**When to use agents vs direct tools:**
+- **Use agents** when: Gathering context across multiple sources, understanding scope
+- **Use direct tools** when: Reading local TODO files, quick Jira lookups
+
+**Planning workflow with agents:**
+1. Use **jira-agent** to gather current ticket landscape
+2. Use **session-researcher** to understand past approaches
+3. Use **codebase-explainer** for effort estimation
+4. Direct tools for updating TODOs and creating tickets
+
 ## Common Workflows
 
 1. **Feature Breakdown:**
+   - Use **codebase-explainer** to understand affected areas
    - Read feature description
    - Identify components
    - Break into tasks
-   - Estimate effort
-   - Add to TODO
+   - Estimate effort (informed by codebase understanding)
+   - Add to TODO / create Jira tickets
 
 2. **Sprint Planning:**
+   - Use **jira-agent** to get current ticket status
    - Review TODO items
    - Check capacity
    - Prioritize work

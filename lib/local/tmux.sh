@@ -62,37 +62,108 @@ tmux_rename_window() {
     tmux rename-window -t "$window_id" "$new_name"
 }
 
+# Get emoji for session type
+# Args: $1 = session type
+# Returns: emoji string
+tmux_get_type_emoji() {
+    local session_type="$1"
+    case "$session_type" in
+        coding)     echo "💻" ;;
+        debugging)  echo "🐛" ;;
+        analysis)   echo "🔍" ;;
+        planning)   echo "📋" ;;
+        presenting) echo "📊" ;;
+        learning)   echo "📚" ;;
+        personal)   echo "🏠" ;;
+        clauding)   echo "🔧" ;;
+        launcher)   echo "🚀" ;;
+        reviewing)  echo "👀" ;;
+        commander)  echo "🎛️" ;;
+        *)          echo "📝" ;;
+    esac
+}
+
+# Get short name for session type (for tab bar)
+# Args: $1 = session type
+# Returns: short name string
+tmux_get_type_short() {
+    local session_type="$1"
+    case "$session_type" in
+        debugging)  echo "debug" ;;
+        presenting) echo "present" ;;
+        reviewing)  echo "review" ;;
+        commander)  echo "cmd" ;;
+        *)          echo "$session_type" ;;
+    esac
+}
+
 # Rename window based on Claude session type
 # Args: $1 = session type (coding, debugging, clauding, etc.)
+#       $2 = branch name (optional)
+#       $3 = status indicator (optional: waiting, idle)
 # Returns: 0 on success, 1 if not in tmux or invalid type
 tmux_set_claude_window() {
     local session_type="$1"
+    local branch_name="${2:-}"
+    local session_status="${3:-}"
 
     if ! tmux_is_active; then
         return 1
     fi
 
-    # Map session types to window names with emoji indicators
-    local window_name
-    case "$session_type" in
-        coding)     window_name="💻 coding" ;;
-        debugging)  window_name="🐛 debug" ;;
-        analysis)   window_name="🔍 analysis" ;;
-        planning)   window_name="📋 planning" ;;
-        presenting) window_name="📊 presenting" ;;
-        learning)   window_name="📚 learning" ;;
-        personal)   window_name="🏠 personal" ;;
-        clauding)   window_name="🔧 clauding" ;;
-        launcher)   window_name="🚀" ;;
-        reviewing)  window_name="👀 review" ;;
-        *)          window_name="$session_type" ;;
-    esac
+    local emoji=$(tmux_get_type_emoji "$session_type")
+    local short_name=$(tmux_get_type_short "$session_type")
+
+    # Build window name
+    local window_name="${emoji} ${short_name}"
+
+    # Add branch if provided (truncate if long)
+    if [[ -n "$branch_name" && "$branch_name" != "-" ]]; then
+        if [[ ${#branch_name} -gt 12 ]]; then
+            branch_name="${branch_name:0:10}.."
+        fi
+        window_name="${window_name} [${branch_name}]"
+    fi
+
+    # Add status indicator if waiting
+    if [[ "$session_status" == "waiting" ]]; then
+        window_name="${window_name} ⏳"
+    elif [[ "$session_status" == "idle" ]]; then
+        window_name="${window_name} 💤"
+    fi
 
     # Get the window ID where this command is running (not the active window)
     # This prevents renaming the wrong window if user switches tabs
     local window_id
     window_id=$(tmux display-message -p '#{window_id}')
     tmux rename-window -t "$window_id" "$window_name"
+}
+
+# Update window name from IDE registry
+# Reads current session state and updates window name accordingly
+# Returns: 0 on success, 1 if not in tmux or no session registered
+tmux_update_window_from_registry() {
+    if ! tmux_is_active; then
+        return 1
+    fi
+
+    # Source IDE functions if not already loaded
+    if ! type ide_get_session &>/dev/null; then
+        source "$HOME/.claude/lib/core/ide.sh"
+    fi
+
+    local session_json=$(ide_get_session)
+    if [[ -z "$session_json" ]]; then
+        return 1
+    fi
+
+    local session_type=$(echo "$session_json" | jq -r '.type')
+    local branch=$(echo "$session_json" | jq -r '.branch // ""')
+    local status=$(echo "$session_json" | jq -r '.status')
+
+    [[ "$branch" == "null" ]] && branch=""
+
+    tmux_set_claude_window "$session_type" "$branch" "$status"
 }
 
 # Split current pane horizontally and run a command
@@ -367,6 +438,41 @@ tmux_create_session_layout() {
         tmux send-keys -t "$window_index" "/start $session_type"
     fi
     tmux send-keys -t "$window_index" Enter
+}
+
+# Create a commander (dashboard) window at index 0
+# This window runs the IDE dashboard for managing all Claude sessions
+# Returns: 0 on success, 1 if not in tmux
+tmux_create_commander() {
+    if ! tmux_is_active; then
+        echo "Error: Not in a tmux session" >&2
+        return 1
+    fi
+
+    # Check if window 0 already exists and what it's running
+    local window_0_exists=$(tmux list-windows -F '#{window_index}' | grep -c '^0$')
+
+    if [[ "$window_0_exists" -gt 0 ]]; then
+        # Window 0 exists - check if it's a commander
+        local current_name=$(tmux display-message -t :0 -p '#{window_name}')
+        if [[ "$current_name" == *"commander"* ]]; then
+            echo "Commander already exists at window 0"
+            tmux select-window -t :0
+            return 0
+        else
+            echo "Window 0 exists but is not a commander. Creating commander at next available index."
+        fi
+    fi
+
+    # Create new window for commander
+    # If window 0 doesn't exist, create there; otherwise next available
+    if [[ "$window_0_exists" -eq 0 ]]; then
+        tmux new-window -t :0 -n "🎛️ commander" "$HOME/.claude/bin/ide-dashboard"
+    else
+        tmux new-window -n "🎛️ commander" "$HOME/.claude/bin/ide-dashboard"
+    fi
+
+    return 0
 }
 
 # Get list of all pane IDs in current window

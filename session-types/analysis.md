@@ -61,35 +61,53 @@ Tell Hammer:
 
 Then ask: "What would you like to analyze?" or "Which part of the codebase should we explore?"
 
+## Available Agents
+
+**Delegate to agents** for deep exploration. Agents run in isolated context and return summaries, keeping the main conversation lean.
+
+| Agent | Use For | Invocation |
+|-------|---------|------------|
+| **codebase-explainer** | Deep dive into how code works | "Use codebase-explainer to explain the authentication system" |
+| **git-historian** | Understand code evolution | "Use git-historian to trace changes to the payment module" |
+| **dependency-auditor** | Analyze dependencies, find issues | "Use dependency-auditor to check for vulnerabilities" |
+| **confluence-reader** | Read architecture docs | "Use confluence-reader to get the design doc for this feature" |
+| **session-researcher** | Find previous analysis work | "Use session-researcher to find our API analysis" |
+
+**When to use agents vs direct tools:**
+- **Use agents** when: Deep exploration, multiple files/areas, need comprehensive understanding
+- **Use direct tools** when: Quick lookups, specific file reads, targeted searches
+
+**Analysis sessions benefit heavily from agents** - they let you explore deeply without context bloat.
+
 ## Common Workflows
 
 1. **Codebase Exploration:**
-   - Understand file structure
-   - Map dependencies
+   - Use **codebase-explainer** for initial understanding
+   - Map dependencies with direct tools
    - Document patterns
    - Identify coupling points
 
 2. **Architecture Review:**
+   - Use **confluence-reader** for existing design docs
+   - Use **codebase-explainer** for implementation understanding
    - Evaluate design decisions
-   - Find architectural issues
-   - Suggest improvements
    - Document trade-offs
 
 3. **Impact Analysis:**
+   - Use **git-historian** to understand change patterns
    - Trace dependencies
    - Find affected components
    - Estimate change scope
-   - Plan refactoring
 
 4. **Code Review:**
-   - Read PR changes
+   - Use **pr-reviewer** for detailed analysis
    - Check for patterns
    - Suggest improvements
    - Verify best practices
 
 5. **Research:**
+   - Use **dependency-auditor** for library evaluation
    - Compare approaches
-   - Evaluate libraries
    - Prototype solutions
    - Document findings
 

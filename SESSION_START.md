@@ -106,7 +106,27 @@ Replace `{session_type}` with the actual session type (coding, debugging, claudi
 
 ---
 
-## 0.5. Permission Synchronization (Optional)
+## 0.5. Register Session in IDE Registry
+
+**Register this session for coordination with other sessions:**
+```bash
+~/.claude/bin/ide register "{session_type}" "$(pwd)" "{description}"
+```
+
+Replace:
+- `{session_type}` with the session type (coding, debugging, etc.)
+- `{description}` with the session description if provided, or empty string
+
+This enables:
+- Session tracking across multiple Claude Code windows
+- Dashboard view of all active sessions
+- Coordination and status updates
+
+**The registry tracks:** session ID, type, project path, branch, tmux window, status
+
+---
+
+## 0.6. Permission Synchronization (Optional)
 
 **When needed:** Only if getting repeated permission prompts for common operations
 
