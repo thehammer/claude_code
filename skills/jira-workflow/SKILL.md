@@ -309,9 +309,10 @@ Some workflows have guards. If "In Progress" fails, check available transitions 
 
 ## Helper Functions
 
-Load Carefeed conventions:
+Load Carefeed conventions (from layer):
 ```bash
-source ~/.claude/lib/conventions/carefeed.sh
+source ~/.claude/lib/core/layers.sh
+layer_source "lib/conventions/carefeed.sh"
 ```
 
 Available functions:

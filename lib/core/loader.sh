@@ -159,6 +159,6 @@ if [ -n "$CLAUDE_LOADER_DEBUG" ]; then
     echo "✓ Claude Code helpers loaded (session: ${SESSION_TYPE:-default})"
     echo "  - Core: credentials, utilities"
     echo "  - Local: macOS, VSCode, study-tracker"
-    echo "  - Conventions: $([ -f ~/.claude/lib/conventions/carefeed.sh ] && [ -d .git ] && echo "Carefeed" || echo "none")"
+    echo "  - Conventions: $(layer_find "lib/conventions/carefeed.sh" >/dev/null 2>&1 && echo "Carefeed (layer)" || echo "none")"
     echo "  - Services: $([ "$LOAD_SERVICES" = true ] && echo "all" || echo "skipped")"
 fi

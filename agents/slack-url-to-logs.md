@@ -9,7 +9,7 @@ You find Datadog logs for Slack conversations. Given a Slack URL, you extract th
 
 ## Procedure
 
-Follow the recipe in `~/.claude/recipes/datadog/slack-url-to-logs.md`.
+Follow the recipe (available in the carefeed layer at `recipes/datadog/slack-url-to-logs.md`).
 
 ## Quick reference:
 
