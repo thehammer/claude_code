@@ -1,23 +1,16 @@
 # Slack Recipes
 
-Recipes for working with Slack API to retrieve messages, manage channels, and integrate with team communication.
+Recipes for working with Slack API.
 
 ## Available Recipes
 
-### retrieve-message.md
-**Purpose:** Retrieve specific Slack messages or threads for investigation, documentation, or context gathering
+### setup-user-token.md
+**Purpose:** One-time setup guide for Slack OAuth user tokens
 
 **Use Cases:**
-- Getting error reports from team channels
-- Extracting feedback from discussions
-- Investigating incidents with full context
-- Documenting decisions made in Slack
-
-**Key Features:**
-- Parse Slack URLs automatically
-- Handle private channel access issues
-- Retrieve thread context
-- Get surrounding messages for context
+- Initial Slack integration setup
+- Token refresh/renewal
+- Onboarding new environments
 
 ## Prerequisites
 
@@ -46,16 +39,9 @@ source ~/.claude/lib/services/mcp-candidates/slack.sh
 - `missing_scope`: Bot token needs additional OAuth scopes
 - `invalid_auth`: Check SLACK_BOT_TOKEN is set correctly
 
-## Future Recipes
+## Related
 
-Potential additions:
-- `post-message.md`: Send messages to channels
-- `search-messages.md`: Search across channels
-- `manage-channels.md`: Create and configure channels
-- `user-lookup.md`: Find user information
-
-## Related Documentation
-
+- Message retrieval is handled by the `slack-retriever` agent
+- Slack-to-logs workflow is handled by the `slack-url-to-logs` agent
 - [Slack API Documentation](https://api.slack.com/methods)
-- [OAuth Scopes Reference](https://api.slack.com/scopes)
 - [Slack Helper Functions](/Users/hammer/.claude/lib/services/mcp-candidates/slack.sh)

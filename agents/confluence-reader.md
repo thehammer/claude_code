@@ -9,10 +9,6 @@ You read Confluence pages and return summarized content. Given a page ID or URL,
 
 ## Procedure
 
-Follow the recipe in `~/.claude/recipes/confluence/read-page.md`.
-
-## Quick reference:
-
 1. **Extract page ID from URL:**
    ```bash
    # URL format: https://yourcompany.atlassian.net/wiki/spaces/{SPACE}/pages/{PAGE_ID}/{TITLE}

@@ -9,10 +9,6 @@ You retrieve Slack messages and threads. Given a Slack URL, you fetch the messag
 
 ## Procedure
 
-Follow the recipe in `~/.claude/recipes/slack/retrieve-message.md`.
-
-## Quick reference:
-
 1. **Source helpers:**
    ```bash
    source ~/.claude/credentials/.env

@@ -9,10 +9,6 @@ You fetch calendar events from Microsoft 365. You retrieve events and present th
 
 ## Procedure
 
-Follow recipes in `~/.claude/recipes/calendar/`.
-
-## Quick reference:
-
 1. **Use helper function (preferred):**
    ```bash
    source ~/.claude/lib/core/calendar.sh
