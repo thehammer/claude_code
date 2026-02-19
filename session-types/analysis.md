@@ -70,7 +70,7 @@ Then ask: "What would you like to analyze?" or "Which part of the codebase shoul
 | **codebase-explainer** | Deep dive into how code works | "Use codebase-explainer to explain the authentication system" |
 | **git-historian** | Understand code evolution | "Use git-historian to trace changes to the payment module" |
 | **dependency-auditor** | Analyze dependencies, find issues | "Use dependency-auditor to check for vulnerabilities" |
-| **confluence-reader** | Read architecture docs | "Use confluence-reader to get the design doc for this feature" |
+| **confluence-agent** | Read architecture docs | "Use confluence-agent to get the design doc for this feature" |
 | **session-researcher** | Find previous analysis work | "Use session-researcher to find our API analysis" |
 
 **When to use agents vs direct tools:**
@@ -88,7 +88,7 @@ Then ask: "What would you like to analyze?" or "Which part of the codebase shoul
    - Identify coupling points
 
 2. **Architecture Review:**
-   - Use **confluence-reader** for existing design docs
+   - Use **confluence-agent** for existing design docs
    - Use **codebase-explainer** for implementation understanding
    - Evaluate design decisions
    - Document trade-offs
@@ -100,7 +100,7 @@ Then ask: "What would you like to analyze?" or "Which part of the codebase shoul
    - Estimate change scope
 
 4. **Code Review:**
-   - Use **pr-reviewer** for detailed analysis
+   - Use **pr-review-toolkit** for detailed analysis
    - Check for patterns
    - Suggest improvements
    - Verify best practices

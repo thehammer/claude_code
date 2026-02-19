@@ -63,7 +63,6 @@ Custom [subagents](https://docs.anthropic.com/en/docs/claude-code/agents) that C
 | `calendar-fetcher` | Fetch and display M365 calendar events |
 | `codebase-explainer` | Trace code flow and explain architecture |
 | `confluence-agent` | Search and read Confluence wikis |
-| `confluence-reader` | Read and summarize specific Confluence pages |
 | `datadog-agent` | Search logs, traces, and metrics in Datadog |
 | `dependency-auditor` | Check for outdated or vulnerable dependencies |
 | `ecs-investigator` | Debug ECS/container issues (read-only) |
@@ -71,7 +70,6 @@ Custom [subagents](https://docs.anthropic.com/en/docs/claude-code/agents) that C
 | `jira-agent` | Search, triage, and manage Jira tickets |
 | `laravel-expert` | Debug Laravel issues and suggest patterns |
 | `pipeline-debugger` | Investigate GitHub Actions workflow failures |
-| `pr-reviewer` | Review pull request diffs and provide feedback |
 | `sentry-agent` | Investigate Sentry errors and issues |
 | `session-researcher` | Find context from past Claude Code sessions |
 | `slack-retriever` | Retrieve Slack messages and threads from URLs |

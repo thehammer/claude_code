@@ -24,7 +24,6 @@ Created 17 custom agents in `~/.claude/agents/` and updated all session types wi
 - `slack-url-to-logs` - Find Datadog logs for Slack conversations
 
 ### Development Agents
-- `pr-reviewer` - Review pull request diffs
 - `test-writer` - Generate tests for code
 - `codebase-explainer` - Explain how code works
 - `laravel-expert` - Laravel-specific debugging
@@ -34,7 +33,6 @@ Created 17 custom agents in `~/.claude/agents/` and updated all session types wi
 - `git-historian` - Search git history
 - `session-researcher` - Find context from past sessions
 - `confluence-agent` - Search Confluence docs
-- `confluence-reader` - Read specific Confluence pages
 
 ### Utility Agents
 - `calendar-fetcher` - Get calendar events

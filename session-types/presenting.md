@@ -73,8 +73,8 @@ Then ask: "What would you like to present?" with options:
 | Agent | Use For | Invocation |
 |-------|---------|------------|
 | **session-researcher** | Find work done, approaches used | "Use session-researcher to find what we did on the auth feature" |
-| **pr-reviewer** | Understand PR scope and changes | "Use pr-reviewer to analyze the changes in my branch" |
-| **confluence-reader** | Read existing docs to update | "Use confluence-reader to get the current API documentation" |
+| **pr-review-toolkit** | Understand PR scope and changes | "Use /review-pr to analyze the changes in my branch" |
+| **confluence-agent** | Read existing docs to update | "Use confluence-agent to get the current API documentation" |
 | **jira-agent** | Find related tickets for linking | "Use jira-agent to find all tickets related to this feature" |
 
 **When to use agents vs direct tools:**
@@ -97,7 +97,7 @@ Then ask: "What would you like to present?" with options:
    - Show PR before creating
 
 2. **Update Documentation:**
-   - Use **confluence-reader** to get current documentation
+   - Use **confluence-agent** to get current documentation
    - Identify sections to update
    - Draft new content
    - Show changes before saving

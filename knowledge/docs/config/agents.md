@@ -24,7 +24,6 @@ Custom agents for specialized tasks. These are spawned via the Task tool to hand
 
 | Agent | Purpose |
 |-------|---------|
-| `pr-reviewer` | Review pull request diffs |
 | `test-writer` | Generate tests for code |
 | `codebase-explainer` | Explain how code works |
 | `laravel-expert` | Laravel-specific debugging and patterns |
@@ -37,7 +36,6 @@ Custom agents for specialized tasks. These are spawned via the Task tool to hand
 | `git-historian` | Search git history for changes |
 | `session-researcher` | Find context from past sessions |
 | `confluence-agent` | Search Confluence documentation |
-| `confluence-reader` | Read specific Confluence pages |
 
 ### Utility Agents
 
@@ -53,7 +51,7 @@ Agents are automatically used by Claude when appropriate, or can be explicitly r
 
 ```
 "Use the pipeline-debugger agent to investigate the failed build"
-"Spawn the pr-reviewer agent to review PR #123"
+"Use /review-pr to review PR #123"
 ```
 
 ## Configuration
@@ -63,7 +61,6 @@ Agents are defined in `~/.claude/agents/`:
 ```
 ~/.claude/agents/
 ├── pipeline-debugger.md
-├── pr-reviewer.md
 ├── test-writer.md
 └── ...
 ```

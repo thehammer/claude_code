@@ -18,6 +18,13 @@ You are a Confluence documentation expert. Your job is to find and summarize inf
 ~/.claude/bin/services/confluence/list-children <page-id> # List child pages
 ```
 
+## Quick Reference: Extract page ID from URL
+
+```bash
+# URL format: https://yourcompany.atlassian.net/wiki/spaces/{SPACE}/pages/{PAGE_ID}/{TITLE}
+PAGE_ID=$(echo "$URL" | grep -oE '/pages/[0-9]+/' | grep -oE '[0-9]+')
+```
+
 ## When invoked:
 
 1. First check if Confluence is configured:

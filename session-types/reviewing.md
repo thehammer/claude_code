@@ -94,7 +94,7 @@ Specialized review agents for targeted analysis:
 
 | Agent | Use For | Invocation |
 |-------|---------|------------|
-| **pr-reviewer** | Deep code review with detailed feedback | "Use pr-reviewer to analyze PR #123 in admin-portal" |
+| **pr-review-toolkit** | Deep code review with detailed feedback | "Use /review-pr to analyze PR #123 in admin-portal" |
 | **jira-agent** | Check related tickets, find context | "Use jira-agent to find tickets related to this PR" |
 | **codebase-explainer** | Understand unfamiliar code areas | "Use codebase-explainer to explain how this service works" |
 | **pipeline-debugger** | Check if PR has failing builds | "Use pipeline-debugger to check CI status for this branch" |
@@ -107,7 +107,7 @@ Specialized review agents for targeted analysis:
 **Recommended workflow for complex PRs:**
 1. Quick triage with `gh pr list`
 2. For complex PRs, run `/code-review` for parallel automated analysis
-3. Or delegate to **pr-reviewer** agent for isolated manual analysis
+3. Or use **pr-review-toolkit** agents for isolated analysis
 4. Use pr-review-toolkit agents for specific concerns (tests, types, errors)
 5. Review findings and approve or request changes
 

@@ -45,12 +45,7 @@
 - Test changes before considering them complete
 - **Always look for opportunities to create tests** - whenever building or modifying functionality, proactively suggest and create tests that verify behavioral correctness
 - **Fix helpers, integrations, and tools at the source** - When you discover a problem with a helper function, integration, or tool and find the solution, update the source code (in `~/.claude/lib/` or wherever it lives) so it works correctly next time, not just for the current use
-- **Favor recipes over helper functions** - When creating reusable workflows, prefer recipes (`~/.claude/recipes/`) over helper functions. Recipes are human-readable, self-documenting, flexible, and easier to maintain. Use helper functions pragmatically for:
-  - Low-level utilities (parsing, formatting, validation)
-  - Frequently-called operations (dozens of times per session)
-  - Complex logic requiring error handling and state management
-  - Functions that compose well into recipes
-- **Proactively create and refactor helpers** - When you find yourself doing something repeatedly or writing complex inline code, first consider if a recipe would work better. If a helper function is appropriate, create it in `~/.claude/lib/` in the appropriate category file. Refactor existing helpers when you see opportunities to improve them (better error handling, more features, cleaner interface)
+- **Proactively create and refactor helpers** - When writing complex inline code repeatedly, create a helper in `~/.claude/lib/`. Refactor existing helpers when you see improvement opportunities
 - **Method visibility ordering** - In classes, always organize methods with public methods first, followed by protected methods, then private methods. This makes the public API immediately visible at the top of the class
 
 ### Documentation
@@ -125,46 +120,6 @@ When multiple Claude sessions may work in the same project:
 - **Check lock status** - Use `/lock` or `/lock status` to see current state
 - **Take lock when needed** - Use `/lock take` to acquire lock from another session
 - **Wrapup releases automatically** - `/wrapup` releases locks as part of cleanup
-
-## Global vs Project Configuration Structure
-
-Claude Code uses a two-tier configuration system:
-
-### Global Configuration (`~/.claude/`)
-**Applies across ALL projects** - User preferences, workflows, and reusable templates:
-- `~/.claude/PREFERENCES.md` - Your personal preferences and workflow defaults
-- `~/.claude/SESSION_START.md` - Session startup procedure (referenced by `/start` command)
-- `~/.claude/WRAPUP.md` - Session wrapup procedure (referenced by `/wrapup` command)
-- `~/.claude/commands/` - Personal slash commands available in all projects
-- `~/.claude/templates/` - Reusable templates (session notes, etc.)
-- `~/.claude/TODO.md` - Cross-project tasks and global improvements
-
-### Project Configuration (`.claude/`)
-**Project-specific** - Codebase patterns, project context, and session history:
-- `.claude/PREFERENCES.md` - Project-specific patterns, tech stack, known issues
-- `.claude/SESSION_START.md` - Additional project-specific startup instructions (optional)
-- `.claude/TODO.md` - Project-specific tasks and technical debt
-- `.claude/session-notes/` - Daily session notes (ALWAYS project-specific, never global)
-- `.claude/commands/` - Project-specific slash commands (shared with team via git)
-- `.claude/*.md` - Reference docs (migration plans, guides, etc.)
-
-### File Resolution Order
-When reading `.claude/` files, always check:
-1. **Global first**: `~/.claude/[filename]` (if exists)
-2. **Project second**: `.claude/[filename]` (if exists)
-
-Project files override/extend global files. This is automatically handled by the startup procedure.
-
-## Session Start Checklist
-
-When starting a new session (via `/start` command):
-1. ✅ Read `~/.claude/PREFERENCES.md` (global preferences)
-2. ✅ Read `.claude/PREFERENCES.md` (project preferences)
-3. ✅ Read `~/.claude/SESSION_START.md` (startup procedure)
-4. ✅ Check most recent session notes
-5. ✅ Check git status and branch
-6. ✅ Summarize context and pending work
-7. ✅ Ask what to work on next
 
 ## Remember
 

@@ -86,7 +86,7 @@ Then ask: "What would you like to plan?" with options:
 |-------|---------|------------|
 | **jira-agent** | Search tickets, check status, find context | "Use jira-agent to find all open tickets for the auth feature" |
 | **session-researcher** | Find previous work, approaches used | "Use session-researcher to find our past work on payments" |
-| **confluence-reader** | Read roadmap docs, requirements | "Use confluence-reader to get the Q1 roadmap page" |
+| **confluence-agent** | Read roadmap docs, requirements | "Use confluence-agent to get the Q1 roadmap page" |
 | **codebase-explainer** | Understand scope for estimation | "Use codebase-explainer to assess complexity of the auth module" |
 
 **When to use agents vs direct tools:**
