@@ -60,21 +60,13 @@ Custom [subagents](https://docs.anthropic.com/en/docs/claude-code/agents) that C
 
 | Agent | Description |
 |-------|-------------|
-| `calendar-fetcher` | Fetch and display M365 calendar events |
 | `codebase-explainer` | Trace code flow and explain architecture |
-| `confluence-agent` | Search and read Confluence wikis |
-| `datadog-agent` | Search logs, traces, and metrics in Datadog |
 | `dependency-auditor` | Check for outdated or vulnerable dependencies |
-| `ecs-investigator` | Debug ECS/container issues (read-only) |
 | `git-historian` | Search git history for when and why things changed |
-| `jira-agent` | Search, triage, and manage Jira tickets |
-| `laravel-expert` | Debug Laravel issues and suggest patterns |
-| `pipeline-debugger` | Investigate GitHub Actions workflow failures |
-| `sentry-agent` | Investigate Sentry errors and issues |
 | `session-researcher` | Find context from past Claude Code sessions |
-| `slack-retriever` | Retrieve Slack messages and threads from URLs |
-| `slack-url-to-logs` | Find Datadog logs for a Slack conversation |
 | `test-writer` | Generate tests for code |
+
+Additional agents (`calendar-fetcher`, `confluence-agent`, `datadog-agent`, `ecs-investigator`, `jira-agent`, `laravel-expert`, `pipeline-debugger`, `sentry-agent`, `slack-retriever`, `slack-url-to-logs`) are provided by the [carefeed layer](https://github.com/Carefeed/claude-config) and synced via `layer_sync`.
 
 ### Session Types (`session-types/`)
 
@@ -119,8 +111,9 @@ Multi-step workflows that Claude activates automatically or on-demand:
 
 | Skill | Purpose |
 |-------|---------|
-| `jira-workflow` | Create Jira tickets with smart defaults (auto-infers project, type, priority) |
 | `session-context` | Lazy-load calendar, PRs, notes, TODOs on demand |
+
+The `jira-workflow` skill is provided by the carefeed layer.
 
 ### Hooks (`hooks/`)
 
@@ -212,7 +205,7 @@ Executable CLI tools:
 | `ide` / `ide-switcher` / `ide-dashboard` | IDE integration tools |
 | `figma_describe` / `figma_get` / `figma_ui` | Figma design file tools |
 | `index-sessions` / `session-commands` / `search-session-commands` | Session history tools |
-| `services/*` | CLI wrappers for AWS, Bitbucket, Confluence, Datadog, GitHub, 1Password, Sentry, Slack |
+| `services/*` | CLI wrappers for AWS, GitHub, 1Password (Bitbucket, Confluence, Datadog, Sentry, Slack provided by carefeed layer) |
 
 ### Other Components
 
@@ -240,7 +233,10 @@ Layers solve the problem of separating **personal** config (this public repo) fr
 ├── layers/
 │   └── myteam/                     # A layer (separate git repo, gitignored)
 │       ├── LAYER.md                # Layer metadata
+│       ├── agents/                 # Team agents
 │       ├── commands/               # Team slash commands
+│       ├── skills/                 # Team skills
+│       ├── bin/services/           # Team service scripts
 │       ├── lib/                    # Team shell libraries
 │       ├── hooks/                  # Team hooks
 │       └── recipes/                # Team recipes
