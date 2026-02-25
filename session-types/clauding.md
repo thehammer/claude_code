@@ -10,8 +10,6 @@ Read core config files from `~/.claude/`:
 - `PREFERENCES.md` - Global preferences
 - `SESSION_START.md` - Startup orchestration
 - `WRAPUP.md` - Session end procedures
-- `INTEGRATIONS.md` - Integration documentation
-- `SETTINGS.md` - Settings file configuration (permissions, etc.)
 - `settings.json` - Active settings configuration
 - `session-types/*.md` - Session type definitions
 
@@ -41,12 +39,12 @@ Format concisely for context awareness.
 
 ### 5. Integration Status
 ```bash
-source ~/.claude/lib/core/loader.sh clauding
-ls -l ~/.claude/lib/
-ls -l ~/.claude/credentials/
+ls ~/.claude/lib/services/*.sh
+ls ~/.claude/skills/*/SKILL.md
+ls ~/.claude/agents/*.md
 ```
 
-Understand current integration state.
+Understand current lib/skill/agent inventory.
 
 ## Skip ALL Project Context
 
@@ -71,7 +69,7 @@ Clauding sessions work on configuration, not code.
 - **GitHub** - If syncing dotfiles repo
 
 ### Skip Entirely
-- All external integrations (Jira, Confluence, Sentry, Datadog, Slack, Bitbucket)
+- All external integrations (Jira, Sentry, Datadog, Slack)
 - These are tools we might configure, not tools we use during clauding
 
 ## Summary Format
@@ -120,7 +118,7 @@ Then ask: "What would you like to improve?" with options:
    - Review existing helper functions
    - Add new functionality
    - Refactor for better error handling, features, or interface
-   - Update INTEGRATIONS.md docs
+   - Update skill/agent docs
    - Test integration
    - Document usage patterns
 
