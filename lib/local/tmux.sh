@@ -56,9 +56,14 @@ tmux_rename_window() {
     fi
 
     # Get the window ID where this command is running (not the active window)
-    # This prevents renaming the wrong window if user switches tabs
+    # Use $TMUX_PANE to target the pane where this runs, so we rename the
+    # correct window even if the user's cursor is on a different one
     local window_id
-    window_id=$(tmux display-message -p '#{window_id}')
+    if [[ -n "${TMUX_PANE:-}" ]]; then
+        window_id=$(tmux display-message -t "$TMUX_PANE" -p '#{window_id}')
+    else
+        window_id=$(tmux display-message -p '#{window_id}')
+    fi
     tmux rename-window -t "$window_id" "$new_name"
 }
 
@@ -133,9 +138,14 @@ tmux_set_claude_window() {
     fi
 
     # Get the window ID where this command is running (not the active window)
-    # This prevents renaming the wrong window if user switches tabs
+    # Use $TMUX_PANE to target the pane where this runs, so we rename the
+    # correct window even if the user's cursor is on a different one
     local window_id
-    window_id=$(tmux display-message -p '#{window_id}')
+    if [[ -n "${TMUX_PANE:-}" ]]; then
+        window_id=$(tmux display-message -t "$TMUX_PANE" -p '#{window_id}')
+    else
+        window_id=$(tmux display-message -p '#{window_id}')
+    fi
     tmux rename-window -t "$window_id" "$window_name"
 }
 

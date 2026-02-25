@@ -25,19 +25,8 @@
       "Edit(**)",
       "Glob(**)",
       "Grep(**)",
-      "mcp__session-memory__search_sessions",
-      "mcp__session-memory__list_sessions",
-      "mcp__session-memory__get_session",
-      "mcp__session-memory__index_sessions",
-      "mcp__datadog__datadog_validate",
-      "mcp__datadog__datadog_search_logs",
-      "mcp__datadog__datadog_logs_from_slack",
-      "mcp__datadog__datadog_query_metrics",
-      "mcp__datadog__datadog_list_monitors",
-      "mcp__datadog__datadog_get_monitor",
-      "mcp__datadog__datadog_search_traces",
-      "mcp__datadog__datadog_service_stats",
-      "mcp__datadog__datadog_resource_stats",
+      "Bash(dd_:*)",
+      "Bash(sessions_:*)",
       "Read(//**)",
       "WebFetch(domain:**)",
       "WebSearch",
@@ -107,15 +96,5 @@
     "claude-md-management@claude-plugins-official": true
   },
   "alwaysThinkingEnabled": true,
-  "mcpServers": {
-    "session-memory": {
-      "type": "http",
-      "url": "http://localhost:3002/mcp"
-    },
-    "datadog": {
-      "type": "http",
-      "url": "http://localhost:3004/mcp"
-    }
-  },
   "skipDangerousModePermissionPrompt": true
 }
