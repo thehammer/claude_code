@@ -12,7 +12,19 @@ Manage environment variables across Carefeed services. Each repo has a different
 | **admin-portal** | 1Password → GitHub Actions → Lambda → S3 → ECS | 1Password vaults |
 | **family-portal** | Terraform `.tfvars` → ECS Task Definition | AWS SSM Parameter Store |
 
-**IMPORTANT:** Always determine which repo first, then follow the correct protocol.
+## Repo Detection
+
+**Infer the repo from the current working directory.** Check the git remote:
+
+```bash
+git remote get-url origin 2>/dev/null
+```
+
+- Contains `family-portal` → use **Family Portal** protocol (Terraform/SSM)
+- Contains `portal_dev` or `admin-portal` → use **Admin Portal** protocol (1Password)
+- Otherwise → ask the user which repo
+
+**Do not ask the user if the repo can be inferred.**
 
 ## When to Use
 
@@ -204,7 +216,7 @@ gh run rerun <run-id>
 
 **ALWAYS ask user to confirm before creating/modifying:**
 
-1. **Which repo?** (admin-portal or family-portal)
+1. **Which repo?** — infer from cwd; only ask if ambiguous
 2. **Which environments?** (dev, staging, production, canada, demo)
 3. **Which services?** (portal, queue, scheduler — admin-portal only)
 4. **Plaintext or secret?**
