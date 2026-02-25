@@ -94,12 +94,6 @@ check_prerequisites() {
     fi
 
     # Optional but recommended
-    if check_command docker; then
-        status_ok "docker installed (for MCP servers)"
-    else
-        status_warn "docker not installed (optional, needed for MCP servers)"
-    fi
-
     if check_command yq; then
         status_ok "yq installed (for YAML parsing)"
     else
@@ -147,11 +141,16 @@ check_directory_structure() {
     log_section "Checking Directory Structure"
 
     local dirs=(
+        "agents"
         "bin"
         "commands"
         "credentials"
+        "layers"
         "lib"
-        "mcp-servers"
+        "lib/core"
+        "lib/local"
+        "lib/services"
+        "lib/services/_bash"
         "recipes"
         "session-notes"
         "session-types"
@@ -253,30 +252,46 @@ check_commands() {
     fi
 }
 
-check_mcp_servers() {
-    log_section "Checking MCP Servers"
+sync_layers() {
+    log_section "Syncing Layers"
 
-    if ! check_command docker; then
-        status_info "Docker not installed, skipping MCP server checks"
+    local layers_dir="${CLAUDE_DIR}/layers"
+
+    if [[ ! -d "$layers_dir" ]]; then
+        status_info "No layers directory, skipping"
         return 0
     fi
 
-    # Check for running containers
-    local jira_running=$(docker ps --filter "name=jira-mcp-server" --format "{{.Status}}" 2>/dev/null || echo "")
-    local bitbucket_running=$(docker ps --filter "name=bitbucket-mcp-server" --format "{{.Status}}" 2>/dev/null || echo "")
+    # Count layers
+    local layer_count=0
+    for d in "$layers_dir"/*/; do
+        [[ -d "$d" ]] && ((layer_count++))
+    done
 
-    if [[ -n "$jira_running" ]]; then
-        status_ok "Jira MCP server running"
-    else
-        status_warn "Jira MCP server not running"
-        status_info "  Start: cd ~/.claude/mcp-servers/jira && docker-compose up -d"
+    if [[ $layer_count -eq 0 ]]; then
+        status_info "No layers installed"
+        return 0
     fi
 
-    if [[ -n "$bitbucket_running" ]]; then
-        status_ok "Bitbucket MCP server running"
+    status_info "${layer_count} layer(s) found"
+
+    # Source layers.sh and run sync
+    if [[ -f "${CLAUDE_DIR}/lib/core/layers.sh" ]]; then
+        source "${CLAUDE_DIR}/lib/core/layers.sh"
+        local output
+        output=$(layer_sync 2>&1)
+        if [[ $? -eq 0 ]]; then
+            status_ok "Layer sync complete"
+            # Show the summary line
+            echo "$output" | grep "^Synced:" | while read -r line; do
+                status_info "  $line"
+            done
+        else
+            status_fail "Layer sync failed"
+            echo "$output" | head -5
+        fi
     else
-        status_warn "Bitbucket MCP server not running"
-        status_info "  Start: cd ~/.claude/mcp-servers/bitbucket && docker-compose up -d"
+        status_warn "layers.sh not found, cannot sync"
     fi
 }
 
@@ -322,14 +337,17 @@ create_directories() {
     log_section "Creating Directory Structure"
 
     local dirs=(
+        "agents"
         "bin"
         "commands"
         "credentials"
         "debug"
+        "layers"
         "lib"
         "lib/core"
         "lib/local"
-        "mcp-servers"
+        "lib/services"
+        "lib/services/_bash"
         "recipes"
         "session-notes"
         "session-notes/coding"
@@ -508,7 +526,7 @@ main() {
             check_session_types || true
             check_skills || true
             check_commands || true
-            check_mcp_servers || true
+            sync_layers || true
             check_credentials || true
             ;;
         --update)
@@ -516,6 +534,7 @@ main() {
             echo ""
             update_from_git
             make_scripts_executable
+            sync_layers || true
             echo ""
             log "Update complete!"
             ;;
@@ -544,7 +563,7 @@ main() {
             check_session_types || true
             check_skills || true
             check_commands || true
-            check_mcp_servers || true
+            sync_layers || true
             check_credentials || true
             update_from_git || true
 
