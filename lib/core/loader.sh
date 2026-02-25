@@ -110,44 +110,15 @@ case "$SESSION_TYPE" in
 esac
 
 if [ "$LOAD_SERVICES" = true ]; then
-    # MCP Integration Helpers
-    if [ -f ~/.claude/lib/mcp/jira_helpers.sh ]; then
-        source ~/.claude/lib/mcp/jira_helpers.sh
-    fi
+    # Service API libraries
+    for _lib in ~/.claude/lib/services/*.sh; do
+        [ -f "$_lib" ] && source "$_lib"
+    done
 
-    # Bash CLI Wrappers (always available)
-    if [ -f ~/.claude/lib/services/_bash/aws.sh ]; then
-        source ~/.claude/lib/services/_bash/aws.sh
-    fi
-
-    if [ -f ~/.claude/lib/services/_bash/onepassword.sh ]; then
-        source ~/.claude/lib/services/_bash/onepassword.sh
-    fi
-
-    if [ -f ~/.claude/lib/services/_bash/confluence.sh ]; then
-        source ~/.claude/lib/services/_bash/confluence.sh
-    fi
-
-    # MCP Candidates (will convert to MCP in Phase 2)
-    if [ -f ~/.claude/lib/services/mcp-candidates/bitbucket.sh ]; then
-        source ~/.claude/lib/services/mcp-candidates/bitbucket.sh
-    fi
-
-    if [ -f ~/.claude/lib/services/mcp-candidates/slack.sh ]; then
-        source ~/.claude/lib/services/mcp-candidates/slack.sh
-    fi
-
-    if [ -f ~/.claude/lib/services/mcp-candidates/sentry.sh ]; then
-        source ~/.claude/lib/services/mcp-candidates/sentry.sh
-    fi
-
-    if [ -f ~/.claude/lib/services/mcp-candidates/datadog.sh ]; then
-        source ~/.claude/lib/services/mcp-candidates/datadog.sh
-    fi
-
-    if [ -f ~/.claude/lib/services/mcp-candidates/github.sh ]; then
-        source ~/.claude/lib/services/mcp-candidates/github.sh
-    fi
+    # Bash CLI wrappers (aws, onepassword, confluence)
+    for _lib in ~/.claude/lib/services/_bash/*.sh; do
+        [ -f "$_lib" ] && source "$_lib"
+    done
 fi
 
 # ==============================================================================
