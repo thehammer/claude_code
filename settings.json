@@ -25,15 +25,6 @@
       "Edit(**)",
       "Glob(**)",
       "Grep(**)",
-      "mcp__jira__jira_add_comment",
-      "mcp__jira__jira_create_issue",
-      "mcp__jira__jira_get_create_meta",
-      "mcp__jira__jira_get_issue",
-      "mcp__jira__jira_get_project",
-      "mcp__jira__jira_get_transitions",
-      "mcp__jira__jira_ls_issues",
-      "mcp__jira__jira_ls_projects",
-      "mcp__jira__jira_transition_issue",
       "mcp__session-memory__search_sessions",
       "mcp__session-memory__list_sessions",
       "mcp__session-memory__get_session",
@@ -76,16 +67,6 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|NotebookEdit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/workspace-lock.sh",
-            "timeout": 5
-          }
-        ]
-      },
-      {
         "matcher": "Write",
         "hooks": [
           {
@@ -119,7 +100,6 @@
     "command": "~/.claude/statusline.sh"
   },
   "enabledPlugins": {
-    "ralph-loop@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
     "hookify@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
@@ -128,10 +108,6 @@
   },
   "alwaysThinkingEnabled": true,
   "mcpServers": {
-    "jira": {
-      "type": "http",
-      "url": "http://localhost:3000/mcp"
-    },
     "session-memory": {
       "type": "http",
       "url": "http://localhost:3002/mcp"
