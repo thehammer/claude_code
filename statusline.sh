@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Claude Code statusline — fast, single-jq-call design
-# Shows: model, repo:branch, context %, cost, duration, lines changed, vim mode, session type
+# Shows: model, repo:branch, open PRs, context %, cost, duration, lines changed, vim mode, version
+
+# Claude Code version (cached per-session via env var to avoid subprocess on every render)
+if [ -z "${_CC_VERSION:-}" ]; then
+    export _CC_VERSION=$(claude --version 2>/dev/null | awk '{print $1}')
+fi
+cc_ver="${_CC_VERSION:-?}"
 
 # Read all of stdin (Claude Code closes the pipe after writing)
 input=$(cat) 2>/dev/null
@@ -45,12 +51,27 @@ if [ -n "$cwd" ] && cd "$cwd" 2>/dev/null; then
     branch=$(git branch --show-current 2>/dev/null)
 fi
 
-# --- Session type from tmux window name ---
-session_type=""
-if [ -n "$TMUX" ]; then
-    session_type=$(tmux display-message -p '#W' 2>/dev/null)
-    # Filter out default window names
-    case "$session_type" in bash|zsh|fish|"") session_type="" ;; esac
+# --- Open PRs (file-cached, background refresh, per-repo) ---
+pr_count=""
+if [ -n "$repo" ]; then
+    _pr_cache="/tmp/.claude-statusline-prs-${repo}"
+    _pr_max_age=60
+    _pr_stale=1
+
+    if [ -f "$_pr_cache" ]; then
+        _pr_age=$(( $(date +%s) - $(stat -f %m "$_pr_cache" 2>/dev/null || echo 0) ))
+        [ "$_pr_age" -lt "$_pr_max_age" ] && _pr_stale=0
+        pr_count=$(cat "$_pr_cache" 2>/dev/null)
+    fi
+
+    if [ "$_pr_stale" -eq 1 ]; then
+        # Get owner/repo from remote, refresh in background
+        _remote=$(git remote get-url origin 2>/dev/null)
+        if [ -n "$_remote" ]; then
+            _nwo=$(echo "$_remote" | sed -E 's#.*[:/]([^/]+/[^/.]+)(\.git)?$#\1#')
+            ( gh pr list --repo "$_nwo" --state open --author @me --json number --jq 'length' > "$_pr_cache" 2>/dev/null ) &
+        fi
+    fi
 fi
 
 # --- Format duration (pure arithmetic, no subprocesses) ---
@@ -99,7 +120,6 @@ if [ -n "$repo" ]; then
     if [ "$is_worktree" -eq 1 ]; then
         rb="${rb} \033[38;5;220m◆${D}"
     fi
-    rb="${rb} │"
 fi
 
 # Lines changed
@@ -118,14 +138,23 @@ if [ -n "${vim_mode:-}" ]; then
     fi
 fi
 
-# Session type
-st=""
-if [ -n "$session_type" ]; then
-    st=" │ \033[38;5;141m${session_type}${D}"
+# Open PRs (shown next to repo/branch)
+pr=""
+if [ -n "$pr_count" ] && [ "$pr_count" -gt 0 ] 2>/dev/null; then
+    pr=" \033[38;5;75m${pr_count} PRs${D}"
 fi
+
+# Close repo group with separator
+if [ -n "$rb" ]; then
+    rb="${rb}${pr} │"
+    pr=""  # already included in rb
+fi
+
+# Version
+vr=" │ \033[38;5;245mv${cc_ver}${D}"
 
 # Cost
 cost_fmt=$(printf '$%.2f' "$cost")
 
 # Single line output
-printf "${MB}${W} ${model} ${SF}${B}${S}${D}${rb} ${bar} \033[38;5;${cc}m${pct}%%${D} │ ${cost_fmt} │ ${dur}${lc}${vm}${st} ${BF}\033[49m${S}${R}\n"
+printf "${MB}${W} ${model} ${SF}${B}${S}${D}${rb}${pr} ${bar} \033[38;5;${cc}m${pct}%%${D} │ ${cost_fmt} │ ${dur}${lc}${vm}${vr} ${BF}\033[49m${S}${R}\n"
