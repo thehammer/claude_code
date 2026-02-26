@@ -31,10 +31,7 @@ if [ -f ~/.claude/lib/core/m365.sh ]; then
     source ~/.claude/lib/core/m365.sh
 fi
 
-# Load calendar helper functions
-if [ -f ~/.claude/lib/core/calendar.sh ]; then
-    source ~/.claude/lib/core/calendar.sh
-fi
+# Calendar helpers now loaded via lib/services/calendar.sh (from layer)
 
 # ==============================================================================
 # Local System Helpers (Always)
