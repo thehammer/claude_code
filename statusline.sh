@@ -36,6 +36,28 @@ IFS=$'\t' read -r model cost duration_ms used_pct lines_added lines_removed vim_
 [ "$vim_mode" = "-" ] && vim_mode=""
 [ "$cwd" = "-" ] && cwd=""
 
+# --- Session type (from IDE registry, keyed by tmux pane) ---
+sess_type="" sess_emoji=""
+if [ -n "${TMUX_PANE:-}" ]; then
+    _pane_num="${TMUX_PANE#%}"
+    _sess_file="$HOME/.claude/ide/sessions/tmux-${_pane_num}.json"
+    if [ -f "$_sess_file" ]; then
+        sess_type=$(jq -r '.type // ""' "$_sess_file" 2>/dev/null)
+        case "$sess_type" in
+            coding)     sess_emoji="💻" ;;
+            debugging)  sess_emoji="🐛" ;;
+            analysis)   sess_emoji="🔍" ;;
+            planning)   sess_emoji="📋" ;;
+            presenting) sess_emoji="📊" ;;
+            learning)   sess_emoji="📚" ;;
+            personal)   sess_emoji="🏠" ;;
+            clauding)   sess_emoji="🔧" ;;
+            launcher)   sess_emoji="🚀" ;;
+            reviewing)  sess_emoji="👀" ;;
+        esac
+    fi
+fi
+
 # --- Git info (repo name, branch, worktree detection) ---
 repo="" branch="" is_worktree=0
 if [ -n "$cwd" ] && cd "$cwd" 2>/dev/null; then
@@ -71,6 +93,27 @@ if [ -n "$repo" ]; then
             _nwo=$(echo "$_remote" | sed -E 's#.*[:/]([^/]+/[^/.]+)(\.git)?$#\1#')
             ( gh pr list --repo "$_nwo" --state open --author @me --json number --jq 'length' > "$_pr_cache" 2>/dev/null ) &
         fi
+    fi
+fi
+
+# --- Project-specific statusline extension ---
+# Look for tools/statusline.sh in the project root (resolves through worktrees)
+proj_seg=""
+if [ -n "$cwd" ]; then
+    _proj_root=""
+    if [ "$is_worktree" -eq 1 ] && [ -n "${_gc:-}" ]; then
+        _proj_root=$(cd "$_gc/.." 2>/dev/null && pwd)
+    elif [ -n "$cwd" ]; then
+        _proj_root=$(cd "$cwd" && git rev-parse --show-toplevel 2>/dev/null)
+    fi
+    if [ -n "$_proj_root" ]; then
+        for _sl_path in "tools/statusline.sh" ".claude/statusline.sh"; do
+            _proj_sl="${_proj_root}/${_sl_path}"
+            if [ -x "$_proj_sl" ]; then
+                proj_seg=$("$_proj_sl" 2>/dev/null)
+                break
+            fi
+        done
     fi
 fi
 
@@ -156,5 +199,11 @@ vr=" │ \033[38;5;245mv${cc_ver}${D}"
 # Cost
 cost_fmt=$(printf '$%.2f' "$cost")
 
+# Session type segment (emoji after model badge)
+st=""
+if [ -n "$sess_emoji" ]; then
+    st=" ${sess_emoji}"
+fi
+
 # Single line output
-printf "${MB}${W} ${model} ${SF}${B}${S}${D}${rb}${pr} ${bar} \033[38;5;${cc}m${pct}%%${D} │ ${cost_fmt} │ ${dur}${lc}${vm}${vr} ${BF}\033[49m${S}${R}\n"
+printf "${MB}${W} ${model} ${SF}${B}${S}${D}${st}${rb}${pr} ${bar} \033[38;5;${cc}m${pct}%%${D} │ ${cost_fmt} │ ${dur}${proj_seg}${lc}${vm}${vr} ${BF}\033[49m${S}${R}\n"

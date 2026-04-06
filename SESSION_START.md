@@ -18,12 +18,16 @@
 
 ## 0.4. Tmux Window Name
 
+Set the tmux window name based on the working directory (human-friendly project name):
+
 ```bash
 if [ -n "$TMUX" ]; then
     source ~/.claude/lib/local/tmux.sh
     tmux_set_claude_window "{session_type}"
 fi
 ```
+
+The window name is derived from the current directory (e.g., `~/Code/admin-portal` → "Admin Portal"). The session type is passed but used only for context — the window name comes from the directory.
 
 ---
 

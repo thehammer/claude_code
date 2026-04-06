@@ -88,58 +88,57 @@ tmux_get_type_emoji() {
     esac
 }
 
-# Get short name for session type (for tab bar)
-# Args: $1 = session type
-# Returns: short name string
-tmux_get_type_short() {
-    local session_type="$1"
-    case "$session_type" in
-        debugging)  echo "debug" ;;
-        presenting) echo "present" ;;
-        reviewing)  echo "review" ;;
-        commander)  echo "cmd" ;;
-        *)          echo "$session_type" ;;
+# Convert a directory path to a human-friendly project name
+# Takes the basename, replaces hyphens/underscores with spaces, and title-cases
+# Args: $1 = directory path (defaults to pwd)
+# Returns: human-friendly name (e.g., "Admin Portal", "Claude Config")
+tmux_project_name_from_dir() {
+    local dir="${1:-$(pwd)}"
+
+    # Expand ~ if present
+    dir="${dir/#\~/$HOME}"
+
+    # Special cases for non-project directories
+    case "$dir" in
+        "$HOME/.claude"|"$HOME/.claude/"*)
+            echo "Claude Config"
+            return 0
+            ;;
+        "$HOME"|"$HOME/")
+            echo "Home"
+            return 0
+            ;;
+        "$HOME/sandbox"|"$HOME/sandbox/")
+            echo "Sandbox"
+            return 0
+            ;;
     esac
+
+    local basename=$(basename "$dir")
+
+    # Replace hyphens and underscores with spaces, then title-case each word
+    echo "$basename" | sed 's/[-_]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2)); print}'
 }
 
-# Rename window based on Claude session type
-# Args: $1 = session type (coding, debugging, clauding, etc.)
-#       $2 = branch name (optional)
-#       $3 = status indicator (optional: waiting, idle)
-# Returns: 0 on success, 1 if not in tmux or invalid type
+# Rename window based on working directory (project name)
+# Args: $1 = session type (coding, debugging, clauding, etc.) - used for emoji prefix
+#       $2 = directory path (optional, defaults to pwd)
+# Returns: 0 on success, 1 if not in tmux
 tmux_set_claude_window() {
-    local session_type="$1"
-    local branch_name="${2:-}"
-    local session_status="${3:-}"
+    local session_type="${1:-}"
+    local dir="${2:-$(pwd)}"
 
     if ! tmux_is_active; then
         return 1
     fi
 
-    local emoji=$(tmux_get_type_emoji "$session_type")
-    local short_name=$(tmux_get_type_short "$session_type")
+    # Get project name from directory
+    local project_name=$(tmux_project_name_from_dir "$dir")
 
-    # Build window name
-    local window_name="${emoji} ${short_name}"
-
-    # Add branch if provided (truncate if long)
-    if [[ -n "$branch_name" && "$branch_name" != "-" ]]; then
-        if [[ ${#branch_name} -gt 12 ]]; then
-            branch_name="${branch_name:0:10}.."
-        fi
-        window_name="${window_name} [${branch_name}]"
-    fi
-
-    # Add status indicator if waiting
-    if [[ "$session_status" == "waiting" ]]; then
-        window_name="${window_name} ⏳"
-    elif [[ "$session_status" == "idle" ]]; then
-        window_name="${window_name} 💤"
-    fi
+    # Build window name: just the project name
+    local window_name="$project_name"
 
     # Get the window ID where this command is running (not the active window)
-    # Use $TMUX_PANE to target the pane where this runs, so we rename the
-    # correct window even if the user's cursor is on a different one
     local window_id
     if [[ -n "${TMUX_PANE:-}" ]]; then
         window_id=$(tmux display-message -t "$TMUX_PANE" -p '#{window_id}')
@@ -168,12 +167,9 @@ tmux_update_window_from_registry() {
     fi
 
     local session_type=$(echo "$session_json" | jq -r '.type')
-    local branch=$(echo "$session_json" | jq -r '.branch // ""')
-    local status=$(echo "$session_json" | jq -r '.status')
+    local project_dir=$(echo "$session_json" | jq -r '.project // ""')
 
-    [[ "$branch" == "null" ]] && branch=""
-
-    tmux_set_claude_window "$session_type" "$branch" "$status"
+    tmux_set_claude_window "$session_type" "$project_dir"
 }
 
 # Split current pane horizontally and run a command
@@ -272,11 +268,10 @@ tmux_new_window() {
 # Create a coding workspace layout in a new tmux window
 # Layout: Claude (left 50%) | Emacs (top-right 25%) / Shell (bottom-right 25%)
 # Args: $1 = project directory path
-#       $2 = window name (optional, defaults to "💻 coding")
+#       $2 = window name (optional, auto-derived from directory)
 # Returns: 0 on success, 1 if not in tmux or directory doesn't exist
 tmux_create_coding_layout() {
     local project_dir="$1"
-    local window_name="${2:-💻 coding}"
 
     if ! tmux_is_active; then
         echo "Error: Not in a tmux session" >&2
@@ -290,6 +285,8 @@ tmux_create_coding_layout() {
         echo "Error: Directory does not exist: $project_dir" >&2
         return 1
     fi
+
+    local window_name="${2:-$(tmux_project_name_from_dir "$project_dir")}"
 
     # Create new window in the project directory
     tmux new-window -n "$window_name" -c "$project_dir"
@@ -322,12 +319,12 @@ tmux_create_coding_layout() {
 # Create a clauding workspace layout in a new tmux window
 # Layout: Single pane with Claude only (no terminal)
 # Args: $1 = description (optional, passed to /start clauding)
-#       $2 = window name (optional, defaults to "🔧 clauding")
+#       $2 = window name (optional, defaults to "Claude Config")
 # Returns: 0 on success, 1 if not in tmux
 tmux_create_clauding_layout() {
     local description="$1"
-    local window_name="${2:-🔧 clauding}"
     local work_dir="$HOME/.claude"
+    local window_name="${2:-$(tmux_project_name_from_dir "$work_dir")}"
 
     if ! tmux_is_active; then
         echo "Error: Not in a tmux session" >&2
@@ -356,12 +353,13 @@ tmux_create_clauding_layout() {
 # Create a reviewing workspace layout in a new tmux window
 # Layout: Single pane with Claude only (focused on PR reviews)
 # Args: $1 = description (optional, passed to /start reviewing)
-#       $2 = window name (optional, defaults to "👀 review")
+#       $2 = window name (optional, auto-derived from directory)
+#       $3 = work_dir (optional, defaults to $CLAUDE_SESSION_DIR)
 # Returns: 0 on success, 1 if not in tmux
 tmux_create_reviewing_layout() {
     local description="$1"
-    local window_name="${2:-👀 review}"
     local work_dir="${3:-$CLAUDE_SESSION_DIR}"
+    local window_name="${2:-$(tmux_project_name_from_dir "$work_dir")}"
 
     if ! tmux_is_active; then
         echo "Error: Not in a tmux session" >&2
@@ -415,17 +413,9 @@ tmux_create_session_layout() {
         return 1
     fi
 
-    # Auto-generate window name if not provided
+    # Auto-generate window name from directory if not provided
     if [[ -z "$window_name" ]]; then
-        case "$session_type" in
-            debugging)  window_name="🐛 debug" ;;
-            analysis)   window_name="🔍 analysis" ;;
-            planning)   window_name="📋 planning" ;;
-            presenting) window_name="📊 presenting" ;;
-            learning)   window_name="📚 learning" ;;
-            personal)   window_name="🏠 personal" ;;
-            *)          window_name="$session_type" ;;
-        esac
+        window_name=$(tmux_project_name_from_dir "$work_dir")
     fi
 
     # Create new window
