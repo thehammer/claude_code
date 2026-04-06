@@ -6,7 +6,7 @@
 # machine-specific aliases defined manually.
 
 AGENTS_DIR="$(cd "$(dirname "$0")" && pwd)"
-CLAUDE_CMD="${CLAUDE_ALIAS:-cdsp --agent}"
+CLAUDE_CMD="${CLAUDE_ALIAS:-claude --dangerously-skip-permissions --remote-control --agent}"
 
 for file in "$AGENTS_DIR"/*.md; do
   [ -f "$file" ] || continue
