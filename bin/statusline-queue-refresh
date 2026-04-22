@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Refresh the statusline queue cache.
+#
+# Reads ~/.claude/queue/jobs/*.json, counts by state, and writes a compact
+# three-integer cache at /tmp/.claude-statusline-queue:
+#
+#     RUNNING:QUEUED:FAILED
+#
+# Where RUNNING = state==running, QUEUED = state in {queued, ready},
+# FAILED = state==failed (all — retention will prune old ones on its own).
+#
+# Called in the background by statusline.sh on a ~10s TTL. Atomic rename so
+# the statusline never sees a partial file.
+
+set -u
+
+CACHE_FILE="${1:-/tmp/.claude-statusline-queue}"
+TMP_FILE="${CACHE_FILE}.tmp.$$"
+QUEUE_ROOT="${QUEUE_ROOT:-$HOME/.claude/queue}"
+JOBS_DIR="$QUEUE_ROOT/jobs"
+
+# If there's no jobs dir at all, empty cache (nothing to show).
+if [ ! -d "$JOBS_DIR" ]; then
+    : > "$CACHE_FILE"
+    exit 0
+fi
+
+# Aggregate by state in one pass.
+counts=$(find "$JOBS_DIR" -maxdepth 1 -name '*.json' -type f 2>/dev/null \
+    | while read -r f; do
+        jq -r '.state' "$f" 2>/dev/null
+    done \
+    | awk '
+        /^running$/ { r++ }
+        /^queued$/  { q++ }
+        /^ready$/   { q++ }
+        /^failed$/  { fa++ }
+        END { printf "%d:%d:%d\n", r+0, q+0, fa+0 }
+    ')
+
+printf '%s\n' "$counts" > "$TMP_FILE" && mv "$TMP_FILE" "$CACHE_FILE"

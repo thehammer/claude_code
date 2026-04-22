@@ -96,6 +96,72 @@ if [ -n "$repo" ]; then
     fi
 fi
 
+# --- Open Jira tickets (file-cached, background refresh, global) ---
+# Cache lines: PROJECT:COUNT:CATEGORY   (category: indeterminate|new)
+jira_seg=""
+_jira_cache="/tmp/.claude-statusline-jira"
+_jira_max_age=300  # 5 min — Jira state changes less often than PR state
+
+if [ -f "$_jira_cache" ]; then
+    _jira_age=$(( $(date +%s) - $(stat -f %m "$_jira_cache" 2>/dev/null || echo 0) ))
+    if [ "$_jira_age" -ge "$_jira_max_age" ]; then
+        ( "$HOME/.claude/bin/statusline-jira-refresh" "$_jira_cache" >/dev/null 2>&1 ) &
+    fi
+
+    # Build display: "RM 18  CORE 8  PAYM 1" with per-project colors.
+    # Use a literal dim-gray reset between projects — the ${D} variable
+    # isn't defined yet at this point in the script.
+    _jreset='\033[38;5;245m'
+    while IFS=: read -r _jp _jc _jcat; do
+        [ -z "$_jp" ] && continue
+        case "$_jcat" in
+            indeterminate) _jcolor='\033[38;5;220m' ;;  # yellow — active work
+            new)           _jcolor='\033[38;5;75m'  ;;  # blue — parked/todo
+            *)             _jcolor='\033[38;5;245m' ;;  # dim fallback
+        esac
+        if [ -z "$jira_seg" ]; then
+            jira_seg=" ${_jcolor}${_jp} ${_jc}${_jreset}"
+        else
+            jira_seg="${jira_seg}  ${_jcolor}${_jp} ${_jc}${_jreset}"
+        fi
+    done < "$_jira_cache"
+else
+    # First run — kick off a refresh so future renders have data.
+    ( "$HOME/.claude/bin/statusline-jira-refresh" "$_jira_cache" >/dev/null 2>&1 ) &
+fi
+
+# Append separator if jira segment present
+[ -n "$jira_seg" ] && jira_seg="${jira_seg} │"
+
+# --- Queue state (file-cached, background refresh, global) ---
+# Cache line: RUNNING:QUEUED:FAILED
+queue_seg=""
+_queue_cache="/tmp/.claude-statusline-queue"
+_queue_max_age=10
+
+if [ -f "$_queue_cache" ]; then
+    _queue_age=$(( $(date +%s) - $(stat -f %m "$_queue_cache" 2>/dev/null || echo 0) ))
+    if [ "$_queue_age" -ge "$_queue_max_age" ]; then
+        ( "$HOME/.claude/bin/statusline-queue-refresh" "$_queue_cache" >/dev/null 2>&1 ) &
+    fi
+
+    IFS=: read -r _qr _qq _qf < "$_queue_cache" 2>/dev/null || { _qr=0; _qq=0; _qf=0; }
+    : "${_qr:=0}" "${_qq:=0}" "${_qf:=0}"
+
+    # Only render if something non-zero
+    if [ "$_qr" -gt 0 ] 2>/dev/null || [ "$_qq" -gt 0 ] 2>/dev/null || [ "$_qf" -gt 0 ] 2>/dev/null; then
+        _qreset='\033[38;5;245m'
+        queue_seg=" ${_qreset}Q"
+        [ "$_qr" -gt 0 ] && queue_seg="${queue_seg} \033[38;5;220m▶${_qr}${_qreset}"  # yellow — running
+        [ "$_qq" -gt 0 ] && queue_seg="${queue_seg} \033[38;5;75m⏸${_qq}${_qreset}"   # blue — queued/ready
+        [ "$_qf" -gt 0 ] && queue_seg="${queue_seg} \033[38;5;203m!${_qf}${_qreset}"  # red — failed
+        queue_seg="${queue_seg} │"
+    fi
+else
+    # First run — trigger refresh so future renders have data.
+    ( "$HOME/.claude/bin/statusline-queue-refresh" "$_queue_cache" >/dev/null 2>&1 ) &
+fi
+
 # --- Project-specific statusline extension ---
 # Look for tools/statusline.sh in the project root (resolves through worktrees)
 proj_seg=""
@@ -206,4 +272,4 @@ if [ -n "$sess_emoji" ]; then
 fi
 
 # Single line output
-printf "${MB}${W} ${model} ${SF}${B}${S}${D}${st}${rb}${pr} ${bar} \033[38;5;${cc}m${pct}%%${D} │ ${cost_fmt} │ ${dur}${proj_seg}${lc}${vm}${vr} ${BF}\033[49m${S}${R}\n"
+printf "${MB}${W} ${model} ${SF}${B}${S}${D}${st}${rb}${pr}${jira_seg}${queue_seg} ${bar} \033[38;5;${cc}m${pct}%%${D} │ ${cost_fmt} │ ${dur}${proj_seg}${lc}${vm}${vr} ${BF}\033[49m${S}${R}\n"
