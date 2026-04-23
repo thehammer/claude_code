@@ -66,7 +66,7 @@ Custom [subagents](https://docs.anthropic.com/en/docs/claude-code/agents) that C
 | `session-researcher` | Find context from past Claude Code sessions |
 | `test-writer` | Generate tests for code |
 
-Additional agents (`calendar-fetcher`, `confluence-agent`, `datadog-agent`, `ecs-investigator`, `jira-agent`, `laravel-expert`, `pipeline-debugger`, `sentry-agent`, `slack-retriever`, `slack-url-to-logs`) are provided by the [carefeed layer](https://github.com/Carefeed/claude-config) and synced via `layer_sync`.
+Additional agents (`calendar-fetcher`, `connie`, `datadog-agent`, `ecs-investigator`, `jerry`, `laravel-expert`, `pipeline-debugger`, `sentry-agent`, `slack-retriever`, `slack-url-to-logs`) are provided by the [carefeed layer](https://github.com/Carefeed/claude-config) and synced via `layer_sync`.
 
 ### Session Types (`session-types/`)
 
@@ -202,7 +202,6 @@ Executable CLI tools:
 |--------|---------|
 | `bootstrap` | Initial setup and dependency checks |
 | `claude-layer` | Layer management CLI (see Layer System below) |
-| `ide` / `ide-switcher` / `ide-dashboard` | IDE integration tools |
 | `figma_describe` / `figma_get` / `figma_ui` | Figma design file tools |
 | `index-sessions` / `session-commands` / `search-session-commands` | Session history tools |
 | `services/*` | CLI wrappers for AWS, GitHub, 1Password (Bitbucket, Confluence, Datadog, Sentry, Slack provided by carefeed layer) |
