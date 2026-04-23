@@ -13,10 +13,9 @@ This session focuses on coordination, not coding work.
 - **Skip** session notes (this isn't a work session)
 
 ### 2. Dashboard Mode
-The commander session primarily runs the dashboard:
-```bash
-~/.claude/bin/ide-dashboard
-```
+The commander session primarily runs the dashboard.
+<!-- ide-dashboard removed; commander dashboard is TBD -->
+
 
 ## Behavior
 
@@ -39,10 +38,8 @@ This session type is NOT for doing actual work. It's for:
 Commander sessions should NOT register themselves in the registry (would be confusing).
 
 ## Startup Command
-When starting a commander session, immediately launch the dashboard:
-```bash
-~/.claude/bin/ide-dashboard
-```
+When starting a commander session, immediately launch the dashboard.
+<!-- ide-dashboard removed; commander dashboard is TBD -->
 
 ## Window Name
 🎛️ commander

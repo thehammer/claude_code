@@ -12,7 +12,6 @@
 set -e
 
 source "$HOME/.claude/lib/core/locks.sh"
-source "$HOME/.claude/lib/core/ide.sh" 2>/dev/null || true
 
 # Get inputs from hook
 TOOL_NAME="${CLAUDE_TOOL_NAME:-}"

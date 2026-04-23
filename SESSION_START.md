@@ -31,14 +31,6 @@ The window name is derived from the current directory (e.g., `~/Code/admin-porta
 
 ---
 
-## 0.5. Register Session
-
-```bash
-~/.claude/bin/ide register "{session_type}" "$(pwd)" "{description}"
-```
-
----
-
 ## Session Type Loading
 
 1. Read `~/.claude/session-types/{type}.md` for context loading instructions

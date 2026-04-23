@@ -148,30 +148,6 @@ tmux_set_claude_window() {
     tmux rename-window -t "$window_id" "$window_name"
 }
 
-# Update window name from IDE registry
-# Reads current session state and updates window name accordingly
-# Returns: 0 on success, 1 if not in tmux or no session registered
-tmux_update_window_from_registry() {
-    if ! tmux_is_active; then
-        return 1
-    fi
-
-    # Source IDE functions if not already loaded
-    if ! type ide_get_session &>/dev/null; then
-        source "$HOME/.claude/lib/core/ide.sh"
-    fi
-
-    local session_json=$(ide_get_session)
-    if [[ -z "$session_json" ]]; then
-        return 1
-    fi
-
-    local session_type=$(echo "$session_json" | jq -r '.type')
-    local project_dir=$(echo "$session_json" | jq -r '.project // ""')
-
-    tmux_set_claude_window "$session_type" "$project_dir"
-}
-
 # Split current pane horizontally and run a command
 # Args: $1 = command to run in new pane (optional)
 # Returns: 0 on success, 1 if not in tmux
@@ -438,41 +414,6 @@ tmux_create_session_layout() {
         tmux send-keys -t "$window_index" "/start $session_type"
     fi
     tmux send-keys -t "$window_index" Enter
-}
-
-# Create a commander (dashboard) window at index 0
-# This window runs the IDE dashboard for managing all Claude sessions
-# Returns: 0 on success, 1 if not in tmux
-tmux_create_commander() {
-    if ! tmux_is_active; then
-        echo "Error: Not in a tmux session" >&2
-        return 1
-    fi
-
-    # Check if window 0 already exists and what it's running
-    local window_0_exists=$(tmux list-windows -F '#{window_index}' | grep -c '^0$')
-
-    if [[ "$window_0_exists" -gt 0 ]]; then
-        # Window 0 exists - check if it's a commander
-        local current_name=$(tmux display-message -t :0 -p '#{window_name}')
-        if [[ "$current_name" == *"commander"* ]]; then
-            echo "Commander already exists at window 0"
-            tmux select-window -t :0
-            return 0
-        else
-            echo "Window 0 exists but is not a commander. Creating commander at next available index."
-        fi
-    fi
-
-    # Create new window for commander
-    # If window 0 doesn't exist, create there; otherwise next available
-    if [[ "$window_0_exists" -eq 0 ]]; then
-        tmux new-window -t :0 -n "🎛️ commander" "$HOME/.claude/bin/ide-dashboard"
-    else
-        tmux new-window -n "🎛️ commander" "$HOME/.claude/bin/ide-dashboard"
-    fi
-
-    return 0
 }
 
 # Get list of all pane IDs in current window
