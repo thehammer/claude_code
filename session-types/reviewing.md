@@ -95,7 +95,7 @@ Specialized review agents for targeted analysis:
 | Agent | Use For | Invocation |
 |-------|---------|------------|
 | **pr-review-toolkit** | Deep code review with detailed feedback | "Use /review-pr to analyze PR #123 in admin-portal" |
-| **jira-agent** | Check related tickets, find context | "Use jira-agent to find tickets related to this PR" |
+| **jerry** | Check related tickets, find context | "Use jerry to find tickets related to this PR" |
 | **codebase-explainer** | Understand unfamiliar code areas | "Use codebase-explainer to explain how this service works" |
 | **pipeline-debugger** | Check if PR has failing builds | "Use pipeline-debugger to check CI status for this branch" |
 

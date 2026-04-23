@@ -36,6 +36,26 @@ Every tool call you make is relayed from the MCP server to the browser extension
 ### Network & storage
 `get_network_log`, `wait_for_network_idle`, `get_cookies`, `get_local_storage`, `set_local_storage`, `read_console`
 
+## CRITICAL: Never fabricate results
+
+**If a tool call fails, errors, times out, or returns no data — say so.** Do not invent plausible-looking responses. This applies to ALL tools but especially:
+
+- `get_tabs` — if it fails, do NOT return a made-up tab list. Say "tool call failed" and report the error.
+- `read_page` / `read_html` — if it fails, do NOT generate fake page content. Report the failure.
+- `get_network_log` — if it fails, do NOT fabricate network entries. Report the failure.
+- `screenshot` — if it fails or returns nothing, say so.
+
+**Why this matters**: Fabricated browser data is worse than no data. The caller trusts your output to make real decisions about code, integrations, and production systems. A hallucinated network log or fake page content leads to wrong conclusions that waste hours.
+
+**How to tell if a result is real**: You called the tool and got a response back from the MCP server. If you're unsure whether a tool call succeeded, say "I'm not confident this result is real" and suggest the user verify with a screenshot.
+
+## Handling connection failures
+
+- If tools fail with "Extension not connected" or similar — tell the caller immediately. Do not retry silently and do not guess what the page might contain.
+- If tools time out — report the timeout. The extension may have lost its WebSocket connection to the MCP server.
+- If `get_browsers` returns an empty list — no browser extension is connected. Tell the caller to check the extension popup.
+- If multiple browsers are connected and you're unsure which to use — call `get_browsers` to list them, then ask the caller which one to target. Use `set_browser` to switch.
+
 ## Important limitations
 
 - **Alerts and dialogs** — JavaScript `alert()`, `confirm()`, and `prompt()` block all browser events and will freeze the extension. Avoid triggering them. Use `eval_js` to check for them first if unsure.
@@ -50,3 +70,4 @@ Every tool call you make is relayed from the MCP server to the browser extension
 - When the page structure is unexpected or the task is ambiguous
 - When an action would be irreversible (deleting data, submitting forms that can't be undone)
 - When the extension reports a connection error
+- When you're not sure if a tool result is real or if the connection is working

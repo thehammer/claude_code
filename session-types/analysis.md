@@ -70,7 +70,7 @@ Then ask: "What would you like to analyze?" or "Which part of the codebase shoul
 | **codebase-explainer** | Deep dive into how code works | "Use codebase-explainer to explain the authentication system" |
 | **git-historian** | Understand code evolution | "Use git-historian to trace changes to the payment module" |
 | **dependency-auditor** | Analyze dependencies, find issues | "Use dependency-auditor to check for vulnerabilities" |
-| **confluence-agent** | Read architecture docs | "Use confluence-agent to get the design doc for this feature" |
+| **connie** | Read architecture docs | "Use connie to get the design doc for this feature" |
 | **session-researcher** | Find previous analysis work | "Use session-researcher to find our API analysis" |
 
 **When to use agents vs direct tools:**
@@ -88,7 +88,7 @@ Then ask: "What would you like to analyze?" or "Which part of the codebase shoul
    - Identify coupling points
 
 2. **Architecture Review:**
-   - Use **confluence-agent** for existing design docs
+   - Use **connie** for existing design docs
    - Use **codebase-explainer** for implementation understanding
    - Evaluate design decisions
    - Document trade-offs

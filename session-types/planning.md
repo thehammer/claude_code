@@ -84,9 +84,9 @@ Then ask: "What would you like to plan?" with options:
 
 | Agent | Use For | Invocation |
 |-------|---------|------------|
-| **jira-agent** | Search tickets, check status, find context | "Use jira-agent to find all open tickets for the auth feature" |
+| **jerry** | Search tickets, check status, find context | "Use jerry to find all open tickets for the auth feature" |
 | **session-researcher** | Find previous work, approaches used | "Use session-researcher to find our past work on payments" |
-| **confluence-agent** | Read roadmap docs, requirements | "Use confluence-agent to get the Q1 roadmap page" |
+| **connie** | Read roadmap docs, requirements | "Use connie to get the Q1 roadmap page" |
 | **codebase-explainer** | Understand scope for estimation | "Use codebase-explainer to assess complexity of the auth module" |
 
 **When to use agents vs direct tools:**
@@ -94,7 +94,7 @@ Then ask: "What would you like to plan?" with options:
 - **Use direct tools** when: Reading local TODO files, quick Jira lookups
 
 **Planning workflow with agents:**
-1. Use **jira-agent** to gather current ticket landscape
+1. Use **jerry** to gather current ticket landscape
 2. Use **session-researcher** to understand past approaches
 3. Use **codebase-explainer** for effort estimation
 4. Direct tools for updating TODOs and creating tickets
@@ -110,7 +110,7 @@ Then ask: "What would you like to plan?" with options:
    - Add to TODO / create Jira tickets
 
 2. **Sprint Planning:**
-   - Use **jira-agent** to get current ticket status
+   - Use **jerry** to get current ticket status
    - Review TODO items
    - Check capacity
    - Prioritize work

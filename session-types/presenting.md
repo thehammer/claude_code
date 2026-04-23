@@ -74,8 +74,8 @@ Then ask: "What would you like to present?" with options:
 |-------|---------|------------|
 | **session-researcher** | Find work done, approaches used | "Use session-researcher to find what we did on the auth feature" |
 | **pr-review-toolkit** | Understand PR scope and changes | "Use /review-pr to analyze the changes in my branch" |
-| **confluence-agent** | Read existing docs to update | "Use confluence-agent to get the current API documentation" |
-| **jira-agent** | Find related tickets for linking | "Use jira-agent to find all tickets related to this feature" |
+| **connie** | Read existing docs to update | "Use connie to get the current API documentation" |
+| **jerry** | Find related tickets for linking | "Use jerry to find all tickets related to this feature" |
 
 **When to use agents vs direct tools:**
 - **Use agents** when: Gathering context from multiple sources, need comprehensive view
@@ -84,7 +84,7 @@ Then ask: "What would you like to present?" with options:
 **Presentation workflow with agents:**
 1. Use **session-researcher** to understand the full scope of work
 2. Direct tools for git log/diff
-3. Use **jira-agent** to find tickets to link
+3. Use **jerry** to find tickets to link
 4. Direct tools to create the PR/docs/report
 
 ## Common Workflows
@@ -92,12 +92,12 @@ Then ask: "What would you like to present?" with options:
 1. **Create Pull Request:**
    - Use **session-researcher** to recall the full scope of work
    - Review commits and changes (direct git)
-   - Use **jira-agent** to find tickets to link
+   - Use **jerry** to find tickets to link
    - Generate PR title and description
    - Show PR before creating
 
 2. **Update Documentation:**
-   - Use **confluence-agent** to get current documentation
+   - Use **connie** to get current documentation
    - Identify sections to update
    - Draft new content
    - Show changes before saving
