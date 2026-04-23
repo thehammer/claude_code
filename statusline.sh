@@ -133,33 +133,16 @@ fi
 # Append separator if jira segment present
 [ -n "$jira_seg" ] && jira_seg="${jira_seg} │"
 
-# --- Queue state (file-cached, background refresh, global) ---
-# Cache line: RUNNING:QUEUED:FAILED
+# --- Mother queue state (file-cached, background refresh, global) ---
+# Delegates to the Mother plugin's statusline segment. mother_segment handles
+# the cache / TTL / background refresh and returns an empty string when all
+# counts are zero. We append the trailing separator ourselves.
 queue_seg=""
-_queue_cache="/tmp/.claude-statusline-queue"
-_queue_max_age=10
-
-if [ -f "$_queue_cache" ]; then
-    _queue_age=$(( $(date +%s) - $(stat -f %m "$_queue_cache" 2>/dev/null || echo 0) ))
-    if [ "$_queue_age" -ge "$_queue_max_age" ]; then
-        ( "$HOME/.claude/bin/statusline-queue-refresh" "$_queue_cache" >/dev/null 2>&1 ) &
-    fi
-
-    IFS=: read -r _qr _qq _qf < "$_queue_cache" 2>/dev/null || { _qr=0; _qq=0; _qf=0; }
-    : "${_qr:=0}" "${_qq:=0}" "${_qf:=0}"
-
-    # Only render if something non-zero
-    if [ "$_qr" -gt 0 ] 2>/dev/null || [ "$_qq" -gt 0 ] 2>/dev/null || [ "$_qf" -gt 0 ] 2>/dev/null; then
-        _qreset='\033[38;5;245m'
-        queue_seg=" ${_qreset}Q"
-        [ "$_qr" -gt 0 ] && queue_seg="${queue_seg} \033[38;5;220m▶${_qr}${_qreset}"  # yellow — running
-        [ "$_qq" -gt 0 ] && queue_seg="${queue_seg} \033[38;5;75m⏸${_qq}${_qreset}"   # blue — queued/ready
-        [ "$_qf" -gt 0 ] && queue_seg="${queue_seg} \033[38;5;203m!${_qf}${_qreset}"  # red — failed
-        queue_seg="${queue_seg} │"
-    fi
-else
-    # First run — trigger refresh so future renders have data.
-    ( "$HOME/.claude/bin/statusline-queue-refresh" "$_queue_cache" >/dev/null 2>&1 ) &
+if [ -f "$HOME/Code/mother/plugins/mother/statusline/segment.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$HOME/Code/mother/plugins/mother/statusline/segment.sh"
+    _mseg="$(mother_segment)"
+    [ -n "$_mseg" ] && queue_seg="${_mseg}│"
 fi
 
 # --- Project-specific statusline extension ---

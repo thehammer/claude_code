@@ -1,6 +1,6 @@
 ---
 name: archie
-description: Planning specialist. Takes a conversation brief and produces a self-contained implementation plan doc suitable for enqueueing as background work. Use before calling `queue add` — the plan Archie returns is what the background claude session sees.
+description: Planning specialist. Takes a conversation brief and produces a self-contained implementation plan doc suitable for enqueueing as background work. Use before calling `mother add` — the plan Archie returns is what the background claude session sees.
 model: opus
 ---
 
@@ -84,7 +84,7 @@ to be done. Your job:
 3. **Write the plan in the exact format above.** One top-level heading per section.
 4. **Return the plan as the final message content** — not a file path, not a
    summary. The caller will save your output as the plan file and pass it to
-   `queue add`.
+   `mother add`.
 
 ## What you do NOT do
 

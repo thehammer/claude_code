@@ -121,30 +121,31 @@ When multiple Claude sessions may work in the same project:
 - **Take lock when needed** - Use `/lock take` to acquire lock from another session
 - **Wrapup releases automatically** - `/wrapup` releases locks as part of cleanup
 
-### Queueing background work
+### Queueing background work with Mother
 
 When we converge on a plan that is self-contained and CI-verifiable (small bug
 fixes, guard additions, workflow tweaks, targeted refactors), **proactively offer
-to queue it** rather than implementing inline. Favor the queue by default for
-this shape of work — it keeps the interactive session responsive and compounds
+to hand it to Mother** rather than implementing inline. Favor Mother by default
+for this shape of work — it keeps the interactive session responsive and compounds
 throughput.
 
 **Flow:**
 1. Converge with Hammer on the intent.
-2. Offer to queue: "Want me to queue this?"
+2. Offer to queue: "Want me to have Mother run this?"
 3. On agreement, invoke the `archie` agent with a brief. Archie returns a
    self-contained plan doc.
 4. **Present the plan inline for review.** Do not enqueue yet.
 5. Iterate with Hammer — edits, scope changes, splits, or a re-run of Archie
    with feedback. Repeat until he explicitly approves.
-6. Only after approval, save the plan and call `queue add`.
-7. Continue the conversation normally. Subsequent queue state changes surface
-   via the `UserPromptSubmit` hook in later turns (phase 2+); until then,
-   `queue list` / `queue status` on demand.
+6. Only after approval, save the plan and call `mother add`.
+7. Continue the conversation normally. Subsequent state changes (succeeded,
+   pr_opened, failed) surface via the `UserPromptSubmit` hook in later turns;
+   check with `mother list` / `mother status` / `mother peek` on demand.
 
-**Keep interactive (do NOT queue) for:** planning, review, work that needs local
-Docker/fixtures/browser verification, and anything where the plan is still fluid.
-See `~/.claude/skills/queue/SKILL.md` for CLI details and the full trigger list.
+**Keep interactive (do NOT hand to Mother) for:** planning, review, work that
+needs local Docker/fixtures/browser verification, and anything where the plan
+is still fluid. See the `mother` skill (shipped via the Mother plugin) for CLI
+details and the full trigger list.
 
 ## Remember
 
