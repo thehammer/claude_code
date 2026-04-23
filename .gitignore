@@ -122,3 +122,14 @@ skills/*.deprecated/
 
 # Figma token cache
 bin/figma_token
+
+# Runtime state dirs (never push)
+/sessions/
+/session-env/
+/personal/
+/knowledge/
+
+# Runtime Claude settings backups — explicit pattern since the dated
+# filenames don't match the generic *.backup rule above.
+backups/.claude.json.backup.*
+backups/claude.json.backup-*

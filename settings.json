@@ -4,6 +4,7 @@
     "allow": [
       "Bash",
       "Bash(~/.claude/lib/*.sh:*)",
+      "Bash(aws sso login:*)",
       "Bash(aws_:*)",
       "Bash(AWS_:*)",
       "Bash(carefeed_:*)",
@@ -52,7 +53,6 @@
       "Bash(sudo rmdir:*)"
     ]
   },
-  "model": "opus",
   "hooks": {
     "PreToolUse": [
       {
@@ -82,7 +82,8 @@
           }
         ]
       }
-    ]
+    ],
+    "UserPromptSubmit": []
   },
   "statusLine": {
     "type": "command",
@@ -94,7 +95,16 @@
     "code-review@claude-plugins-official": true,
     "pr-review-toolkit@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
-    "swift-lsp@claude-plugins-official": true
+    "swift-lsp@claude-plugins-official": true,
+    "mother@thehammer-mother": true
+  },
+  "extraKnownMarketplaces": {
+    "thehammer-mother": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/hammer/Code/mother"
+      }
+    }
   },
   "alwaysThinkingEnabled": true,
   "skipDangerousModePermissionPrompt": true

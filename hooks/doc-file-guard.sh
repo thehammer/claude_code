@@ -1,6 +1,7 @@
 #!/bin/bash
 # PreToolUse hook: Block creation of random markdown/text files
-# Allows: README.md, CLAUDE.md, CONTRIBUTING.md, CHANGELOG.md, and files in docs/ or .claude/
+# Allows: README.md, CLAUDE.md, CONTRIBUTING.md, CHANGELOG.md, *.smoke.md,
+# and files in docs/, .claude/, tests/, session-notes/, templates/, recipes/
 
 set -e
 
@@ -30,13 +31,18 @@ if [[ "$FILE_PATH" =~ \.(md|txt)$ ]]; then
         exit 0
     fi
 
+    # Allow test-file formats that happen to be markdown (e.g. webster-test *.smoke.md)
+    if [[ "$FILENAME" =~ \.(smoke|test|spec)\.md$ ]]; then
+        exit 0
+    fi
+
     # Check if it's in an allowed directory
-    if [[ "$DIRPATH" =~ (docs|documentation|.claude|session-notes|templates|recipes)(/|$) ]]; then
+    if [[ "$DIRPATH" =~ (docs|documentation|.claude|session-notes|templates|recipes|tests|__tests__)(/|$) ]]; then
         exit 0
     fi
 
     # Block the file creation
-    echo "{\"decision\": \"block\", \"reason\": \"Creating random documentation files outside designated directories is blocked. Allowed: README.md, CLAUDE.md, CONTRIBUTING.md, CHANGELOG.md, or files in docs/, .claude/, session-notes/, templates/, recipes/ directories.\"}"
+    echo "{\"decision\": \"block\", \"reason\": \"Creating random documentation files outside designated directories is blocked. Allowed: README.md, CLAUDE.md, CONTRIBUTING.md, CHANGELOG.md, *.smoke.md, or files in docs/, .claude/, tests/, session-notes/, templates/, recipes/ directories.\"}"
     exit 0
 fi
 
