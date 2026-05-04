@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Refresh count of open Carefeed PRs that are passing all checks and not
+# authored by the current user — i.e. the queue of things ready for review.
+#
+# Writes a single integer to /tmp/.claude-pr-review-queue.  Designed to be
+# called in the background by the tmux statusline helper.
+
+set -u
+
+CACHE_FILE="${1:-/tmp/.claude-pr-review-queue}"
+TMP_FILE="${CACHE_FILE}.tmp.$$"
+
+# Resolve the authenticated GitHub username so we can exclude our own PRs.
+# `@me` doesn't work as a search qualifier on the underlying REST API
+# (only the gh CLI's `gh search` knows that shorthand).
+me=$(gh api user --jq '.login' 2>/dev/null)
+if [ -z "$me" ]; then
+    exit 1
+fi
+
+# Build the search query.  Goal is a strict "needs my attention now" count
+# — anything that surfaces here is a call to action, so filter aggressively:
+#   status:success           — checks all green
+#   draft:false              — drop drafts (author still working on it)
+#   review:required          — branch protection still wants more approvals
+#   -author:USER             — exclude my own PRs
+#   -author:app/...          — exclude dependabot and carefeed-ci backports
+#   updated:>$since          — exclude abandoned PRs (cold for >7 days)
+#   -reviewed-by:USER        — exclude PRs I've already reviewed (any kind)
+since=$(date -v-7d -u +%Y-%m-%d 2>/dev/null || date -u -d '7 days ago' +%Y-%m-%d)
+query="org:Carefeed+is:pr+is:open+-author:${me}+status:success"
+query="${query}+-author:app/dependabot+-author:app/carefeed-ci"
+query="${query}+updated:>${since}"
+query="${query}+draft:false+-reviewed-by:${me}+review:required"
+
+# `total_count` is GitHub's authoritative count even when the result is
+# paginated, so we don't have to walk pages.
+count=$(gh api "search/issues?q=${query}" --jq '.total_count' 2>/dev/null)
+
+if [ -z "$count" ] || ! [[ "$count" =~ ^[0-9]+$ ]]; then
+    exit 1
+fi
+
+echo "$count" > "$TMP_FILE"
+mv "$TMP_FILE" "$CACHE_FILE"

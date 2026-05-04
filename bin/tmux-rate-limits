@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Format Anthropic rate-limit usage for the tmux status bar.
+#
+# Reads /tmp/.claude-rate-limits (written by the Claude Code statusline
+# whenever it renders) and emits a tmux-colored "5h XX% · TIME  7d YY% · TIME"
+# string. Exits silently with no output when the cache is missing or the
+# percentages are unavailable — that way the surrounding status-right
+# format degrades gracefully instead of showing an error.
+#
+# The percentages can be slightly stale during long idle stretches (we
+# only learn new values on Claude Code render events), but the time-to-
+# reset countdown is computed live from the absolute timestamp on each
+# tmux refresh tick, so it stays accurate.
+
+set -u
+
+CACHE="${1:-/tmp/.claude-rate-limits}"
+[ -f "$CACHE" ] || exit 0
+
+IFS=: read -r p5 r5 p7 r7 < "$CACHE" || exit 0
+
+# Hide if either percentage is the "unknown" sentinel (-1).
+case ":$p5:$p7:" in *:-1:*) exit 0 ;; esac
+
+now=$(date +%s)
+
+color_for() {
+    local pct=$1
+    if   [ "$pct" -ge 80 ]; then echo "colour203"  # red
+    elif [ "$pct" -ge 50 ]; then echo "colour220"  # yellow
+    else                         echo "colour114"  # green
+    fi
+}
+
+# Compact "Xd Yh Zm" — drops trailing zero units, switches grain by scale.
+remain() {
+    local secs=$1 d h m
+    if [ "$secs" -le 0 ]; then echo "now"; return; fi
+    d=$((secs / 86400))
+    h=$(( (secs % 86400) / 3600 ))
+    m=$(( (secs % 3600) / 60 ))
+    if   [ "$d" -gt 0 ] && [ "$h" -gt 0 ]; then printf '%dd%dh' "$d" "$h"
+    elif [ "$d" -gt 0 ];                    then printf '%dd'   "$d"
+    elif [ "$h" -gt 0 ] && [ "$m" -gt 0 ];  then printf '%dh%dm' "$h" "$m"
+    elif [ "$h" -gt 0 ];                    then printf '%dh'   "$h"
+    else                                         printf '%dm'   "$m"
+    fi
+}
+
+# A window is "stale" once its reset time has passed — the cached % is
+# from a previous window that's already rolled over, so we can't trust
+# it.  Drop those entries instead of misleading the user with phantom
+# usage numbers; the next Claude Code render will refresh the cache.
+parts=()
+if [ "$r5" -gt "$now" ]; then
+    c5=$(color_for "$p5")
+    t5=$(remain $(( r5 - now )))
+    parts+=("$(printf '#[fg=%s]5h %d%%#[fg=colour245] · %s' "$c5" "$p5" "$t5")")
+fi
+if [ "$r7" -gt "$now" ]; then
+    c7=$(color_for "$p7")
+    t7=$(remain $(( r7 - now )))
+    parts+=("$(printf '#[fg=%s]7d %d%%#[fg=colour245] · %s' "$c7" "$p7" "$t7")")
+fi
+
+# Empty if both windows are stale — the surrounding format will collapse cleanly.
+[ "${#parts[@]}" -eq 0 ] && exit 0
+
+# Two-space separator between windows, trailing space to breathe before
+# the date segment that follows.
+( IFS='  '; printf '%s ' "${parts[*]}" )

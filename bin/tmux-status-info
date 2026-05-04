@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+# tmux-status-info — second tmux status line: situational awareness segments.
+#
+# Called from status-format[1] in ~/.tmux.conf on every status-interval tick.
+# Outputs tmux format strings (not ANSI codes) — the shell scripts it calls
+# for PR queue and rate limits already speak tmux format; the cache-reading
+# sections here translate the same cache files used by statusline.sh.
+#
+# Left:  Mother queue | Jira tickets | Sentry alerts | Email | Calendar | My PRs
+# Right: PR review queue | Claude rate limits
+
+set -u
+
+D='#[fg=colour245]'   # dim gray — default text
+BG='colour234'        # match the tab-bar background
+
+# --- Mother queue ---
+MOTHER_STATUSLINE_CACHE="${MOTHER_STATUSLINE_CACHE:-/tmp/.mother-statusline}"
+MOTHER_STATUSLINE_TTL="${MOTHER_STATUSLINE_TTL:-10}"
+
+mother_seg=""
+if [ -f "$MOTHER_STATUSLINE_CACHE" ]; then
+    _m_age=$(( $(date +%s) - $(stat -f %m "$MOTHER_STATUSLINE_CACHE" 2>/dev/null || echo 0) ))
+    if [ "$_m_age" -ge "$MOTHER_STATUSLINE_TTL" ]; then
+        ( source "$HOME/Code/mother/plugins/mother/statusline/segment.sh" \
+            && mother_statusline_refresh "$MOTHER_STATUSLINE_CACHE" >/dev/null 2>&1 ) &
+    fi
+    IFS=: read -r _mr _mq _mf _ma < "$MOTHER_STATUSLINE_CACHE" 2>/dev/null \
+        || { _mr=0; _mq=0; _mf=0; _ma=0; }
+    : "${_mr:=0}" "${_mq:=0}" "${_mf:=0}" "${_ma:=0}"
+    if { [ "${_mr:-0}" -gt 0 ] \
+      || [ "${_mq:-0}" -gt 0 ] \
+      || [ "${_mf:-0}" -gt 0 ] \
+      || [ "${_ma:-0}" -gt 0 ]; } 2>/dev/null; then
+        mother_seg=" ${D}🏭"
+        [ "$_mr" -gt 0 ] && mother_seg="${mother_seg} #[fg=colour220]▶${_mr}${D}"
+        [ "$_mq" -gt 0 ] && mother_seg="${mother_seg} #[fg=colour75]⏸${_mq}${D}"
+        [ "$_ma" -gt 0 ] && mother_seg="${mother_seg} #[fg=colour208]?${_ma}${D}"
+        [ "$_mf" -gt 0 ] && mother_seg="${mother_seg} #[fg=colour203]!${_mf}${D}"
+        mother_seg="${mother_seg} │"
+    fi
+else
+    ( source "$HOME/Code/mother/plugins/mother/statusline/segment.sh" \
+        && mother_statusline_refresh "$MOTHER_STATUSLINE_CACHE" >/dev/null 2>&1 ) &
+fi
+
+# --- Jira tickets ---
+jira_seg=""
+_jira_cache="/tmp/.claude-statusline-jira"
+_jira_max_age=300
+
+if [ -f "$_jira_cache" ]; then
+    _jira_age=$(( $(date +%s) - $(stat -f %m "$_jira_cache" 2>/dev/null || echo 0) ))
+    if [ "$_jira_age" -ge "$_jira_max_age" ]; then
+        ( "$HOME/.claude/bin/statusline-jira-refresh" "$_jira_cache" >/dev/null 2>&1 ) &
+    fi
+    while IFS=: read -r _jp _jc _jcat; do
+        [ -z "$_jp" ] && continue
+        case "$_jcat" in
+            indeterminate) _jcolor='#[fg=colour220]' ;;
+            new)           _jcolor='#[fg=colour75]'  ;;
+            *)             _jcolor="${D}"             ;;
+        esac
+        if [ -z "$jira_seg" ]; then
+            jira_seg=" ${D}🎫 ${_jcolor}${_jp} ${_jc}${D}"
+        else
+            jira_seg="${jira_seg}  ${_jcolor}${_jp} ${_jc}${D}"
+        fi
+    done < "$_jira_cache"
+    [ -n "$jira_seg" ] && jira_seg="${jira_seg} │"
+else
+    ( "$HOME/.claude/bin/statusline-jira-refresh" "$_jira_cache" >/dev/null 2>&1 ) &
+fi
+
+# --- Sentry alerts ---
+sentry_seg=""
+_sentry_cache="/tmp/.claude-statusline-sentry"
+_sentry_max_age=300
+
+if [ -f "$_sentry_cache" ]; then
+    _sentry_age=$(( $(date +%s) - $(stat -f %m "$_sentry_cache" 2>/dev/null || echo 0) ))
+    if [ "$_sentry_age" -ge "$_sentry_max_age" ]; then
+        ( "$HOME/.claude/bin/statusline-sentry-refresh" "$_sentry_cache" >/dev/null 2>&1 ) &
+    fi
+    while IFS=: read -r _slabel _scount; do
+        [ -z "$_slabel" ] && continue
+        case "$_slabel" in
+            \?) _scolor='#[fg=colour220]' ;;
+            *)  _scolor='#[fg=colour203]' ;;
+        esac
+        if [ -z "$sentry_seg" ]; then
+            sentry_seg=" #[fg=colour203]🚨${D} ${_scolor}${_slabel} ${_scount}${D}"
+        else
+            sentry_seg="${sentry_seg}  ${_scolor}${_slabel} ${_scount}${D}"
+        fi
+    done < "$_sentry_cache"
+    [ -n "$sentry_seg" ] && sentry_seg="${sentry_seg} │"
+else
+    ( "$HOME/.claude/bin/statusline-sentry-refresh" "$_sentry_cache" >/dev/null 2>&1 ) &
+fi
+
+# --- Email (total · unread) ---
+email_seg=""
+_email_cache="/tmp/.claude-statusline-email"
+_email_max_age=120
+
+if [ -f "$_email_cache" ]; then
+    _email_age=$(( $(date +%s) - $(stat -f %m "$_email_cache" 2>/dev/null || echo 0) ))
+    if [ "$_email_age" -ge "$_email_max_age" ]; then
+        ( "$HOME/.claude/bin/statusline-email-refresh" "$_email_cache" >/dev/null 2>&1 ) &
+    fi
+    IFS=: read -r _email_total _email_unread < "$_email_cache" 2>/dev/null
+    if [ -n "${_email_total:-}" ]; then
+        if   [ "${_email_unread:-0}" -ge 10 ] 2>/dev/null; then _ucolor='#[fg=colour203]'
+        elif [ "${_email_unread:-0}" -ge 1  ] 2>/dev/null; then _ucolor='#[fg=colour220]'
+        else                                                     _ucolor="${D}"
+        fi
+        email_seg=" #[fg=colour75]📭 ${_email_total}${D}·${_ucolor}${_email_unread:-0}${D} │"
+    fi
+else
+    ( "$HOME/.claude/bin/statusline-email-refresh" "$_email_cache" >/dev/null 2>&1 ) &
+fi
+
+# --- Calendar: next meeting ---
+cal_seg=""
+_cal_cache="/tmp/.claude-statusline-calendar"
+_cal_max_age=300
+
+if [ -f "$_cal_cache" ]; then
+    _cal_age=$(( $(date +%s) - $(stat -f %m "$_cal_cache" 2>/dev/null || echo 0) ))
+    _cal_line=$(head -n 1 "$_cal_cache" 2>/dev/null)
+    if [ -n "$_cal_line" ]; then
+        IFS='|' read -r _cal_status _cal_epoch _cal_time _cal_subj <<< "$_cal_line"
+        _now=$(date +%s)
+        if [ "$(( ${_cal_epoch:-0} + 300 ))" -lt "$_now" ] 2>/dev/null; then
+            ( "$HOME/.claude/bin/statusline-calendar-refresh" "$_cal_cache" >/dev/null 2>&1 ) &
+        else
+            if [ "${#_cal_subj}" -gt 35 ]; then
+                _cal_subj="${_cal_subj:0:34}…"
+            fi
+            case "$_cal_status" in
+                accepted|organizer)  _ccolor='#[fg=colour114]' ;;
+                declined)            _ccolor='#[fg=colour238]' ;;
+                *)                   _ccolor="${D}"            ;;
+            esac
+            cal_seg=" ${_ccolor}${_cal_subj} @ ${_cal_time}${D} │"
+        fi
+    fi
+    if [ "$_cal_age" -ge "$_cal_max_age" ]; then
+        ( "$HOME/.claude/bin/statusline-calendar-refresh" "$_cal_cache" >/dev/null 2>&1 ) &
+    fi
+else
+    ( "$HOME/.claude/bin/statusline-calendar-refresh" "$_cal_cache" >/dev/null 2>&1 ) &
+fi
+
+# --- My open PRs (sum across all per-repo caches from statusline.sh) ---
+my_prs_seg=""
+_prs_total=0
+for _pf in /tmp/.claude-statusline-prs-*; do
+    [ -f "$_pf" ] || continue
+    _n=$(cat "$_pf" 2>/dev/null)
+    [ -z "$_n" ] && continue
+    _prs_total=$(( _prs_total + _n )) 2>/dev/null || true
+done
+if [ "${_prs_total:-0}" -gt 0 ] 2>/dev/null; then
+    my_prs_seg=" #[fg=colour75]${_prs_total} PRs${D} │"
+fi
+
+# --- PR review queue (right side, reuse existing script) ---
+pr_review=$("$HOME/.claude/bin/tmux-pr-review-queue" 2>/dev/null)
+[ -n "$pr_review" ] && pr_review=" ${pr_review}"
+
+# --- Claude rate limits (right side, reuse existing script) ---
+rate_limits=$("$HOME/.claude/bin/tmux-rate-limits" 2>/dev/null)
+
+# --- Assemble ---
+left="#[bg=${BG}]${mother_seg}${jira_seg}${sentry_seg}${email_seg}${cal_seg}${my_prs_seg}"
+right="${pr_review}${rate_limits}"
+
+if [ -n "$right" ]; then
+    printf '%s#[align=right,bg=%s]%s' "$left" "$BG" "$right"
+else
+    printf '%s' "$left"
+fi

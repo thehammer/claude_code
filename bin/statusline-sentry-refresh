@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Refresh the Sentry statusline cache — fetches unresolved issues assigned
+# to the current user, groups by project, applies the slug→label mapping
+# below, and writes one line per label to /tmp/.claude-statusline-sentry:
+#
+#   LABEL:COUNT
+#
+# Unmapped projects collapse into "?" so the user notices and assigns a
+# label here when a new system shows up.
+#
+# Designed to be called in the background by statusline.sh. Writes to a
+# temp file and atomically renames so partial reads never happen.
+
+set -u
+
+CACHE_FILE="${1:-/tmp/.claude-statusline-sentry}"
+TMP_FILE="${CACHE_FILE}.tmp.$$"
+
+# Slug → label mapping, expressed as a JSON object so jq can apply it
+# directly. Add more entries as projects show up — anything not listed
+# falls through to "?" and surfaces in the statusline as a prompt to name it.
+SENTRY_LABEL_MAP='{
+    "portal_dev": "AP",
+    "referral-monitor": "RM"
+}'
+
+# shellcheck source=/dev/null
+source "$HOME/.claude/lib/core/credentials.sh" >/dev/null 2>&1 || exit 1
+# shellcheck source=/dev/null
+source "$HOME/.claude/lib/services/sentry.sh" || exit 1
+
+response=$(sentry_search_issues "is:unresolved assigned:me" 2>/dev/null)
+
+# Bail on API errors — leave stale cache in place rather than clobber.
+if [ -z "$response" ] || ! echo "$response" | jq -e 'type == "array"' >/dev/null 2>&1; then
+    exit 1
+fi
+
+# Group by project slug → apply label map → merge collisions on label
+# (multiple unknown slugs all collapse into "?") → sort known labels by
+# count desc with "?" pinned last.
+echo "$response" | jq -r --argjson map "$SENTRY_LABEL_MAP" '
+    [ .[] | { slug: .project.slug, label: ($map[.project.slug] // "?") } ]
+    | group_by(.label)
+    | map({ label: .[0].label, count: length })
+    | sort_by((if .label == "?" then 1 else 0 end), -.count)
+    | .[]
+    | "\(.label):\(.count)"
+' > "$TMP_FILE"
+
+# Atomic swap. An empty file is a valid result (no unresolved issues).
+mv "$TMP_FILE" "$CACHE_FILE"

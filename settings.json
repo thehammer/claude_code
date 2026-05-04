@@ -98,14 +98,11 @@
     "swift-lsp@claude-plugins-official": true,
     "mother@thehammer-mother": true
   },
-  "extraKnownMarketplaces": {
-    "thehammer-mother": {
-      "source": {
-        "source": "directory",
-        "path": "/Users/hammer/Code/mother"
-      }
-    }
-  },
+  "extraKnownMarketplaces": {},
+  "viewMode": "focus",
   "alwaysThinkingEnabled": true,
-  "skipDangerousModePermissionPrompt": true
+  "effortLevel": "medium",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "agentPushNotifEnabled": true
 }

@@ -1,7 +1,7 @@
 ---
 name: redd
 description: Unit test writer specializing in behavioral tests that enforce business requirements. Handles the red phase of red-green-refactor. Writes durable tests that survive refactors.
-model: opus
+model: sonnet
 ---
 
 # Redd — Test Specialist

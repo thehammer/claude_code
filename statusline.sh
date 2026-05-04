@@ -14,7 +14,8 @@ input=$(cat) 2>/dev/null
 
 # Single jq call — outputs tab-separated values
 # Note: use "-" placeholder for nullable strings; bash read swallows empty tab fields
-IFS=$'\t' read -r model cost duration_ms used_pct lines_added lines_removed vim_mode cwd <<< \
+IFS=$'\t' read -r model cost duration_ms used_pct lines_added lines_removed vim_mode cwd term_width \
+    rl_5h_pct rl_5h_resets rl_7d_pct rl_7d_resets <<< \
     "$(echo "$input" | jq -r '[
         (.model.display_name // "?"),
         (.cost.total_cost_usd // 0),
@@ -23,18 +24,49 @@ IFS=$'\t' read -r model cost duration_ms used_pct lines_added lines_removed vim_
         (.cost.total_lines_added // 0),
         (.cost.total_lines_removed // 0),
         (.vim.mode // "-"),
-        (.workspace.current_dir // .cwd // "-")
+        (.workspace.current_dir // .cwd // "-"),
+        (.terminal.width // 0),
+        (.rate_limits.five_hour.used_percentage // -1 | floor),
+        (.rate_limits.five_hour.resets_at // 0),
+        (.rate_limits.seven_day.used_percentage // -1 | floor),
+        (.rate_limits.seven_day.resets_at // 0)
     ] | join("\t")' 2>/dev/null)" || {
     model="?" cost=0 duration_ms=0 used_pct=0
-    lines_added=0 lines_removed=0 vim_mode="-" cwd="-"
+    lines_added=0 lines_removed=0 vim_mode="-" cwd="-" term_width=0
+    rl_5h_pct=-1 rl_5h_resets=0 rl_7d_pct=-1 rl_7d_resets=0
 }
 
 # Defaults for empty fields
 : "${model:=?}" "${cost:=0}" "${duration_ms:=0}" "${used_pct:=0}"
-: "${lines_added:=0}" "${lines_removed:=0}"
+: "${lines_added:=0}" "${lines_removed:=0}" "${term_width:=0}"
+: "${rl_5h_pct:=-1}" "${rl_5h_resets:=0}" "${rl_7d_pct:=-1}" "${rl_7d_resets:=0}"
 # Convert placeholders to empty
 [ "$vim_mode" = "-" ] && vim_mode=""
 [ "$cwd" = "-" ] && cwd=""
+
+# Claude Code's statusline JSON does not include terminal dimensions, so we
+# have to derive the width ourselves. The statusline runs in a non-TTY
+# subprocess piped from the parent — `stty size` fails and `tput cols` falls
+# back to terminfo's hardcoded 80, neither of which is useful. tmux exposes
+# the real pane width via `display -p`, which is what most of this user's
+# environments will resolve to. Fall through to $COLUMNS / 120 only if
+# nothing else works.
+if [ "$term_width" -lt 1 ] 2>/dev/null; then
+    if [ -n "${TMUX:-}" ]; then
+        term_width=$(tmux display -p '#{pane_width}' 2>/dev/null)
+    fi
+    if [ -z "$term_width" ] || [ "$term_width" -lt 1 ] 2>/dev/null; then
+        term_width="${COLUMNS:-120}"
+    fi
+fi
+
+# Reserve a few columns of headroom — Claude Code shows a "…" ellipsis at
+# the right edge when our line is even slightly longer than the usable
+# width, so it must keep some columns for its own UI. This margin also
+# absorbs tiny miscounts from ambiguous-width characters (▶ ⏸ ◆ are
+# East-Asian "ambiguous" and may render as 2 cols in some emoji-presenting
+# fonts even though our heuristic counts them as 1).
+[ "$term_width" -gt 8 ] && term_width=$(( term_width - 4 ))
 
 # --- Session type (from IDE registry, keyed by tmux pane) ---
 sess_type="" sess_emoji=""
@@ -74,20 +106,17 @@ if [ -n "$cwd" ] && cd "$cwd" 2>/dev/null; then
 fi
 
 # --- Open PRs (file-cached, background refresh, per-repo) ---
-pr_count=""
+# Display moved to tmux status row 1 (tmux-status-info). We still refresh the
+# per-repo cache here so tmux-status-info can sum them without knowing the CWD.
 if [ -n "$repo" ]; then
     _pr_cache="/tmp/.claude-statusline-prs-${repo}"
     _pr_max_age=60
     _pr_stale=1
-
     if [ -f "$_pr_cache" ]; then
         _pr_age=$(( $(date +%s) - $(stat -f %m "$_pr_cache" 2>/dev/null || echo 0) ))
         [ "$_pr_age" -lt "$_pr_max_age" ] && _pr_stale=0
-        pr_count=$(cat "$_pr_cache" 2>/dev/null)
     fi
-
     if [ "$_pr_stale" -eq 1 ]; then
-        # Get owner/repo from remote, refresh in background
         _remote=$(git remote get-url origin 2>/dev/null)
         if [ -n "$_remote" ]; then
             _nwo=$(echo "$_remote" | sed -E 's#.*[:/]([^/]+/[^/.]+)(\.git)?$#\1#')
@@ -96,53 +125,15 @@ if [ -n "$repo" ]; then
     fi
 fi
 
-# --- Open Jira tickets (file-cached, background refresh, global) ---
-# Cache lines: PROJECT:COUNT:CATEGORY   (category: indeterminate|new)
-jira_seg=""
-_jira_cache="/tmp/.claude-statusline-jira"
-_jira_max_age=300  # 5 min — Jira state changes less often than PR state
-
-if [ -f "$_jira_cache" ]; then
-    _jira_age=$(( $(date +%s) - $(stat -f %m "$_jira_cache" 2>/dev/null || echo 0) ))
-    if [ "$_jira_age" -ge "$_jira_max_age" ]; then
-        ( "$HOME/.claude/bin/statusline-jira-refresh" "$_jira_cache" >/dev/null 2>&1 ) &
-    fi
-
-    # Build display: "RM 18  CORE 8  PAYM 1" with per-project colors.
-    # Use a literal dim-gray reset between projects — the ${D} variable
-    # isn't defined yet at this point in the script.
-    _jreset='\033[38;5;245m'
-    while IFS=: read -r _jp _jc _jcat; do
-        [ -z "$_jp" ] && continue
-        case "$_jcat" in
-            indeterminate) _jcolor='\033[38;5;220m' ;;  # yellow — active work
-            new)           _jcolor='\033[38;5;75m'  ;;  # blue — parked/todo
-            *)             _jcolor='\033[38;5;245m' ;;  # dim fallback
-        esac
-        if [ -z "$jira_seg" ]; then
-            jira_seg=" ${_jcolor}${_jp} ${_jc}${_jreset}"
-        else
-            jira_seg="${jira_seg}  ${_jcolor}${_jp} ${_jc}${_jreset}"
-        fi
-    done < "$_jira_cache"
-else
-    # First run — kick off a refresh so future renders have data.
-    ( "$HOME/.claude/bin/statusline-jira-refresh" "$_jira_cache" >/dev/null 2>&1 ) &
-fi
-
-# Append separator if jira segment present
-[ -n "$jira_seg" ] && jira_seg="${jira_seg} │"
-
-# --- Mother queue state (file-cached, background refresh, global) ---
-# Delegates to the Mother plugin's statusline segment. mother_segment handles
-# the cache / TTL / background refresh and returns an empty string when all
-# counts are zero. We append the trailing separator ourselves.
-queue_seg=""
+# --- Mother: capture rate limits for quota gate ---
+# Jira, Sentry, email, calendar, Mother queue display, and PR count have all
+# moved to tmux status row 1 (tmux-status-info). We still source segment.sh
+# here to call mother_capture_rate_limits — it persists the rolling quota state
+# so Mother's dispatch gate has a signal. Without this call the gate is a no-op.
 if [ -f "$HOME/Code/mother/plugins/mother/statusline/segment.sh" ]; then
     # shellcheck source=/dev/null
     source "$HOME/Code/mother/plugins/mother/statusline/segment.sh"
-    _mseg="$(mother_segment)"
-    [ -n "$_mseg" ] && queue_seg="${_mseg}│"
+    mother_capture_rate_limits "$input"
 fi
 
 # --- Project-specific statusline extension ---
@@ -191,6 +182,16 @@ elif [ "$pct" -ge 50 ]; then cc=220  # yellow
 else                          cc=114  # green
 fi
 
+# --- Plan rate-limit cache for the tmux status bar ---
+# Rate-limit info is rendered by the tmux statusline (which has its own
+# refresh tick), not here. We just keep a fresh cache around so the tmux
+# helper can build a live countdown without waiting for a Claude Code
+# render. Hidden values (older Claude Code versions) skip the write.
+if [ "${rl_5h_pct:-(-1)}" -ge 0 ] 2>/dev/null && [ "${rl_7d_pct:-(-1)}" -ge 0 ] 2>/dev/null; then
+    printf '%d:%d:%d:%d\n' "$rl_5h_pct" "$rl_5h_resets" "$rl_7d_pct" "$rl_7d_resets" \
+        > /tmp/.claude-rate-limits 2>/dev/null
+fi
+
 # --- Build output (single printf per line) ---
 # Colors
 R='\033[0m'          # reset
@@ -230,16 +231,9 @@ if [ -n "${vim_mode:-}" ]; then
     fi
 fi
 
-# Open PRs (shown next to repo/branch)
-pr=""
-if [ -n "$pr_count" ] && [ "$pr_count" -gt 0 ] 2>/dev/null; then
-    pr=" \033[38;5;75m${pr_count} PRs${D}"
-fi
-
 # Close repo group with separator
 if [ -n "$rb" ]; then
-    rb="${rb}${pr} │"
-    pr=""  # already included in rb
+    rb="${rb} │"
 fi
 
 # Version
@@ -254,5 +248,30 @@ if [ -n "$sess_emoji" ]; then
     st=" ${sess_emoji}"
 fi
 
-# Single line output
-printf "${MB}${W} ${model} ${SF}${B}${S}${D}${st}${rb}${pr}${jira_seg}${queue_seg} ${bar} \033[38;5;${cc}m${pct}%%${D} │ ${cost_fmt} │ ${dur}${proj_seg}${lc}${vm}${vr} ${BF}\033[49m${S}${R}\n"
+# --- Split into left and right halves; pad with spaces so the right half
+#     hugs the right edge of the terminal. The token meter and everything
+#     after it lives on the right. ---
+left_str="${MB}${W} ${model} ${SF}${B}${S}${D}${st}${rb}"
+right_str="${bar} \033[38;5;${cc}m${pct}%%${D} │ ${cost_fmt} │ ${dur}${proj_seg}${lc}${vm}${vr} ${BF}\033[49m${S}${R}"
+
+# Visible-width helper: strip ANSI CSI sequences, count codepoints, then add
+# 1 for each known wide emoji (which renders as 2 columns but is 1 codepoint).
+visible_width() {
+    local s stripped n extras
+    stripped=$(printf '%b' "$1" | sed -E $'s/\x1b\\[[0-9;]*[a-zA-Z]//g')
+    # Collapse %% → % since the source has it doubled for printf-format
+    # safety but the rendered output is a single %.  Without this, each
+    # %% pair would over-count by 1 column.
+    stripped="${stripped//%%/%}"
+    n=${#stripped}
+    extras=$(printf '%s' "$stripped" | grep -oE '[💻🐛🔍📋📊📚🏠🔧🚀👀]' 2>/dev/null | wc -l | tr -d ' ')
+    echo $((n + ${extras:-0}))
+}
+
+vw_l=$(visible_width "$left_str")
+vw_r=$(visible_width "$right_str")
+pad=$(( term_width - vw_l - vw_r ))
+[ "$pad" -lt 1 ] && pad=1
+spaces=$(printf "%${pad}s" "")
+
+printf "${left_str}${spaces}${right_str}\n"

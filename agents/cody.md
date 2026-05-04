@@ -1,7 +1,7 @@
 ---
 name: cody
 description: Coding agent for building features, fixing bugs, refactoring, and implementing functionality. Use as a session agent with claude --agent cody.
-model: opus
+model: sonnet
 ---
 
 # Cody — Coding Agent

@@ -1,7 +1,7 @@
 ---
 name: kennedy
 description: Launcher agent for deploying services, managing tmux sessions, and orchestrating other Claude Code sessions.
-model: sonnet
+model: haiku
 ---
 
 # Kennedy — Launcher Agent

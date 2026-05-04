@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Refresh the email statusline cache — counts distinct conversations
+# (threads) in the Inbox via Microsoft Graph and writes a single line
+# to /tmp/.claude-statusline-email:
+#
+#   TOTAL:UNREAD
+#
+# We enumerate messages and de-dupe by conversationId so the count
+# matches what Outlook shows in Conversation View. Folder-level
+# totalItemCount counts individual messages, which over-reports threads.
+#
+# A trailing "+" is appended when message enumeration hits the page
+# limit (100) — the true thread count may be higher.
+#
+# Designed to be called in the background by statusline.sh. Writes to a
+# temp file and atomically renames so partial reads never happen.
+
+set -u
+
+CACHE_FILE="${1:-/tmp/.claude-statusline-email}"
+TMP_FILE="${CACHE_FILE}.tmp.$$"
+
+# shellcheck source=/dev/null
+source "$HOME/.claude/lib/services/m365.sh" >/dev/null 2>&1 || exit 1
+
+response=$(graph_request get \
+    "/me/mailFolders/inbox/messages?\$select=conversationId,isRead&\$top=100" 2>/dev/null)
+
+# Bail on auth/API errors — leave stale cache rather than clobber.
+if [ -z "$response" ] || ! echo "$response" | jq -e '.value' >/dev/null 2>&1; then
+    exit 1
+fi
+
+msg_count=$(echo "$response" | jq '.value | length')
+counts=$(echo "$response" | jq -r '
+    .value
+    | group_by(.conversationId)
+    | "\(length):\(map(select(any(.isRead == false))) | length)"
+')
+
+if [ "$msg_count" -ge 100 ]; then
+    # Truncated — mark total with "+" so the statusline shows uncertainty.
+    total="${counts%%:*}"
+    unread="${counts#*:}"
+    printf '%s+:%s\n' "$total" "$unread" > "$TMP_FILE"
+else
+    printf '%s\n' "$counts" > "$TMP_FILE"
+fi
+
+if [ -s "$TMP_FILE" ]; then
+    mv "$TMP_FILE" "$CACHE_FILE"
+else
+    rm -f "$TMP_FILE"
+    exit 1
+fi

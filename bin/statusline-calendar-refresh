@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# Refresh the calendar statusline cache — finds the next meeting (or one
+# that just started) and writes a single line to /tmp/.claude-statusline-calendar:
+#
+#   STATUS|START_EPOCH|TIME_DISPLAY|SUBJECT
+#
+# Selection rule: events whose start time is less than 5 minutes in the
+# past — i.e. anything upcoming, plus any meeting in its first 5-minute
+# "active" window — sorted by start time ascending. Ties broken by response
+# status preference:
+#   accepted/organizer > tentativelyAccepted > notResponded/none > declined
+#
+# So a meeting we declined will only show if there's nothing accepted /
+# tentative starting at the same time, and nothing else upcoming sooner.
+# The 5-minute grace lets us keep showing the meeting we're currently
+# walking into instead of jumping to the next one the instant it starts.
+#
+# Empty file = no upcoming meetings today. Designed for background use;
+# writes via temp + rename for atomicity.
+
+set -u
+
+CACHE_FILE="${1:-/tmp/.claude-statusline-calendar}"
+TMP_FILE="${CACHE_FILE}.tmp.$$"
+
+# shellcheck source=/dev/null
+source "$HOME/.claude/lib/services/calendar.sh" >/dev/null 2>&1 || exit 1
+
+today=$(date +%Y-%m-%d)
+response=$(get_calendar_for_date "$today" 2>/dev/null)
+
+if [ -z "$response" ] || ! echo "$response" | jq -e '.value' >/dev/null 2>&1; then
+    exit 1
+fi
+
+now_epoch=$(date +%s)
+
+selected=$(echo "$response" | jq -r --argjson now "$now_epoch" '
+    def to_epoch:
+        sub("\\.[0-9]+"; "") | sub("Z?$"; "Z") | fromdateiso8601;
+    def rank:
+        if   . == "accepted" or . == "organizer" then 1
+        elif . == "tentativelyAccepted"           then 2
+        elif . == "notResponded" or . == "none"   then 3
+        elif . == "declined"                      then 4
+        else 5 end;
+    .value
+    | map({
+        status:  (.responseStatus.response // "none"),
+        epoch:   (.start.dateTime | to_epoch),
+        start:   .start.dateTime,
+        subject: (.subject // "(no title)")
+      })
+    | map(select(.epoch + 300 > $now))
+    | sort_by(.epoch, (.status | rank))
+    | .[0]
+    | if . == null then empty
+      else "\(.status)|\(.epoch)|\(.start)|\(.subject)"
+      end
+')
+
+if [ -z "$selected" ]; then
+    : > "$TMP_FILE"
+    mv "$TMP_FILE" "$CACHE_FILE"
+    exit 0
+fi
+
+IFS='|' read -r status epoch start_iso subject <<< "$selected"
+
+# Format start time in Central Time, DST-correct (the existing helper in
+# calendar.sh hardcodes UTC-5, so we go through epoch + TZ ourselves).
+clean_dt="${start_iso%%.*}"
+clean_dt="${clean_dt%Z}"
+time_display=$(TZ='America/Chicago' date -r "$epoch" "+%-I:%M %p" 2>/dev/null)
+
+# Pipes/newlines in the subject would corrupt the cache — flatten them.
+subject_clean=$(printf '%s' "$subject" | tr '|\n\r' '   ')
+
+printf '%s|%s|%s|%s\n' "$status" "$epoch" "$time_display" "$subject_clean" > "$TMP_FILE"
+
+if [ -s "$TMP_FILE" ]; then
+    mv "$TMP_FILE" "$CACHE_FILE"
+else
+    rm -f "$TMP_FILE"
+    exit 1
+fi

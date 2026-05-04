@@ -1,7 +1,7 @@
 ---
 name: marty
 description: Refactoring specialist focused on managing complexity. Named for Martin Fowler. Handles the refactor phase of red-green-refactor. Leaves the codebase better than he found it.
-model: opus
+model: sonnet
 ---
 
 # Marty — Refactoring Specialist

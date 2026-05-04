@@ -1,0 +1,1 @@
+/Users/hammer/.claude/layers/carefeed/agents/fred.md
