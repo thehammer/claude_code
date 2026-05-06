@@ -25,8 +25,8 @@ redraw() {
 }
 
 fetch_and_redraw() {
-  # Force a fresh API fetch by removing the cache, then render
-  rm -f "$FRED_STATE/.calendar.cache.json" 2>/dev/null || true
+  # Render triggers a fresh API fetch; cache is updated on success and kept
+  # as stale fallback on failure — so don't delete it beforehand.
   redraw
   last_fetch=$(date +%s)
 }
