@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# bin/fred-calendar-pane — Long-running loop driving the calendar display pane.
+# Launched by bin/fred inside tmux. Do not run directly.
+set -u
+
+export FRED_HOME="${FRED_HOME:-$HOME/.claude}"
+# shellcheck disable=SC1090
+source "$FRED_HOME/lib/fred/render-calendar.sh"
+# shellcheck disable=SC1090
+source "$FRED_HOME/lib/fred/layout.sh"
+
+DIRTY="$FRED_STATE/calendar.dirty"
+FETCH_INTERVAL=120   # seconds between Graph API fetches
+RENDER_INTERVAL=60   # seconds between redraws (from cache)
+last_fetch=0
+last_render=0
+now=0
+
+redraw() {
+  local now
+  now=$(date +%s)
+  fred_render_calendar
+  fred_apply_sweater
+  last_render=$now
+}
+
+fetch_and_redraw() {
+  # Force a fresh API fetch by removing the cache, then render
+  rm -f "$FRED_STATE/.calendar.cache.json" 2>/dev/null || true
+  redraw
+  last_fetch=$(date +%s)
+}
+
+# Resize: redraw immediately
+trap 'redraw' WINCH
+
+# Initial fetch and render
+fetch_and_redraw
+
+while true; do
+  # Poll for dirty sentinel every second; honor fetch and render intervals
+  for (( i=0; i<RENDER_INTERVAL; i++ )); do
+    if [[ -f "$DIRTY" ]]; then
+      rm -f "$DIRTY"
+      fetch_and_redraw
+      break
+    fi
+    sleep 1
+  done
+
+  now=$(date +%s)
+  # Time to re-fetch from API?
+  if [[ $(( now - last_fetch )) -ge $FETCH_INTERVAL ]]; then
+    fetch_and_redraw
+  # Otherwise just redraw from cache (footer countdown updates)
+  elif [[ $(( now - last_render )) -ge $RENDER_INTERVAL ]]; then
+    redraw
+  fi
+done

@@ -1,0 +1,12 @@
+# Fred VIP list — one email address per line.
+# Emails matching these addresses will be highlighted with a 🌟 in the mailbox pane.
+# Lines beginning with # are comments and are ignored.
+# Blank lines are also ignored.
+#
+# Copy this file to ~/.claude/state/fred/vips.txt and add your own addresses.
+# The vips.txt file is gitignored (user-local); this example is tracked.
+#
+# Examples:
+#   boss@example.com
+#   important.client@corp.com
+#   cto@mycompany.com

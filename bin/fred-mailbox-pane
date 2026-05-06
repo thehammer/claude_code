@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# bin/fred-mailbox-pane — Long-running loop driving the mailbox display pane.
+# Launched by bin/fred inside tmux. Do not run directly.
+set -u
+
+export FRED_HOME="${FRED_HOME:-$HOME/.claude}"
+# shellcheck disable=SC1090
+source "$FRED_HOME/lib/fred/render-mailbox.sh"
+
+DIRTY="$FRED_STATE/mailbox.dirty"
+INTERVAL=60
+LAST_RENDER=0
+now=0
+
+# Read previous unread count from state file
+_read_prev_unread() {
+  local f="$FRED_STATE/last-seen-unread"
+  if [[ -f "$f" ]]; then
+    local v
+    v=$(cat "$f" 2>/dev/null | tr -d '[:space:]')
+    [[ "$v" =~ ^[0-9]+$ ]] && echo "$v" && return
+  fi
+  echo ""
+}
+
+# Write current unread count to state file (called AFTER rendering so the
+# delta persists for one cycle, then resets on the next render).
+_write_prev_unread() {
+  local cache="$FRED_STATE/.mailbox.cache.json"
+  [[ -f "$cache" ]] || return
+  jq '[.value[] | select(.isRead==false)] | length' "$cache" 2>/dev/null \
+    > "$FRED_STATE/last-seen-unread" || true
+}
+
+redraw() {
+  local prev
+  prev=$(_read_prev_unread)
+  fred_render_mailbox "$prev"
+  LAST_RENDER=$(date +%s)
+  # Update last-seen-unread AFTER display so the +N delta shows for one cycle
+  _write_prev_unread
+}
+
+# Resize: redraw immediately when terminal size changes
+trap 'redraw' WINCH
+
+# Initial render
+redraw
+
+while true; do
+  # Poll for dirty sentinel every second; break to redraw if found
+  for (( i=0; i<INTERVAL; i++ )); do
+    if [[ -f "$DIRTY" ]]; then
+      rm -f "$DIRTY"
+      redraw
+      break
+    fi
+    sleep 1
+  done
+  # Also redraw on interval even if no dirty signal arrived
+  now=$(date +%s)
+  if [[ $(( now - LAST_RENDER )) -ge $INTERVAL ]]; then
+    redraw
+  fi
+done

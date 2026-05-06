@@ -133,3 +133,14 @@ bin/figma_token
 # filenames don't match the generic *.backup rule above.
 backups/.claude.json.backup.*
 backups/claude.json.backup-*
+
+# Fred TUI runtime state (sentinels, caches, user-local config)
+state/fred/mailbox.dirty
+state/fred/calendar.dirty
+state/fred/trolley
+state/fred/last-seen-unread
+state/fred/vips.txt
+state/fred/.mailbox.cache.json
+state/fred/.calendar.cache.json
+state/fred/.sweater
+state/fred/.mailbox.last-render
