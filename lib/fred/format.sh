@@ -104,8 +104,9 @@ fred_relative_time() {
   local today_midnight
   today_midnight=$(date -j -f '%Y-%m-%d' "$today_date" '+%s')
 
+  # Use local timezone for date bucketing — TZ="" means UTC in POSIX, so omit it
   local msg_date
-  msg_date=$(TZ=UTC date -j -r "$utc_epoch" '+%Y-%m-%d' 2>/dev/null) \
+  msg_date=$(date -r "$utc_epoch" '+%Y-%m-%d' 2>/dev/null) \
     || msg_date=$(date -j -f '%s' "$utc_epoch" '+%Y-%m-%d' 2>/dev/null) \
     || msg_date=""
 
@@ -115,22 +116,22 @@ fred_relative_time() {
   local diff_days=$(( (today_midnight - msg_midnight) / 86400 ))
 
   if [[ $diff_days -eq 0 ]]; then
-    # Same day — local h:mma/p format
+    # Same day — display in local time (no TZ override = system local tz)
     local hhmm
-    hhmm=$(TZ="" date -j -r "$utc_epoch" '+%I:%M%p' 2>/dev/null) \
+    hhmm=$(date -r "$utc_epoch" '+%I:%M%p' 2>/dev/null) \
       || hhmm=$(date -j -f '%s' "$utc_epoch" '+%I:%M%p' 2>/dev/null) \
       || hhmm="?"
-    # Strip leading zero from hour, keep minute; convert AM/PM to lowercase a/p
+    # Strip leading zero from hour; convert AM/PM to lowercase a/p
     hhmm=$(echo "$hhmm" | tr '[:upper:]' '[:lower:]' | sed 's/^0//' | sed 's/am$/a/' | sed 's/pm$/p/')
     echo "$hhmm"
   elif [[ $diff_days -ge 1 && $diff_days -le 6 ]]; then
     # Within last week — 3-letter weekday
-    TZ="" date -j -r "$utc_epoch" '+%a' 2>/dev/null \
+    date -r "$utc_epoch" '+%a' 2>/dev/null \
       || date -j -f '%s' "$utc_epoch" '+%a' 2>/dev/null \
       || echo "?"
   else
     # Older — "Apr 28"
-    TZ="" date -j -r "$utc_epoch" '+%b %-d' 2>/dev/null \
+    date -r "$utc_epoch" '+%b %-d' 2>/dev/null \
       || date -j -f '%s' "$utc_epoch" '+%b %-d' 2>/dev/null \
       || echo "?"
   fi
