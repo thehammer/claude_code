@@ -110,8 +110,9 @@ fred_create_session() {
 fred_takeover_window() {
   local current_pane="$TMUX_PANE"
   local term_cols term_lines window_id session
-  term_cols=$(tput cols 2>/dev/null)  || term_cols=80
-  term_lines=$(tput lines 2>/dev/null) || term_lines=40
+  # Use tmux window dimensions — tput reports the current pane size, not the full window
+  term_cols=$(tmux display-message -p '#{window_width}')
+  term_lines=$(tmux display-message -p '#{window_height}')
   window_id=$(tmux display-message -p '#{window_id}')
   session=$(tmux display-message -p '#S')
 

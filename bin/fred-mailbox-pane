@@ -3,6 +3,9 @@
 # Launched by bin/fred inside tmux. Do not run directly.
 set -u
 
+# Ensure user PATH is available (pane starts as non-login shell)
+export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+
 export FRED_HOME="${FRED_HOME:-$HOME/.claude}"
 # shellcheck disable=SC1090
 source "$FRED_HOME/lib/fred/render-mailbox.sh"
