@@ -19,6 +19,7 @@ set -u
 
 CACHE_FILE="${1:-/tmp/.claude-statusline-email}"
 TMP_FILE="${CACHE_FILE}.tmp.$$"
+LOCK_FILE="/tmp/.claude-statusline-email.lock"
 BACKOFF_FILE="/tmp/.claude-statusline-email-backoff"
 BACKOFF_TTL=1800  # 30 minutes — don't retry after auth failure
 
@@ -28,6 +29,13 @@ if [ -f "$BACKOFF_FILE" ]; then
     if [ "$_backoff_age" -lt "$BACKOFF_TTL" ]; then
         exit 0  # Silently skip — leave stale cache in place
     fi
+fi
+
+# Ensure only one refresh runs at a time — tmux ticks can overlap.
+# Non-blocking: if the lock is held, a refresh is already in progress; skip.
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+    exit 0
 fi
 
 # shellcheck source=/dev/null
