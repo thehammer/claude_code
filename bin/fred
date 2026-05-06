@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# bin/fred — Fred dashboard entrypoint.
+# Idempotent tmux session manager: creates the fred session if it doesn't
+# exist, then attaches. Running twice attaches to the same session.
+#
+# This script lives in ~/.claude/bin/ which is on $PATH, so invoking `fred`
+# from any shell will launch or resume the dashboard.
+set -euo pipefail
+
+export FRED_HOME="${FRED_HOME:-$HOME/.claude}"
+# shellcheck disable=SC1090
+source "$FRED_HOME/lib/fred/layout.sh"
+
+# Ensure runtime state directory exists
+mkdir -p "$FRED_STATE"
+
+if fred_session_exists; then
+  exec tmux attach -t fred
+fi
+
+fred_create_session
+exec tmux attach -t fred
