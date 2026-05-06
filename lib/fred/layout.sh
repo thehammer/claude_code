@@ -99,6 +99,67 @@ fred_create_session() {
 }
 
 # ------------------------------------------------------------------------------
+# fred_takeover_window
+# When already inside tmux: split the current pane to add mailbox and calendar
+# panes above, then return so bin/fred can exec the REPL in the original pane.
+#
+# Layout mirrors fred_create_session:
+#   wide  (>=160): mailbox left / calendar right (top 35%), REPL below
+#   narrow (<160): mailbox top, calendar middle, REPL bottom
+# ------------------------------------------------------------------------------
+fred_takeover_window() {
+  local current_pane="$TMUX_PANE"
+  local term_cols term_lines window_id session
+  term_cols=$(tput cols 2>/dev/null)  || term_cols=80
+  term_lines=$(tput lines 2>/dev/null) || term_lines=40
+  window_id=$(tmux display-message -p '#{window_id}')
+  session=$(tmux display-message -p '#S')
+
+  # Persist the tmux target so fred_apply_sweater knows which window to update
+  echo "$window_id" > "$FRED_STATE/.tmux-window"
+
+  local mailbox_pane calendar_pane
+
+  if [[ $term_cols -ge 160 ]]; then
+    local top_lines=$(( term_lines * 35 / 100 ))
+    [[ $top_lines -lt 8 ]] && top_lines=8
+
+    # Create mailbox strip above the current (REPL) pane
+    mailbox_pane=$(tmux split-window -t "$current_pane" -v -b -l "$top_lines" \
+      -P -F '#{pane_id}' "exec $FRED_HOME/bin/fred-mailbox-pane")
+
+    # Split mailbox strip horizontally for calendar on the right
+    calendar_pane=$(tmux split-window -t "$mailbox_pane" -h \
+      -P -F '#{pane_id}' "exec $FRED_HOME/bin/fred-calendar-pane")
+  else
+    local mailbox_lines=$(( term_lines * 15 / 100 ))
+    local calendar_lines=$(( term_lines * 20 / 100 ))
+    [[ $mailbox_lines  -lt 5 ]] && mailbox_lines=5
+    [[ $calendar_lines -lt 6 ]] && calendar_lines=6
+
+    # Stack: calendar above REPL, then mailbox above calendar
+    calendar_pane=$(tmux split-window -t "$current_pane" -v -b -l "$calendar_lines" \
+      -P -F '#{pane_id}' "exec $FRED_HOME/bin/fred-calendar-pane")
+    mailbox_pane=$(tmux split-window -t "$calendar_pane" -v -b -l "$mailbox_lines" \
+      -P -F '#{pane_id}' "exec $FRED_HOME/bin/fred-mailbox-pane")
+  fi
+
+  # ── Pane titles ──
+  tmux select-pane -t "$mailbox_pane"  -T '📬 mailbox'
+  tmux select-pane -t "$calendar_pane" -T '📅 today'
+  tmux select-pane -t "$current_pane"  -T '💬 fred'
+
+  # ── Pane border styling (scoped to this window only) ──
+  tmux set -t "$window_id" pane-border-status       top
+  tmux set -t "$window_id" pane-border-format       ' #{pane_title} '
+  tmux set -t "$window_id" pane-active-border-style 'fg=colour108'
+  tmux set -t "$window_id" pane-border-style        'fg=colour108'
+
+  # Return focus to the REPL pane (bin/fred will exec into it)
+  tmux select-pane -t "$current_pane"
+}
+
+# ------------------------------------------------------------------------------
 # fred_apply_sweater
 # Read $FRED_STATE/.sweater and update the active tmux border color.
 # Called by bin/fred-calendar-pane after each render.
@@ -113,7 +174,15 @@ fred_apply_sweater() {
     colour108|colour220|colour203) ;;
     *) return 0 ;;
   esac
-  tmux set -t fred pane-active-border-style "fg=${color}" 2>/dev/null || true
+
+  # Target the window fred was invoked from (takeover mode) or the fred session
+  local target
+  if [[ -f "$FRED_STATE/.tmux-window" ]]; then
+    target=$(cat "$FRED_STATE/.tmux-window" 2>/dev/null | tr -d '[:space:]')
+  else
+    target="fred"
+  fi
+  tmux set -t "$target" pane-active-border-style "fg=${color}" 2>/dev/null || true
 }
 
 export -f fred_session_exists
