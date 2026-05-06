@@ -1,6 +1,6 @@
 ---
 name: portal-open
-description: Open a page in the Carefeed admin portal across environments via Edge/Chrome (driven by webster). Auto-handles login, org/facility switching, and target navigation. Use when user asks to "open referral N", "show me REF-1148", "open the portal staging", or otherwise wants Claude to drive the browser to a specific portal page.
+description: Open a page in the Carefeed admin portal across environments via Edge/Chrome (driven by webster). Auto-handles login, org/facility switching, and target navigation. ALWAYS invoke this skill before doing any manual browser navigation to a portal page. Use when user asks to "open referral N", "show me REF-1148", "open the portal staging", "navigate to staging", "open that in staging/demo/production", "pull up referral X", or otherwise wants Claude to drive the browser to any Carefeed portal page. Do NOT use open_tab or navigate manually — use this skill instead.
 ---
 
 # Portal Open Skill

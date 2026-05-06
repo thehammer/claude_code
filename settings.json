@@ -31,7 +31,9 @@
       "Read(//**)",
       "WebFetch(domain:**)",
       "WebSearch",
-      "Write(**)"
+      "Write(**)",
+      "Bash(gh pr create:*)",
+      "Bash(git push:*)"
     ],
     "deny": [
       "Bash(DROP DATABASE:*)",
@@ -41,9 +43,7 @@
       "Bash(rm -rf ~:*)"
     ],
     "ask": [
-      "Bash(gh pr create:*)",
       "Bash(gh pr merge:*)",
-      "Bash(git push:*)",
       "Bash(mv /dev/null:*)",
       "Bash(rm:*)",
       "Bash(rmdir:*)",
@@ -53,6 +53,7 @@
       "Bash(sudo rmdir:*)"
     ]
   },
+  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {
