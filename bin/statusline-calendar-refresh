@@ -22,6 +22,16 @@ set -u
 
 CACHE_FILE="${1:-/tmp/.claude-statusline-calendar}"
 TMP_FILE="${CACHE_FILE}.tmp.$$"
+BACKOFF_FILE="/tmp/.claude-statusline-calendar-backoff"
+BACKOFF_TTL=1800  # 30 minutes — don't retry after auth failure
+
+# If a recent auth failure was recorded, skip to avoid opening browser tabs.
+if [ -f "$BACKOFF_FILE" ]; then
+    _backoff_age=$(( $(date +%s) - $(stat -f %m "$BACKOFF_FILE" 2>/dev/null || echo 0) ))
+    if [ "$_backoff_age" -lt "$BACKOFF_TTL" ]; then
+        exit 0  # Silently skip — leave stale cache in place
+    fi
+fi
 
 # shellcheck source=/dev/null
 source "$HOME/.claude/lib/services/calendar.sh" >/dev/null 2>&1 || exit 1
@@ -29,9 +39,16 @@ source "$HOME/.claude/lib/services/calendar.sh" >/dev/null 2>&1 || exit 1
 today=$(date +%Y-%m-%d)
 response=$(get_calendar_for_date "$today" 2>/dev/null)
 
+# Bail on auth/API errors — leave stale cache rather than clobber.
+# Write a backoff marker so we don't hammer m365 (and open browser tabs) on
+# every statusline tick when the refresh token has expired.
 if [ -z "$response" ] || ! echo "$response" | jq -e '.value' >/dev/null 2>&1; then
+    touch "$BACKOFF_FILE"
     exit 1
 fi
+
+# Successful call — clear any existing backoff marker.
+rm -f "$BACKOFF_FILE"
 
 now_epoch=$(date +%s)
 
