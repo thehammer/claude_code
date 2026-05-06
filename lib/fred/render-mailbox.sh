@@ -27,9 +27,9 @@ fi
 # ------------------------------------------------------------------------------
 graph_get_inbox_messages() {
   local count="${1:-15}"
-  local select="subject,from,receivedDateTime,isRead,meetingMessageType"
+  local select="id,subject,from,receivedDateTime,isRead,bodyPreview"
   graph_request get \
-    "/me/mailFolders/inbox/messages?\$select=${select}&\$top=${count}&\$orderby=receivedDateTime%20desc" \
+    "/me/mailFolders/inbox/messages?\$select=${select}&\$top=${count}&\$orderby=receivedDateTime desc" \
     2>/dev/null
 }
 
@@ -148,7 +148,7 @@ fred_render_mailbox() {
     sender_name=$(echo "$msg_json" | jq -r '.from.emailAddress.name // .from.emailAddress.address // "?"')
     sender_email=$(echo "$msg_json"| jq -r '.from.emailAddress.address // ""' | tr '[:upper:]' '[:lower:]')
     recv_time=$(echo "$msg_json"   | jq -r '.receivedDateTime // ""')
-    meeting_type=$(echo "$msg_json"| jq -r '.meetingMessageType // ""')
+    meeting_type=$(echo "$msg_json"| jq -r '.["@odata.type"] // ""')
 
     # Bullet
     local bullet
@@ -160,7 +160,7 @@ fred_render_mailbox() {
 
     # Subject prefix glyphs
     local prefix=""
-    if [[ -n "$meeting_type" && "$meeting_type" != "null" ]]; then
+    if [[ "$meeting_type" == *"eventMessage"* ]]; then
       prefix="${FRED_G_CAL} "
     fi
     if _fred_in_vips "$sender_email" "$vips_blob"; then
