@@ -59,10 +59,15 @@ fi
 rm -f "$BACKOFF_FILE"
 
 now_epoch=$(date +%s)
+# Graph returns start.dateTime in the event's local timezone (no UTC offset).
+# Compare as local-time strings — ISO 8601 sorts correctly as strings in the
+# same zone. Cutoff = now minus 5-minute grace window, also as local string.
+now_local=$(date '+%Y-%m-%dT%H:%M:%S')
+cutoff_local=$(date -v-5M '+%Y-%m-%dT%H:%M:%S' 2>/dev/null \
+               || date -d '5 minutes ago' '+%Y-%m-%dT%H:%M:%S')
 
-selected=$(echo "$response" | jq -r --argjson now "$now_epoch" '
-    def to_epoch:
-        sub("\\.[0-9]+"; "") | sub("Z?$"; "Z") | fromdateiso8601;
+selected=$(echo "$response" | jq -r --arg cutoff "$cutoff_local" '
+    def clean: sub("\\.[0-9]+"; "") | sub("Z$"; "");
     def rank:
         if   . == "accepted" or . == "organizer" then 1
         elif . == "tentativelyAccepted"           then 2
@@ -72,15 +77,14 @@ selected=$(echo "$response" | jq -r --argjson now "$now_epoch" '
     .value
     | map({
         status:  (.responseStatus.response // "none"),
-        epoch:   (.start.dateTime | to_epoch),
-        start:   .start.dateTime,
+        start:   (.start.dateTime | clean),
         subject: (.subject // "(no title)")
       })
-    | map(select(.epoch + 300 > $now))
-    | sort_by(.epoch, (.status | rank))
+    | map(select(.start >= $cutoff))
+    | sort_by(.start, (.status | rank))
     | .[0]
     | if . == null then empty
-      else "\(.status)|\(.epoch)|\(.start)|\(.subject)"
+      else "\(.status)|\(.start)|\(.subject)"
       end
 ')
 
@@ -90,13 +94,13 @@ if [ -z "$selected" ]; then
     exit 0
 fi
 
-IFS='|' read -r status epoch start_iso subject <<< "$selected"
+IFS='|' read -r status start_local subject <<< "$selected"
 
-# Format start time in Central Time, DST-correct (the existing helper in
-# calendar.sh hardcodes UTC-5, so we go through epoch + TZ ourselves).
-clean_dt="${start_iso%%.*}"
-clean_dt="${clean_dt%Z}"
-time_display=$(TZ='America/Chicago' date -r "$epoch" "+%-I:%M %p" 2>/dev/null)
+# Convert local datetime string to epoch using date (timezone-aware).
+epoch=$(date -j -f '%Y-%m-%dT%H:%M:%S' "$start_local" '+%s' 2>/dev/null \
+        || date -d "$start_local" '+%s')
+time_display=$(date -j -f '%Y-%m-%dT%H:%M:%S' "$start_local" '+%-I:%M %p' 2>/dev/null \
+               || date -d "$start_local" '+%-I:%M %p')
 
 # Pipes/newlines in the subject would corrupt the cache — flatten them.
 subject_clean=$(printf '%s' "$subject" | tr '|\n\r' '   ')
