@@ -10,6 +10,65 @@ export FRED_HOME="${FRED_HOME:-$HOME/.claude}"
 # shellcheck disable=SC1090
 source "$FRED_HOME/lib/fred/render-mailbox.sh"
 
+# ── JSON output mode ──────────────────────────────────────────────────────────
+# When called with --json, emit a structured JSON snapshot and exit.
+# nostromo uses this to populate the Fred mailbox view without re-implementing
+# the Graph API auth + VIP logic.
+if [[ "${1:-}" == "--json" ]]; then
+  export FRED_STATE="${FRED_STATE:-$FRED_HOME/state/fred}"
+  mkdir -p "$FRED_STATE" 2>/dev/null || true
+
+  # Try fresh fetch, fall back to cache
+  _json_mailbox_raw() {
+    if type graph_get_inbox_messages &>/dev/null; then
+      local raw
+      if raw=$(graph_get_inbox_messages 20 2>/dev/null) \
+         && [[ -n "$raw" ]] \
+         && echo "$raw" | jq -e '.value' >/dev/null 2>&1; then
+        echo "$raw" > "$FRED_STATE/.mailbox.cache.json"
+        echo "$raw"
+        return 0
+      fi
+    fi
+    if [[ -f "$FRED_STATE/.mailbox.cache.json" ]]; then
+      cat "$FRED_STATE/.mailbox.cache.json"
+      return 0
+    fi
+    echo '{"value":[]}'
+  }
+
+  _json_load_vips() {
+    local vips_file="$FRED_STATE/vips.txt"
+    [[ -f "$vips_file" ]] || return 0
+    grep -v '^\s*#' "$vips_file" | grep -v '^\s*$' | tr '[:upper:]' '[:lower:]'
+  }
+
+  raw=$(_json_mailbox_raw)
+  vips_blob=$(_json_load_vips)
+
+  # Build JSON using jq — pass VIPs as a newline-separated arg
+  echo "$raw" | jq --arg vips "$vips_blob" --arg now "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" '
+    def in_vips(email; vips_blob):
+      vips_blob | split("\n") | map(select(length > 0)) | any(. == (email | ascii_downcase));
+
+    {
+      generated_at: $now,
+      unread_count: ([.value[] | select(.isRead == false)] | length),
+      items: [
+        .value[] | {
+          from: (.from.emailAddress.name // .from.emailAddress.address // "?"),
+          subject: (.subject // "(no subject)"),
+          received_at: (.receivedDateTime // null),
+          vip: (in_vips(.from.emailAddress.address // ""; $vips)),
+          is_invite: ((.["@odata.type"] // "") | test("eventMessage")),
+          is_read: (.isRead // true)
+        }
+      ]
+    }
+  '
+  exit $?
+fi
+
 DIRTY="$FRED_STATE/mailbox.dirty"
 INTERVAL=60
 LAST_RENDER=0

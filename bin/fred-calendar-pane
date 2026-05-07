@@ -12,6 +12,78 @@ source "$FRED_HOME/lib/fred/render-calendar.sh"
 # shellcheck disable=SC1090
 source "$FRED_HOME/lib/fred/layout.sh"
 
+# ── JSON output mode ──────────────────────────────────────────────────────────
+if [[ "${1:-}" == "--json" ]]; then
+  export FRED_STATE="${FRED_STATE:-$FRED_HOME/state/fred}"
+  mkdir -p "$FRED_STATE" 2>/dev/null || true
+
+  _json_calendar_raw() {
+    local today; today=$(date +%Y-%m-%d)
+    if type get_calendar_for_date &>/dev/null; then
+      local raw
+      if raw=$(get_calendar_for_date "$today" 2>/dev/null) \
+         && [[ -n "$raw" ]] \
+         && echo "$raw" | jq -e '.value' >/dev/null 2>&1; then
+        echo "$raw" > "$FRED_STATE/.calendar.cache.json"
+        echo "$raw"
+        return 0
+      fi
+    fi
+    if [[ -f "$FRED_STATE/.calendar.cache.json" ]]; then
+      cat "$FRED_STATE/.calendar.cache.json"
+      return 0
+    fi
+    echo '{"value":[]}'
+  }
+
+  raw=$(_json_calendar_raw)
+  now_epoch=$(date +%s)
+
+  # Read sweater from state file (written by fred_apply_sweater / _fred_sweater_color)
+  sweater_raw=$(cat "$FRED_STATE/.sweater" 2>/dev/null || echo "colour108")
+  case "$sweater_raw" in
+    *203*) sweater="red"   ;;
+    *220*) sweater="amber" ;;
+    *)     sweater="sage"  ;;
+  esac
+
+  echo "$raw" | jq --argjson now "$now_epoch" --arg sweater "$sweater" '
+    def parse_epoch(dt):
+      (dt | gsub("\\.[0-9]+$"; "") | strptime("%Y-%m-%dT%H:%M:%S") | mktime) // 0;
+
+    def to_iso(dt):
+      if dt == null or dt == "" then null
+      else (dt | gsub("\\.[0-9]+$"; "") + "Z")
+      end;
+
+    (.value | sort_by(.start.dateTime)) as $sorted |
+    {
+      events: [
+        $sorted[] |
+        {
+          start: to_iso(.start.dateTime),
+          end:   to_iso(.end.dateTime),
+          title: (.subject // "(no subject)"),
+          status: (.responseStatus.response // "notResponded"),
+          is_now: (
+            (parse_epoch(.start.dateTime) <= $now) and
+            (parse_epoch(.end.dateTime)   >  $now)
+          )
+        }
+      ],
+      next: (
+        ($sorted | map(select(parse_epoch(.start.dateTime) > $now)) | first) |
+        if . then {
+          title: (.subject // "(no subject)"),
+          in_minutes: (((parse_epoch(.start.dateTime) - $now) / 60) | floor)
+        } else null end
+      ),
+      sweater: $sweater
+    }
+  '
+  exit $?
+fi
+
 DIRTY="$FRED_STATE/calendar.dirty"
 FETCH_INTERVAL=120   # seconds between Graph API fetches
 RENDER_INTERVAL=60   # seconds between redraws (from cache)

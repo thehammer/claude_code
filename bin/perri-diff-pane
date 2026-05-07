@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -u
+export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+export PERRI_HOME="${PERRI_HOME:-$HOME/.claude}"
+source "$PERRI_HOME/lib/perri/render-diff.sh"
+
+# ── JSON output mode ──────────────────────────────────────────────────────────
+if [[ "${1:-}" == "--json" ]]; then
+  export PERRI_STATE="${PERRI_STATE:-$PERRI_HOME/state/perri}"
+  mkdir -p "$PERRI_STATE" 2>/dev/null || true
+
+  f="$PERRI_STATE/current-pr.json"
+  if [[ -f "$f" ]]; then
+    stale=false
+    age=$(( $(date +%s) - $(date -r "$f" +%s 2>/dev/null || echo 0) ))
+    [[ $age -gt 1800 ]] && stale=true
+    cat "$f" | jq --argjson stale "$stale" '. + {stale: $stale, diff: (.diff // ""), error: null}'
+  else
+    jq -n '{pr_number: null, repo: "", title: "(no PR loaded)", author: "", url: "", diff: "", stale: false, error: null}'
+  fi
+  exit $?
+fi
+
+DIRTY="$PERRI_STATE/current-pr.dirty"
+INTERVAL=30
+LAST_RENDER=0
+
+redraw() { perri_render_diff; LAST_RENDER=$(date +%s); }
+trap 'redraw' WINCH
+redraw
+
+while true; do
+  for (( i=0; i<INTERVAL; i++ )); do
+    if [[ -f "$DIRTY" ]]; then rm -f "$DIRTY"; redraw; break; fi
+    sleep 1
+  done
+  now=$(date +%s)
+  [[ $(( now - LAST_RENDER )) -ge $INTERVAL ]] && redraw
+done

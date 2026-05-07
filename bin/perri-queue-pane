@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -u
+export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+export PERRI_HOME="${PERRI_HOME:-$HOME/.claude}"
+source "$PERRI_HOME/lib/perri/render-queue.sh"
+
+# ── JSON output mode ──────────────────────────────────────────────────────────
+if [[ "${1:-}" == "--json" ]]; then
+  export PERRI_STATE="${PERRI_STATE:-$PERRI_HOME/state/perri}"
+  mkdir -p "$PERRI_STATE" 2>/dev/null || true
+
+  local_json=""
+  if type _perri_fetch_queue &>/dev/null; then
+    if local_json=$(_perri_fetch_queue 2>/dev/null) \
+       && [[ -n "$local_json" ]] \
+       && echo "$local_json" | jq -e 'type == "array"' >/dev/null 2>&1; then
+      echo "$local_json" > "$PERRI_STATE/.queue.cache.json"
+    elif [[ -f "$PERRI_STATE/.queue.cache.json" ]]; then
+      local_json=$(cat "$PERRI_STATE/.queue.cache.json")
+    else
+      local_json='[]'
+    fi
+  elif [[ -f "$PERRI_STATE/.queue.cache.json" ]]; then
+    local_json=$(cat "$PERRI_STATE/.queue.cache.json")
+  else
+    local_json='[]'
+  fi
+
+  stale=false
+  [[ ! -s "$PERRI_STATE/.queue.cache.json" ]] && stale=true
+
+  echo "$local_json" | jq --arg now "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" --argjson stale "$stale" '
+    {
+      generated_at: $now,
+      items: .,
+      stale: $stale
+    }
+  '
+  exit $?
+fi
+
+DIRTY="$PERRI_STATE/queue.dirty"
+INTERVAL=60
+LAST_RENDER=0
+
+redraw() { perri_render_queue; LAST_RENDER=$(date +%s); }
+trap 'redraw' WINCH
+redraw
+
+while true; do
+  for (( i=0; i<INTERVAL; i++ )); do
+    if [[ -f "$DIRTY" ]]; then rm -f "$DIRTY"; redraw; break; fi
+    sleep 1
+  done
+  now=$(date +%s)
+  [[ $(( now - LAST_RENDER )) -ge $INTERVAL ]] && redraw
+done
