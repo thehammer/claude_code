@@ -144,3 +144,13 @@ state/fred/.mailbox.cache.json
 state/fred/.calendar.cache.json
 state/fred/.sweater
 state/fred/.mailbox.last-render
+
+# Runtime artifacts (added 2026-05-15)
+.last-cleanup
+activity.jsonl
+budget-posture.errors.log*
+budget-posture.json.state
+budget-posture.json.tmp.*
+state/fred/.tmux-window
+state/perri/
+tmp-plans/

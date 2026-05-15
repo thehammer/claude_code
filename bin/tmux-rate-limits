@@ -3,7 +3,10 @@
 #
 # Reads /tmp/.claude-rate-limits (written by the Claude Code statusline
 # whenever it renders) and emits a tmux-colored "5h XX% · TIME  7d YY% · TIME"
-# string. Exits silently with no output when the cache is missing or the
+# string. Also reads ~/.claude/budget-posture.json (written by Bishop) and
+# prepends a posture chip: flush / normal / elevated / conservative / critical.
+#
+# Exits silently with no output when the cache is missing or the
 # percentages are unavailable — that way the surrounding status-right
 # format degrades gracefully instead of showing an error.
 #
@@ -31,6 +34,71 @@ color_for() {
     else                         echo "colour114"  # green
     fi
 }
+
+# --- Bishop posture chip ---
+# Reads ~/.claude/budget-posture.json.  Emits nothing if missing or unparseable.
+# Posture labels and their colours:
+#   flush        → green  (114) — under pace, plenty of headroom
+#   normal       → dim    (245) — on track, no action needed
+#   elevated     → yellow (220) — above expected pace, watch it
+#   conservative → orange (208) — getting tight, slow down
+#   critical     → red    (203) — very tight, use sparingly
+posture_seg=""
+_posture_file="$HOME/.claude/budget-posture.json"
+if [ -f "$_posture_file" ]; then
+    _posture=$(python3 -c \
+        "import json,sys; d=json.load(open('$_posture_file')); print(d.get('posture',''))" \
+        2>/dev/null)
+    case "$_posture" in
+        flush)        _pcolor="colour114" ;;
+        normal)       _pcolor="colour245" ;;
+        elevated)     _pcolor="colour220" ;;
+        conservative) _pcolor="colour208" ;;
+        critical)     _pcolor="colour203" ;;
+        *)            _pcolor="" ;;
+    esac
+    if [ -n "$_pcolor" ] && [ -n "$_posture" ]; then
+        posture_seg="#[fg=${_pcolor}]${_posture}#[fg=colour245]  "
+    fi
+fi
+
+# --- Pace gradient bars (multidimensional cell-based) ---
+# Length = elapsed_pct of window. Gradient runs green at left to pace-mapped
+# color at the fill tip (OKLab perceptually uniform). Short red-tipped bar
+# means "early in window, already hot." Long green bar means "far through,
+# still cool." See _tmux-pace-bar-cells.py for the renderer.
+pace_bars_seg=""
+if [ -f "$_posture_file" ] && [ -f "$(dirname "$0")/_tmux-pace-bar-cells.py" ]; then
+    pace_bars_seg=$(python3 "$(dirname "$0")/_tmux-pace-bar-cells.py" "$_posture_file" 2>/dev/null)
+fi
+
+
+# --- Exhausted-model chip ---
+# Reads models.{sonnet,opus,haiku} from budget-posture.json.
+# Emits "⚠ sonnet*" (with * when extra_usage.is_enabled for overage) etc.
+# Degrades silently when fields are absent or file is unreadable.
+_exhausted_seg=""
+if [ -f "$_posture_file" ]; then
+    _exhausted=$(python3 -c "
+import json
+try:
+    d = json.load(open('$_posture_file'))
+    ms = d.get('models') or {}
+    eu = d.get('extra_usage') or {}
+    overage = bool(eu.get('is_enabled'))
+    out = []
+    for name in ('sonnet', 'opus', 'haiku'):
+        m = ms.get(name)
+        if m and m.get('status') == 'exhausted':
+            out.append(name + ('*' if overage else ''))
+    print(' '.join(out))
+except Exception:
+    pass
+" 2>/dev/null)
+    if [ -n "$_exhausted" ]; then
+        _exhausted_seg="#[fg=colour208]⚠ ${_exhausted}#[fg=colour245]  "
+    fi
+fi
 
 # Compact "Xd Yh Zm" — drops trailing zero units, switches grain by scale.
 remain() {
@@ -67,5 +135,5 @@ fi
 [ "${#parts[@]}" -eq 0 ] && exit 0
 
 # Two-space separator between windows, trailing space to breathe before
-# the date segment that follows.
-( IFS='  '; printf '%s ' "${parts[*]}" )
+# the date segment that follows.  Exhausted-model chip leads, then posture chip.
+( IFS='  '; printf '%s%s%s%s ' "$_exhausted_seg" "$posture_seg" "$pace_bars_seg" "${parts[*]}" )
