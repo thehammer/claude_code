@@ -99,7 +99,14 @@
     "swift-lsp@claude-plugins-official": true,
     "mother@thehammer-mother": true
   },
-  "extraKnownMarketplaces": {},
+  "extraKnownMarketplaces": {
+    "thehammer-mother": {
+      "source": {
+        "source": "github",
+        "repo": "thehammer/mother"
+      }
+    }
+  },
   "viewMode": "focus",
   "alwaysThinkingEnabled": true,
   "effortLevel": "medium",

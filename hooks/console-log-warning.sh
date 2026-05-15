@@ -13,8 +13,8 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 # Exit if no file path
 [ -z "$FILE_PATH" ] && exit 0
 
-# Only check JS/TS/JSX/TSX files
-if [[ "$FILE_PATH" =~ \.(js|jsx|ts|tsx)$ ]]; then
+# Only check JS/TS/JSX/TSX files (skip build scripts and CLI scripts)
+if [[ "$FILE_PATH" =~ \.(js|jsx|ts|tsx)$ ]] && [[ ! "$FILE_PATH" =~ /scripts/ ]]; then
     # Check if file exists
     [ ! -f "$FILE_PATH" ] && exit 0
 
