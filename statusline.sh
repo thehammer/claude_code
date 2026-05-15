@@ -130,9 +130,16 @@ fi
 # moved to tmux status row 1 (tmux-status-info). We still source segment.sh
 # here to call mother_capture_rate_limits — it persists the rolling quota state
 # so Mother's dispatch gate has a signal. Without this call the gate is a no-op.
-if [ -f "$HOME/Code/mother/plugins/mother/statusline/segment.sh" ]; then
+_mother_segment=""
+for _mp in \
+    "$HOME/Code/mother/plugins/mother/statusline/segment.sh" \
+    "$HOME/.claude/plugins/marketplaces/thehammer-mother/plugins/mother/statusline/segment.sh"
+do
+    [ -f "$_mp" ] && { _mother_segment="$_mp"; break; }
+done
+if [ -n "$_mother_segment" ]; then
     # shellcheck source=/dev/null
-    source "$HOME/Code/mother/plugins/mother/statusline/segment.sh"
+    source "$_mother_segment"
     mother_capture_rate_limits "$input"
 fi
 
