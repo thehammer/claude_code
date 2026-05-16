@@ -37,11 +37,12 @@ color_for() {
 
 # --- Bishop posture chip ---
 # Reads ~/.claude/budget-posture.json.  Emits nothing if missing or unparseable.
-# Bishop emits one of four posture labels; color severity left → right:
-#   "Pump the brakes" → red          (203) — over pace, slow down
-#   "On pace"         → dim          (245) — on track, no action needed
-#   "Push"            → green        (114) — under pace, headroom available
-#   "Full speed"      → bright green (46)  — well under pace, push hard
+# Bishop emits one of five posture labels; color severity left → right:
+#   "Pump the brakes"     → red          (203) — way over pace, slow down
+#   "Ease up"             → orange       (208) — drifting hot, course-correct
+#   "Cruise"              → dim          (245) — on track, no action needed
+#   "Push"                → green        (114) — under pace, headroom available
+#   "Put the hammer down" → bright green (46)  — well under pace, go hard
 posture_seg=""
 _posture_file="$HOME/.claude/budget-posture.json"
 if [ -f "$_posture_file" ]; then
@@ -49,11 +50,12 @@ if [ -f "$_posture_file" ]; then
         "import json,sys; d=json.load(open('$_posture_file')); print(d.get('posture',''))" \
         2>/dev/null)
     case "$_posture" in
-        "Pump the brakes") _pcolor="colour203" ;;
-        "On pace")         _pcolor="colour245" ;;
-        "Push")            _pcolor="colour114" ;;
-        "Full speed")      _pcolor="colour46"  ;;
-        *)                 _pcolor="" ;;
+        "Pump the brakes")     _pcolor="colour203" ;;
+        "Ease up")             _pcolor="colour208" ;;
+        "Cruise")              _pcolor="colour245" ;;
+        "Push")                _pcolor="colour114" ;;
+        "Put the hammer down") _pcolor="colour46"  ;;
+        *)                     _pcolor="" ;;
     esac
     if [ -n "$_pcolor" ] && [ -n "$_posture" ]; then
         posture_seg="#[fg=${_pcolor}]${_posture}#[fg=colour245]  "
