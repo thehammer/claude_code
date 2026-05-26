@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+# Claude Code tmux window management
+# Usage: tmux-claude <command> [args]
+#
+# Commands:
+#   list                         List all tmux windows across sessions
+#   send-rc <window>             Send /remote-control to a Claude window
+#   new <window> <agent> [dir]   Create window and start Claude agent
+#   restart <window>             Restart Claude in window (detached, safe to self-call)
+
+set -euo pipefail
+
+CLAUDE_CMD="${CLAUDE_ALIAS:-claude --dangerously-skip-permissions --agent}"
+
+# ─── helpers ──────────────────────────────────────────────────────────────────
+
+die() { echo "Error: $*" >&2; exit 1; }
+
+# Resolve a bare window name to "session:window" by searching all sessions.
+# If the input already contains ":", pass it through unchanged.
+resolve_target() {
+  local name="$1"
+  if [[ "$name" == *:* ]]; then
+    echo "$name"
+    return
+  fi
+  local found
+  found=$(tmux list-windows -a -F "#{session_name}:#{window_name}" 2>/dev/null \
+    | grep -F ":${name}" | head -1 || true)
+  if [[ -n "$found" ]]; then
+    echo "$found"
+  else
+    echo "$name"  # pass through; let tmux surface the error
+  fi
+}
+
+# ─── commands ─────────────────────────────────────────────────────────────────
+
+cmd_list() {
+  local fmt="%-30s %s\n"
+  printf "$fmt" "WINDOW" "SESSION"
+  printf "$fmt" "──────────────────────────────" "───────────────────────"
+  tmux list-windows -a -F "#{session_name}	#{window_name}" 2>/dev/null \
+    | while IFS=$'\t' read -r session window; do
+        printf "$fmt" "$window" "$session"
+      done
+}
+
+cmd_send_rc() {
+  local name="${1:-}"
+  [[ -n "$name" ]] || die "window name required.  Usage: tmux-claude send-rc <window>"
+  local target
+  target=$(resolve_target "$name")
+  tmux send-keys -t "$target" "/remote-control" Enter
+  echo "✓ Sent /remote-control to $target"
+}
+
+cmd_new() {
+  local window_name="${1:-}"
+  local agent="${2:-}"
+  local workdir="${3:-$HOME}"
+  [[ -n "$window_name" ]] || die "window name required.  Usage: tmux-claude new <window> <agent> [workdir]"
+  [[ -n "$agent" ]]       || die "agent name required.  Usage: tmux-claude new <window> <agent> [workdir]"
+
+  # Resolve which tmux session to create the window in
+  local session
+  if [[ -n "${TMUX:-}" ]]; then
+    session=$(tmux display-message -p '#{session_name}')
+  else
+    session=$(tmux list-sessions -F '#{session_name}' 2>/dev/null | head -1)
+    [[ -n "$session" ]] || die "no active tmux session found"
+  fi
+
+  # Create the window
+  tmux new-window -t "${session}:" -n "$window_name" -c "$workdir"
+
+  # Store metadata as tmux window options so 'restart' can recover them
+  tmux set-window-option -t "${session}:${window_name}" @claude_agent   "$agent"
+  tmux set-window-option -t "${session}:${window_name}" @claude_workdir "$workdir"
+
+  # Start Claude — pass window name as the RC session name and display name
+  local start_cmd="${CLAUDE_CMD} ${agent} --remote-control '${window_name}' -n '${window_name}'"
+  tmux send-keys -t "${session}:${window_name}" "$start_cmd" Enter
+
+  echo "✓ Created window '$window_name' in session '$session' (agent: $agent)"
+}
+
+cmd_restart() {
+  local name="${1:-}"
+  [[ -n "$name" ]] || die "window name required.  Usage: tmux-claude restart <window>"
+  local target
+  target=$(resolve_target "$name")
+
+  # Retrieve stored metadata
+  local agent workdir
+  agent=$(tmux show-window-options   -t "$target" -v @claude_agent   2>/dev/null || true)
+  workdir=$(tmux show-window-options -t "$target" -v @claude_workdir 2>/dev/null || true)
+
+  [[ -n "$agent" ]] || die "no agent metadata for '$target'. Window must have been created with 'tmux-claude new'."
+  workdir="${workdir:-$HOME}"
+
+  local start_cmd="${CLAUDE_CMD} ${agent} --remote-control '${target##*:}' -n '${target##*:}'"
+
+  # Detached respawn:
+  #   1. Wait 3s for current Claude to finish responding and return to the shell prompt
+  #   2. Send 'q' + Enter to exit Claude
+  #   3. Wait 2s for Claude to exit cleanly
+  #   4. Send the start command to relaunch
+  #
+  # Safe to call from the window being restarted — the nohup process outlives
+  # the current Claude session.
+  # shellcheck disable=SC2064
+  nohup bash -c "
+    sleep 3
+    tmux send-keys -t '${target}' '/exit' Enter 2>/dev/null || true
+    sleep 2
+    tmux send-keys -t '${target}' '${start_cmd}' Enter
+  " >/dev/null 2>&1 &
+
+  echo "✓ Restart scheduled for '$target' (agent: $agent) — takes ~5s"
+}
+
+cmd_help() {
+  cat <<'EOF'
+Usage: tmux-claude <command> [args]
+
+Commands:
+  list                           List all tmux windows across all sessions
+  send-rc <window>               Send /remote-control to a running Claude window
+  new <window> <agent> [dir]     Create a new window and start a Claude agent
+  restart <window>               Restart Claude in a window (detached — safe to self-call)
+
+Window names:
+  Bare names (e.g. "Maisie") are searched across all sessions.
+  Qualified names (e.g. "home:Maisie") target a specific session directly.
+
+Naming convention:
+  AgentName            Single-host agents          Maisie, Channing
+  AgentName-Host       Multi-host agents           Claudia-Sendai, Claudia-Kobe
+  AgentName-Topic      Task-specific instances     Debbie-Auth, Cody-Payments
+  ProjectName          Work project Claudia        Admin Portal, Carefeed
+
+Notes:
+  'restart' requires the window was created with 'tmux-claude new' (metadata stored).
+  'send-rc' types /remote-control + Enter into the target pane — Claude must be at prompt.
+EOF
+}
+
+# ─── dispatch ─────────────────────────────────────────────────────────────────
+
+case "${1:-help}" in
+  list)           cmd_list ;;
+  send-rc)        cmd_send_rc  "${2:-}" ;;
+  new)            cmd_new      "${2:-}" "${3:-}" "${4:-$HOME}" ;;
+  restart)        cmd_restart  "${2:-}" ;;
+  help|--help|-h) cmd_help ;;
+  *) die "unknown command '${1}'. Run 'tmux-claude help' for usage." ;;
+esac

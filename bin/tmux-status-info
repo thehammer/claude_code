@@ -22,7 +22,7 @@ mother_seg=""
 if [ -f "$MOTHER_STATUSLINE_CACHE" ]; then
     _m_age=$(( $(date +%s) - $(stat -f %m "$MOTHER_STATUSLINE_CACHE" 2>/dev/null || echo 0) ))
     if [ "$_m_age" -ge "$MOTHER_STATUSLINE_TTL" ]; then
-        ( source "$HOME/Code/mother/plugins/mother/statusline/segment.sh" \
+        ( source "$HOME/Software Development/Open Source/mother/plugins/mother/statusline/segment.sh" \
             && mother_statusline_refresh "$MOTHER_STATUSLINE_CACHE" >/dev/null 2>&1 ) &
     fi
     IFS=: read -r _mr _mq _mf _ma < "$MOTHER_STATUSLINE_CACHE" 2>/dev/null \
@@ -40,7 +40,7 @@ if [ -f "$MOTHER_STATUSLINE_CACHE" ]; then
         mother_seg="${mother_seg} │"
     fi
 else
-    ( source "$HOME/Code/mother/plugins/mother/statusline/segment.sh" \
+    ( source "$HOME/Software Development/Open Source/mother/plugins/mother/statusline/segment.sh" \
         && mother_statusline_refresh "$MOTHER_STATUSLINE_CACHE" >/dev/null 2>&1 ) &
 fi
 

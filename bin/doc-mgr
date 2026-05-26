@@ -1,0 +1,218 @@
+#!/usr/bin/env bash
+# Project documentation manager for .claude/ doc structures
+# Usage: doc-mgr <command> [args]
+
+set -euo pipefail
+
+die() { echo "Error: $*" >&2; exit 1; }
+
+# Walk up from dir to find nearest .claude/ directory.
+# Falls back to CWD/.claude if none found.
+find_claude_root() {
+  local dir="${1:-$PWD}"
+  while [[ "$dir" != "/" ]]; do
+    if [[ -d "$dir/.claude" ]]; then
+      echo "$dir/.claude"
+      return 0
+    fi
+    dir="$(dirname "$dir")"
+  done
+  echo "$PWD/.claude"
+}
+
+slugify() {
+  echo "$*" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//'
+}
+
+# ─── commands ─────────────────────────────────────────────────────────────────
+
+cmd_init() {
+  local dir
+  dir=$(find_claude_root "${1:-$PWD}")
+
+  mkdir -p \
+    "$dir/bugs/open"       \
+    "$dir/bugs/resolved"   \
+    "$dir/features/backlog" \
+    "$dir/features/shipped" \
+    "$dir/ideas"           \
+    "$dir/notes"           \
+    "$dir/todos/open"      \
+    "$dir/todos/done"
+
+  echo "✓ Initialized doc structure in $dir"
+}
+
+# Return the canonical path for a new file of a given type+title.
+# Does NOT create the file — caller is responsible for writing content.
+cmd_path() {
+  local type="${1:-}"
+  local title="${2:-}"
+  [[ -n "$type" ]]  || die "type required (bug|feature|idea|note|todo)"
+  [[ -n "$title" ]] || die "title required"
+
+  local claude_root
+  claude_root=$(find_claude_root)
+
+  local date slug filename
+  date=$(date +%Y-%m-%d)
+  slug=$(slugify "$title")
+  filename="${date}-${slug}.md"
+
+  case "$type" in
+    bug)     echo "$claude_root/bugs/open/$filename" ;;
+    feature) echo "$claude_root/features/backlog/$filename" ;;
+    idea)    echo "$claude_root/ideas/$filename" ;;
+    note)    echo "$claude_root/notes/$filename" ;;
+    todo)    echo "$claude_root/todos/open/$filename" ;;
+    *) die "unknown type '$type'. Valid: bug, feature, idea, note, todo" ;;
+  esac
+}
+
+cmd_list() {
+  local type="${1:-}"
+  local status="${2:-}"
+
+  local claude_root
+  claude_root=$(find_claude_root)
+
+  local dirs=()
+  case "$type" in
+    bug|bugs)
+      [[ -z "$status" || "$status" == "open" ]]     && dirs+=("$claude_root/bugs/open")
+      [[ -z "$status" || "$status" == "resolved" ]] && dirs+=("$claude_root/bugs/resolved")
+      ;;
+    feature|features)
+      [[ -z "$status" || "$status" == "backlog" ]] && dirs+=("$claude_root/features/backlog")
+      [[ -z "$status" || "$status" == "shipped" ]] && dirs+=("$claude_root/features/shipped")
+      ;;
+    idea|ideas)   dirs+=("$claude_root/ideas") ;;
+    note|notes)   dirs+=("$claude_root/notes") ;;
+    todo|todos)
+      [[ -z "$status" || "$status" == "open" ]] && dirs+=("$claude_root/todos/open")
+      [[ -z "$status" || "$status" == "done" ]] && dirs+=("$claude_root/todos/done")
+      ;;
+    "")
+      # Default: show all open/active items
+      dirs=(
+        "$claude_root/bugs/open"
+        "$claude_root/features/backlog"
+        "$claude_root/todos/open"
+        "$claude_root/ideas"
+        "$claude_root/notes"
+      )
+      ;;
+    *) die "unknown type '$type'. Valid: bug, feature, idea, note, todo" ;;
+  esac
+
+  local found=0
+  for dir in "${dirs[@]}"; do
+    [[ -d "$dir" ]] || continue
+    local label="${dir#$claude_root/}"
+    while IFS= read -r -d '' file; do
+      local name
+      name=$(basename "$file" .md)
+      printf "%-45s  %s\n" "$name" "$label"
+      found=1
+    done < <(find "$dir" -maxdepth 1 -name "*.md" -print0 2>/dev/null | sort -z)
+  done
+
+  [[ $found -eq 1 ]] || echo "(none)"
+}
+
+cmd_move() {
+  local filepath="${1:-}"
+  local new_status="${2:-}"
+  [[ -n "$filepath" ]]   || die "filepath required"
+  [[ -n "$new_status" ]] || die "new status required (resolved|shipped|done|open|backlog)"
+
+  local claude_root
+  claude_root=$(find_claude_root)
+
+  # Determine doc type from path
+  local rel="${filepath#$claude_root/}"
+  local type
+  type=$(echo "$rel" | cut -d/ -f1)
+
+  local dest_dir
+  case "$type/$new_status" in
+    bugs/resolved)       dest_dir="$claude_root/bugs/resolved" ;;
+    bugs/open)           dest_dir="$claude_root/bugs/open" ;;
+    features/shipped)    dest_dir="$claude_root/features/shipped" ;;
+    features/backlog)    dest_dir="$claude_root/features/backlog" ;;
+    todos/done)          dest_dir="$claude_root/todos/done" ;;
+    todos/open)          dest_dir="$claude_root/todos/open" ;;
+    *) die "don't know how to move '$type' item to status '$new_status'" ;;
+  esac
+
+  local filename
+  filename=$(basename "$filepath")
+  mv "$filepath" "$dest_dir/$filename"
+  echo "✓ Moved to $dest_dir/$filename"
+}
+
+# Migrate legacy bug-reports/ and feature-requests/ layouts to new structure.
+# Only migrates open/active files — archived subfolders are left alone.
+cmd_migrate() {
+  local dir
+  dir=$(find_claude_root "${1:-$PWD}")
+
+  # Ensure new structure exists
+  cmd_init "${1:-$PWD}" >/dev/null
+
+  local migrated=0
+
+  _migrate_dir() {
+    local src="$1" dest="$2" label="$3"
+    [[ -d "$src" ]] || return 0
+    for f in "$src"/*.md; do
+      [[ -f "$f" ]] || continue
+      mv "$f" "$dest/$(basename "$f")"
+      echo "  ↳ $label/$(basename "$f") → ${dest#$dir/}/"
+      ((migrated++)) || true
+    done
+  }
+
+  _migrate_dir "$dir/bug-reports"      "$dir/bugs/open"        "bug-reports"
+  _migrate_dir "$dir/feature-requests" "$dir/features/backlog" "feature-requests"
+  _migrate_dir "$dir/inbox"            "$dir/ideas"            "inbox"
+
+  if [[ $migrated -eq 0 ]]; then
+    echo "Nothing to migrate (no legacy bug-reports/, feature-requests/, or inbox/)."
+  else
+    echo "✓ Migrated $migrated file(s)"
+  fi
+}
+
+cmd_find_root() {
+  find_claude_root
+}
+
+# ─── dispatch ─────────────────────────────────────────────────────────────────
+
+case "${1:-help}" in
+  init)      cmd_init      "${2:-}" ;;
+  path)      cmd_path      "${2:-}" "${3:-}" ;;
+  list)      cmd_list      "${2:-}" "${3:-}" ;;
+  move)      cmd_move      "${2:-}" "${3:-}" ;;
+  migrate)   cmd_migrate   "${2:-}" ;;
+  find-root) cmd_find_root ;;
+  help|--help|-h)
+    cat <<'EOF'
+Usage: doc-mgr <command> [args]
+
+Commands:
+  init [dir]              Scaffold .claude/ doc structure in dir (default: CWD)
+  path <type> <title>     Return canonical path for a new doc (does not create file)
+  list [type] [status]    List docs (default: all active)
+  move <file> <status>    Transition a doc to a new status subfolder
+  migrate [dir]           Migrate legacy bug-reports/feature-requests layout
+  find-root               Print the nearest .claude/ directory
+
+Types:    bug · feature · idea · note · todo
+Statuses: open/resolved (bugs) · backlog/shipped (features) · open/done (todos)
+          ideas and notes have no status subfolder
+EOF
+    ;;
+  *) die "unknown command '${1}'. Run 'doc-mgr help'." ;;
+esac

@@ -154,3 +154,5 @@ budget-posture.json.tmp.*
 state/fred/.tmux-window
 state/perri/
 tmp-plans/
+chrome/
+backups/

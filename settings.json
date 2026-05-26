@@ -53,7 +53,7 @@
       "Bash(sudo rmdir:*)"
     ]
   },
-  "model": "sonnet",
+  "model": "sonnet[1m]",
   "hooks": {
     "PreToolUse": [
       {
@@ -84,7 +84,18 @@
         ]
       }
     ],
-    "UserPromptSubmit": []
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/inject-time.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
   },
   "statusLine": {
     "type": "command",
@@ -97,7 +108,8 @@
     "pr-review-toolkit@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
-    "mother@thehammer-mother": true
+    "mother@thehammer-mother": true,
+    "rust-analyzer-lsp@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "thehammer-mother": {
