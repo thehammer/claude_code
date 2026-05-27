@@ -33,6 +33,9 @@
       "WebSearch",
       "Write(**)",
       "Bash(gh pr create:*)",
+      "Bash(gh pr review:*)",
+      "Bash(rm -f ~/.claude/state/**:*)",
+      "Bash(rm -f /tmp/*:*)",
       "Bash(git push:*)"
     ],
     "deny": [
@@ -53,7 +56,7 @@
       "Bash(sudo rmdir:*)"
     ]
   },
-  "model": "sonnet[1m]",
+  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {
@@ -63,6 +66,16 @@
             "type": "command",
             "command": "~/.claude/hooks/doc-file-guard.sh",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pr-base-check.sh",
+            "timeout": 15
           }
         ]
       }
@@ -109,9 +122,16 @@
     "claude-md-management@claude-plugins-official": true,
     "swift-lsp@claude-plugins-official": true,
     "mother@thehammer-mother": true,
-    "rust-analyzer-lsp@claude-plugins-official": true
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "teri@thehammer-teri": true
   },
   "extraKnownMarketplaces": {
+    "thehammer-teri": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/hammer/Code/teri"
+      }
+    },
     "thehammer-mother": {
       "source": {
         "source": "github",

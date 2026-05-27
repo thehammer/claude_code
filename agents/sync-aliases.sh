@@ -6,6 +6,7 @@
 # machine-specific aliases defined manually.
 
 AGENTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+BIN_DIR="$(dirname "$AGENTS_DIR")/bin"
 CLAUDE_CMD="${CLAUDE_ALIAS:-claude --dangerously-skip-permissions --remote-control --agent}"
 
 for file in "$AGENTS_DIR"/*.md; do
@@ -23,6 +24,8 @@ for file in "$AGENTS_DIR"/*.md; do
 
   [ -z "$name" ] && continue
   $has_workdir && continue
+  # Skip if a bin/ script exists — the executable on PATH takes precedence
+  [ -x "$BIN_DIR/$name" ] && continue
 
   echo "alias ${name}=\"${CLAUDE_CMD} ${name}\""
 done

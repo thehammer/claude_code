@@ -157,18 +157,32 @@ fred_truncate() {
 }
 
 # fred_term_cols
-# Echo the current terminal width with a sane default of 80.
+# Echo the current terminal width — prefers tmux pane width when available,
+# because tput reports the full terminal size, not the pane size, in split
+# layouts. Falls back to tput then a sane default of 80.
 fred_term_cols() {
   local cols
-  cols=$(tput cols 2>/dev/null) || cols=80
+  if [[ -n "${TMUX_PANE:-}" ]]; then
+    cols=$(tmux display-message -t "$TMUX_PANE" -p '#{pane_width}' 2>/dev/null)
+  fi
+  if [[ -z "${cols:-}" ]]; then
+    cols=$(tput cols 2>/dev/null) || cols=80
+  fi
   echo "${cols:-80}"
 }
 
 # fred_term_lines
-# Echo the current terminal height with a sane default of 24.
+# Echo the current terminal height — prefers tmux pane height when available,
+# because tput reports the full terminal size, not the pane size, in split
+# layouts. Falls back to tput then a sane default of 24.
 fred_term_lines() {
   local lines
-  lines=$(tput lines 2>/dev/null) || lines=24
+  if [[ -n "${TMUX_PANE:-}" ]]; then
+    lines=$(tmux display-message -t "$TMUX_PANE" -p '#{pane_height}' 2>/dev/null)
+  fi
+  if [[ -z "${lines:-}" ]]; then
+    lines=$(tput lines 2>/dev/null) || lines=24
+  fi
   echo "${lines:-24}"
 }
 
@@ -249,11 +263,13 @@ fred_pick_greeting() {
 }
 
 # fred_clear_screen
-# Clears the terminal and homes the cursor.
+# Homes the cursor and clears to end of screen — overwrites in place without
+# pushing content into the tmux scrollback buffer.
+# (Avoid \e[2J which scrolls old content into scrollback on every redraw.)
 # In FRED_PLAIN=1 mode, emits nothing (no ANSI).
 fred_clear_screen() {
   if [[ "${FRED_PLAIN:-0}" != "1" ]]; then
-    printf '\e[2J\e[H'
+    printf '\e[H\e[J'
   fi
 }
 

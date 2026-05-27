@@ -74,8 +74,8 @@ fred_render_mailbox() {
   local json=""
   if json=$(graph_get_inbox_messages 15 2>/dev/null) \
      && [[ -n "$json" ]] \
-     && echo "$json" | jq -e '.value' >/dev/null 2>&1; then
-    echo "$json" > "$cache"
+     && printf '%s\n' "$json" | jq -e '.value' >/dev/null 2>&1; then
+    printf '%s\n' "$json" > "$cache"
     sync_time=$(date '+%l:%M%p' | tr '[:upper:]' '[:lower:]' | sed 's/^ //')
   elif [[ -f "$cache" ]]; then
     json=$(cat "$cache")
@@ -97,7 +97,7 @@ fred_render_mailbox() {
 
   # Unread count
   local unread_count
-  unread_count=$(echo "$json" | jq '[.value[] | select(.isRead==false)] | length' 2>/dev/null) \
+  unread_count=$(printf '%s\n' "$json" | jq '[.value[] | select(.isRead==false)] | length' 2>/dev/null) \
     || unread_count=0
 
   # New-message delta annotation
@@ -143,12 +143,12 @@ fred_render_mailbox() {
     [[ $msg_count -ge $max_msgs ]] && break
 
     local is_read subject sender_name sender_email recv_time meeting_type
-    is_read=$(echo "$msg_json"     | jq -r '.isRead // "true"')
-    subject=$(echo "$msg_json"     | jq -r '.subject // "(no subject)"')
-    sender_name=$(echo "$msg_json" | jq -r '.from.emailAddress.name // .from.emailAddress.address // "?"')
-    sender_email=$(echo "$msg_json"| jq -r '.from.emailAddress.address // ""' | tr '[:upper:]' '[:lower:]')
-    recv_time=$(echo "$msg_json"   | jq -r '.receivedDateTime // ""')
-    meeting_type=$(echo "$msg_json"| jq -r '.["@odata.type"] // ""')
+    is_read=$(printf '%s\n' "$msg_json"     | jq -r '.isRead // "true"')
+    subject=$(printf '%s\n' "$msg_json"     | jq -r '.subject // "(no subject)"')
+    sender_name=$(printf '%s\n' "$msg_json" | jq -r '.from.emailAddress.name // .from.emailAddress.address // "?"')
+    sender_email=$(printf '%s\n' "$msg_json"| jq -r '.from.emailAddress.address // ""' | tr '[:upper:]' '[:lower:]')
+    recv_time=$(printf '%s\n' "$msg_json"   | jq -r '.receivedDateTime // ""')
+    meeting_type=$(printf '%s\n' "$msg_json"| jq -r '.["@odata.type"] // ""')
 
     # Bullet
     local bullet
@@ -193,7 +193,7 @@ fred_render_mailbox() {
       "$dim_close"
 
     msg_count=$(( msg_count + 1 ))
-  done < <(echo "$json" | jq -c '.value[]?' 2>/dev/null)
+  done < <(printf '%s\n' "$json" | jq -c '.value[]?' 2>/dev/null)
 
   # Fill blank rows between messages and footer
   local header_rows=2
@@ -203,11 +203,13 @@ fred_render_mailbox() {
   for (( i=0; i<fill; i++ )); do printf '\n'; done
 
   # ── Footer ──
+  # No trailing \n on the status line — printing \n on the last terminal row
+  # scrolls everything up and loses content into the scrollback buffer.
   if [[ $stale -eq 1 ]]; then
-    printf '%s↻ syncing… (last good %s)%s\n' \
+    printf '%s↻ syncing… (last good %s)%s' \
       "${FRED_C_DIM}" "$sync_time" "${FRED_C_RESET}"
   else
-    printf '%s%d unread · last sync %s%s\n' \
+    printf '%s%d unread · last sync %s%s' \
       "${FRED_C_DIM}" "$unread_count" "$sync_time" "${FRED_C_RESET}"
   fi
 }

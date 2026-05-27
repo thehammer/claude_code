@@ -143,6 +143,10 @@ if [ -n "$_mother_segment" ]; then
     mother_capture_rate_limits "$input"
 fi
 
+# Keep budget-posture.json fresh for Mother and Claudia. Fire-and-forget;
+# Bishop's flock + mtime idempotency handles overlapping renders.
+command -v bishop >/dev/null 2>&1 && bishop --refresh &
+
 # --- Project-specific statusline extension ---
 # Look for tools/statusline.sh in the project root (resolves through worktrees)
 proj_seg=""

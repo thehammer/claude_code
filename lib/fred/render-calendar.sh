@@ -157,8 +157,8 @@ fred_render_calendar() {
   local json=""
   if json=$(get_calendar_for_date "$today" 2>/dev/null) \
      && [[ -n "$json" ]] \
-     && echo "$json" | jq -e '.value' >/dev/null 2>&1; then
-    echo "$json" > "$cache"
+     && printf '%s\n' "$json" | jq -e '.value' >/dev/null 2>&1; then
+    printf '%s\n' "$json" > "$cache"
   elif [[ -f "$cache" ]]; then
     json=$(cat "$cache")
     stale=1
@@ -208,10 +208,10 @@ fred_render_calendar() {
     [[ $event_count -ge $max_events ]] && break
 
     local start_dt end_dt response subject_raw
-    start_dt=$(echo "$evt_json"   | jq -r '.start.dateTime // ""')
-    end_dt=$(echo "$evt_json"     | jq -r '.end.dateTime // ""')
-    response=$(echo "$evt_json"   | jq -r '.responseStatus.response // "notResponded"')
-    subject_raw=$(echo "$evt_json"| jq -r '.subject // "(no subject)"')
+    start_dt=$(printf '%s\n' "$evt_json"   | jq -r '.start.dateTime // ""')
+    end_dt=$(printf '%s\n' "$evt_json"     | jq -r '.end.dateTime // ""')
+    response=$(printf '%s\n' "$evt_json"   | jq -r '.responseStatus.response // "notResponded"')
+    subject_raw=$(printf '%s\n' "$evt_json"| jq -r '.subject // "(no subject)"')
 
     local start_epoch end_epoch
     start_epoch=$(_fred_event_epoch "$start_dt")
@@ -260,7 +260,7 @@ fred_render_calendar() {
       "$style_close"
 
     event_count=$(( event_count + 1 ))
-  done < <(echo "$json" | jq -c '.value | sort_by(.start.dateTime) | .[]?' 2>/dev/null)
+  done < <(printf '%s\n' "$json" | jq -c '.value | sort_by(.start.dateTime) | .[]?' 2>/dev/null)
 
   # Fill remaining rows
   local header_rows=2
@@ -270,6 +270,8 @@ fred_render_calendar() {
   for (( i=0; i<fill; i++ )); do printf '\n'; done
 
   # ── Footer: next event countdown or stale indicator ──
+  # No trailing \n on the status line — printing \n on the last terminal row
+  # scrolls everything up and loses content into the scrollback buffer.
   local footer=""
   if [[ $stale -eq 1 ]]; then
     footer="${FRED_C_DIM}↻ syncing… (calendar)${FRED_C_RESET}"
@@ -290,7 +292,7 @@ fred_render_calendar() {
     footer="${FRED_C_DIM}nothing else today${FRED_C_RESET}"
   fi
 
-  printf '%s\n' "$footer"
+  printf '%s' "$footer"
 }
 
 export FRED_FORMAT_LOADED FRED_CALENDAR_LOADED
