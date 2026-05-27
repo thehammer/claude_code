@@ -1,6 +1,6 @@
 ---
 name: doc
-description: File and manage project documentation — bug reports, feature requests, ideas, notes, and todos — in a project's .claude/ directory. Use when asked to file a bug, log a feature request, capture an idea, add a note, or create a todo. Also handles listing, transitioning status, initializing structure, and migrating legacy layouts.
+description: File and manage project documentation — bug reports, feature requests, ideas, notes, todos, and wip folders — in a project's .claude/ directory. Use when asked to file a bug, log a feature request, capture an idea, add a note, create a todo, or start a WIP investigation folder. Also handles listing, transitioning status, initializing structure, and migrating legacy layouts.
 ---
 
 # Project Doc Management Skill
@@ -15,7 +15,8 @@ Trigger when user asks to:
 - Capture an idea or "thing to revisit"
 - Create a project note or decision record
 - Add a todo item
-- List open bugs, features, todos, etc.
+- Start a WIP investigation, analysis, or working folder
+- List open bugs, features, todos, wip folders, etc.
 - Mark a bug as resolved, feature as shipped, todo as done
 - Initialize the doc structure in a project
 - Migrate a legacy `bug-reports/` or `feature-requests/` layout
@@ -153,6 +154,37 @@ Why this needs to happen.
 - [ ]
 ```
 
+### WIP
+`path wip "<title>"` creates the folder and returns `wip/<slug>/index.md`.
+Write `index.md` using this template, then add supporting files freely:
+
+```markdown
+---
+type: wip
+created: {YYYY-MM-DD}
+project: {project}
+---
+
+# {Title}
+
+## Goal
+One sentence: what are we trying to figure out or build?
+
+## Quick Navigation
+| Doc | Contents |
+|---|---|
+| [file.md](file.md) | ... |
+
+## Current Status
+What's the state of play right now?
+
+## Key Findings
+Discoveries so far.
+
+## Next Steps
+What needs to happen next?
+```
+
 ## Other Operations
 
 ### List docs
@@ -161,6 +193,7 @@ Why this needs to happen.
 ~/.claude/bin/doc-mgr list bug              # all bugs (open + resolved)
 ~/.claude/bin/doc-mgr list bug open         # open bugs only
 ~/.claude/bin/doc-mgr list feature backlog  # features in backlog
+~/.claude/bin/doc-mgr list wip              # all wip folders
 ```
 
 ### Transition a doc
@@ -168,6 +201,7 @@ Why this needs to happen.
 ~/.claude/bin/doc-mgr move <full-path> resolved   # close a bug
 ~/.claude/bin/doc-mgr move <full-path> shipped    # ship a feature
 ~/.claude/bin/doc-mgr move <full-path> done       # complete a todo
+# WIP folders: rename or delete the folder manually when done
 ```
 Use `list` first to get the full path if needed.
 

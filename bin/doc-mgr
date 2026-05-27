@@ -8,8 +8,16 @@ die() { echo "Error: $*" >&2; exit 1; }
 
 # Walk up from dir to find nearest .claude/ directory.
 # Falls back to CWD/.claude if none found.
+# If called from inside a .claude/ dir, walks up from its parent.
 find_claude_root() {
   local dir="${1:-$PWD}"
+
+  # If we're already inside a .claude/ directory, start from its parent
+  # so we don't accidentally match the dir itself as a parent-with-.claude.
+  if [[ "$(basename "$dir")" == ".claude" ]]; then
+    dir="$(dirname "$dir")"
+  fi
+
   while [[ "$dir" != "/" ]]; do
     if [[ -d "$dir/.claude" ]]; then
       echo "$dir/.claude"
@@ -31,24 +39,26 @@ cmd_init() {
   dir=$(find_claude_root "${1:-$PWD}")
 
   mkdir -p \
-    "$dir/bugs/open"       \
-    "$dir/bugs/resolved"   \
+    "$dir/bugs/open"        \
+    "$dir/bugs/resolved"    \
     "$dir/features/backlog" \
     "$dir/features/shipped" \
-    "$dir/ideas"           \
-    "$dir/notes"           \
-    "$dir/todos/open"      \
-    "$dir/todos/done"
+    "$dir/ideas"            \
+    "$dir/notes"            \
+    "$dir/todos/open"       \
+    "$dir/todos/done"       \
+    "$dir/wip"
 
   echo "✓ Initialized doc structure in $dir"
 }
 
 # Return the canonical path for a new file of a given type+title.
 # Does NOT create the file — caller is responsible for writing content.
+# For wip, returns the index.md path AND creates the folder.
 cmd_path() {
   local type="${1:-}"
   local title="${2:-}"
-  [[ -n "$type" ]]  || die "type required (bug|feature|idea|note|todo)"
+  [[ -n "$type" ]]  || die "type required (bug|feature|idea|note|todo|wip)"
   [[ -n "$title" ]] || die "title required"
 
   local claude_root
@@ -65,7 +75,13 @@ cmd_path() {
     idea)    echo "$claude_root/ideas/$filename" ;;
     note)    echo "$claude_root/notes/$filename" ;;
     todo)    echo "$claude_root/todos/open/$filename" ;;
-    *) die "unknown type '$type'. Valid: bug, feature, idea, note, todo" ;;
+    wip)
+      # WIP is a folder — create it and return the index.md path
+      local wip_dir="$claude_root/wip/$slug"
+      mkdir -p "$wip_dir"
+      echo "$wip_dir/index.md"
+      ;;
+    *) die "unknown type '$type'. Valid: bug, feature, idea, note, todo, wip" ;;
   esac
 }
 
@@ -92,6 +108,20 @@ cmd_list() {
       [[ -z "$status" || "$status" == "open" ]] && dirs+=("$claude_root/todos/open")
       [[ -z "$status" || "$status" == "done" ]] && dirs+=("$claude_root/todos/done")
       ;;
+    wip)
+      # List WIP folders by their index.md title, or just folder name
+      [[ -d "$claude_root/wip" ]] || { echo "(none)"; return; }
+      local found=0
+      for wip_dir in "$claude_root/wip"/*/; do
+        [[ -d "$wip_dir" ]] || continue
+        local name
+        name=$(basename "$wip_dir")
+        printf "%-45s  wip\n" "$name"
+        found=1
+      done
+      [[ $found -eq 1 ]] || echo "(none)"
+      return
+      ;;
     "")
       # Default: show all open/active items
       dirs=(
@@ -102,7 +132,7 @@ cmd_list() {
         "$claude_root/notes"
       )
       ;;
-    *) die "unknown type '$type'. Valid: bug, feature, idea, note, todo" ;;
+    *) die "unknown type '$type'. Valid: bug, feature, idea, note, todo, wip" ;;
   esac
 
   local found=0
@@ -142,6 +172,7 @@ cmd_move() {
     features/backlog)    dest_dir="$claude_root/features/backlog" ;;
     todos/done)          dest_dir="$claude_root/todos/done" ;;
     todos/open)          dest_dir="$claude_root/todos/open" ;;
+    wip/*)          die "wip folders are not moved via 'move' — rename or delete the folder manually" ;;
     *) die "don't know how to move '$type' item to status '$new_status'" ;;
   esac
 
@@ -209,9 +240,10 @@ Commands:
   migrate [dir]           Migrate legacy bug-reports/feature-requests layout
   find-root               Print the nearest .claude/ directory
 
-Types:    bug · feature · idea · note · todo
+Types:    bug · feature · idea · note · todo · wip
 Statuses: open/resolved (bugs) · backlog/shipped (features) · open/done (todos)
-          ideas and notes have no status subfolder
+          ideas, notes, and wip have no status subfolder
+          wip creates a folder; path returns <wip-slug>/index.md
 EOF
     ;;
   *) die "unknown command '${1}'. Run 'doc-mgr help'." ;;

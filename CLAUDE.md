@@ -151,4 +151,77 @@ I cannot execute commands in production environments for safety reasons.
 
 ---
 
+## Feature requests and bug reports — convention
+
+Use `/doc` (backed by `~/.claude/bin/doc-mgr`) to file and manage all
+project documentation. Supported types: `bug`, `feature`, `idea`,
+`note`, `todo`, `wip`.
+
+### Where to file
+
+Docs are **always local to their project**. File in the nearest
+`.claude/` directory up from CWD:
+
+- **Repo-specific work** → `<repo>/.claude/` (e.g.
+  `~/Code/callimachus/.claude/bugs/open/`)
+- **Claude-config / harness bugs and features** → `~/.claude/` — only
+  for things that are about the `~/.claude` repo itself (broken hooks,
+  agent behaviour, tooling)
+
+When in doubt: if it touches a repo's code, file it in that repo.
+
+### Layout
+
+```
+.claude/
+  bugs/open/          ← active bugs
+  bugs/resolved/      ← fixed bugs
+  features/backlog/   ← requested features
+  features/shipped/   ← shipped features
+  ideas/              ← loose ideas, no status
+  notes/              ← decisions, reference, observations
+  todos/open/         ← open action items
+  todos/done/         ← completed todos
+  wip/                ← multi-file working folders (one subdir per topic)
+    <topic>/
+      index.md        ← entry point
+      ...             ← supporting files, data, scripts
+```
+
+### Filing a doc
+
+```bash
+# Get the path (wip also creates the folder)
+path=$(~/.claude/bin/doc-mgr path bug "short title")
+# Then write the file at $path using the appropriate template
+```
+
+Or just invoke `/doc` and describe what you want to file.
+
+### Transitioning a doc
+
+```bash
+~/.claude/bin/doc-mgr move <full-path> resolved   # fix a bug
+~/.claude/bin/doc-mgr move <full-path> shipped    # ship a feature
+~/.claude/bin/doc-mgr move <full-path> done       # complete a todo
+```
+
+Git history preserves the content; the folder move is the
+queue-management signal. WIP folders are renamed or deleted manually.
+
+### Doc types
+
+- **bug** — "the system is doing the wrong thing." File with a failing
+  test repro when possible.
+- **feature** — "the system doesn't do this yet." Promote to Ada/PRD
+  when scope warrants it.
+- **idea** — loose exploration, not yet committed.
+- **note** — decision records, reference material, observations.
+- **todo** — concrete action item with acceptance criteria.
+- **wip** — active multi-file investigation or analysis. Lives in
+  `wip/<topic>/` with an `index.md` entry point and any supporting
+  artifacts (scripts, CSVs, sub-docs).
+
+---
+
 **This file is automatically read by Claude Code on every message.**
