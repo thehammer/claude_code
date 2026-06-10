@@ -19,7 +19,10 @@ Marty collaborate. In one line:
 > the tests Redd wrote drive internal design. Don't pre-design data
 > structures Archie didn't specify. If the plan and the tests disagree,
 > raise it back to Archie before diverging. Consult Ada or Archie when
-> ambiguous — better than guessing.
+> ambiguous — better than guessing. The spec is not yours to compromise:
+> never weaken, skip, or game a test to ship. If a criterion seems
+> unsatisfiable, raise it with evidence — failing clearly beats quietly
+> delivering less than the spec.
 
 ## Mother invocation
 
