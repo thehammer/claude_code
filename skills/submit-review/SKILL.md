@@ -94,47 +94,54 @@ EOF
 )"
 ```
 
-#### Any review with inline comments — use `gh api`
+#### Any review with inline comments — Write file then run script
 
-Use this path whenever there are inline findings, regardless of verdict. Build the comments array with `jq` and pipe it to `gh api`:
+When there are inline findings, **do not construct JSON in bash**. Instead:
 
-```bash
-# Construct inline comments JSON. Each entry: path (relative to repo root),
-# line (new-file line number from the diff), side ("RIGHT" for added/context
-# lines, "LEFT" for deleted lines — default RIGHT), body (markdown OK;
-# include suggestion blocks for one-click fixes).
-COMMENTS=$(jq -n '[
-  {
-    "path": "app/Http/Controllers/FooController.php",
-    "line": 42,
-    "side": "RIGHT",
-    "body": "**Perri:** This input is written to the DB without validation.\n\n```suggestion\n        $value = $request->validated()[\"value\"];\n```"
-  },
-  {
-    "path": "resources/views/bar.blade.php",
-    "line": 17,
-    "side": "RIGHT",
-    "body": "**Perri:** This `@include` references a deleted partial — guaranteed `ViewNotFoundException` at runtime."
-  }
-]')
+**Step 3a — Write the review JSON using the Write tool.**
 
-# event: "APPROVE", "REQUEST_CHANGES", or "COMMENT"
-jq -n \
-  --arg body "<overall summary, or empty string if inline comments cover everything>" \
-  --arg event "REQUEST_CHANGES" \
-  --argjson comments "$COMMENTS" \
-  '{body: $body, event: $event, comments: $comments}' \
-| gh api --method POST "repos/<owner>/<repo>/pulls/<number>/reviews" --input -
+Write to `/tmp/perri-review-<number>.json`. The file must be valid JSON matching the GitHub PR Review API shape. Example:
+
+```json
+{
+  "body": "Two issues found — both must be fixed before merge.",
+  "event": "REQUEST_CHANGES",
+  "comments": [
+    {
+      "path": "app/Http/Controllers/FooController.php",
+      "line": 42,
+      "side": "RIGHT",
+      "body": "**Perri:** This input is written to the DB without validation.\n\n```suggestion\n        $value = $request->validated()['value'];\n```"
+    },
+    {
+      "path": "resources/views/calendar.blade.php",
+      "line": 17,
+      "side": "RIGHT",
+      "body": "**Perri:** `@include` references deleted partial `calendar/visit` — guaranteed `ViewNotFoundException` at runtime."
+    }
+  ]
+}
 ```
 
-**Event values:**
-- `"APPROVE"` — approves the PR; use when verdict is approve even if leaving inline suggestions
-- `"REQUEST_CHANGES"` — blocks merge until addressed
-- `"COMMENT"` — neutral; doesn't approve or block
+**Field notes:**
+- `event`: `"APPROVE"`, `"REQUEST_CHANGES"`, or `"COMMENT"`. Approve + inline suggestions still uses `"APPROVE"`.
+- `path`: relative to repo root, no leading slash.
+- `line`: new-file line number visible in `gh pr diff` output. Only include lines that appear in the diff — otherwise the script will recover but can't post inline.
+- `side`: `"RIGHT"` for added/unchanged lines (new code), `"LEFT"` for deleted lines. Default `"RIGHT"` when unsure.
+- `body`: markdown. Backticks are fine in JSON. Newlines must be `\n`. Suggestion blocks render as GitHub "Apply suggestion" buttons.
 
-**Suggestion blocks in inline comment bodies** render as GitHub "Apply suggestion" buttons — the author accepts with one click. Use them for typos, simple syntax fixes, or obvious one-line corrections. Do not use for changes that need context or explanation.
+**Step 3b — Run the post-review script:**
 
-**Multi-line suggestions**: To suggest a replacement for multiple lines, include the full replacement between the suggestion fences. GitHub matches the original lines automatically from the diff context.
+```bash
+~/.claude/lib/perri-post-review.sh <number> <owner/repo> /tmp/perri-review-<number>.json
+```
+
+The script handles posting, 422 recovery (individual comment retry), and appending any failed inline comments to the body. Watch its output for success/failure per comment.
+
+**Step 3c — Clean up:**
+```bash
+rm -f /tmp/perri-review-<number>.json
+```
 
 **Skip:** Do nothing. Inform the user briefly ("Skipped — moving on.") and continue.
 
@@ -174,4 +181,4 @@ only Approve (and Approve with inline) trigger suppression.
 - If the user says "approve all" or "batch approve", output a `CONFIRM:` block for each PR individually, one at a time. A single pass through five PRs is five confirmation prompts.
 - The body and inline comments must be prepared before Step 2. If you have not drafted them yet, draft them first, then invoke this skill.
 - After a Skip, do NOT refresh the dashboard — the PR stays in the queue.
-- If the `gh api` call fails with 422 on a specific comment, the most common cause is a line number outside the diff. Remove that comment and retry, or move the finding to the body.
+- If the script reports a comment was moved to the body, that comment's line number was outside the diff. This is handled automatically — no manual retry needed. Mention it to the user so they're aware.
