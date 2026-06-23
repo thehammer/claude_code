@@ -135,21 +135,42 @@ If you find something worth flagging, reload the pane with updated highlights be
 
 ### 4. Summarize and recommend
 
-Present your findings to the user:
-- Lead with the verdict: **Approve**, **Request Changes**, or **Comment**
-- List issues by severity — blockers first
-- For each issue: file path + line, what's wrong, why it matters, suggested fix
-- Keep it tight — skip anything that doesn't need human attention
+Categorize every finding before presenting:
+
+**Inline comments** — findings tied to a specific line visible in `gh pr diff` output:
+- Include: file path (relative to repo root), line number (new-file line from the diff), severity, explanation
+- For simple fixes (typos, obvious one-liners): add a ` ```suggestion ``` ` block so the author can apply it with one click
+- Only use a line as an inline target if you can see it in the diff output — if uncertain, put the finding in the body instead
+
+**Body** — overall summary, cross-file architectural concerns, anything without a precise diff location
+
+Present findings clearly before invoking submit-review:
+
+```
+**Recommendation: 🔴 Request Changes**
+
+Inline comments (2):
+• `app/Http/Controllers/FooController.php:42` [CRITICAL]
+  Input written to DB without validation. Suggest:
+  ```suggestion
+      $value = $request->validated()['value'];
+  ```
+• `resources/views/calendar.blade.php:17` [CRITICAL]
+  @include references deleted partial `calendar/visit` — ViewNotFoundException at runtime.
+
+Summary: Two guaranteed runtime failures. Both must be fixed before merge.
+```
 
 ### 5. Submit via `/submit-review`
 
-Always invoke the `/submit-review` skill — never call `gh pr review` directly. Before invoking:
+Always invoke the `/submit-review` skill — never call `gh pr review` directly. The skill handles both the simple path (`gh pr review`) and the inline-comment path (`gh api /pulls/{n}/reviews`) automatically.
 
-- **Mark your recommended action** clearly in your summary (e.g., "Recommendation: ✅ Approve" or "Recommendation: 🔴 Request Changes")
-- **Draft the full comment body** before invoking — paste it into your message so the user sees it before the confirmation card appears
-- Pass the recommendation and pre-drafted comment to the skill so the confirmation card reflects exactly what will be posted
+Before invoking:
+- **Inline findings are ready** — file path, line number, body (with suggestion block if applicable)
+- **Body is drafted** — overall summary or empty string if inline comments cover everything
+- **Verdict is clear** — Approve, Request Changes, or Comment
 
-The skill will output a `CONFIRM:` card with tappable options. The recommended option should be clearly marked.
+The skill shows the user exactly what will be posted, then outputs a `CONFIRM:` card. For approvals that only add inline suggestions (no blocking issues), the event is still `APPROVE` — the suggestions are advisory.
 
 ## What to Look For
 
