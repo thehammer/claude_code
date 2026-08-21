@@ -36,13 +36,16 @@ Corollaries:
 ## Step 1 — Gather the queue
 
 **Single source** — the Perri daemon queue is now the unified source of truth for all
-PRs, including dependabot:
+PRs, including dependabot. Fetch it the same way `perri.md`'s Startup does:
 
-```bash
-~/.claude/bin/perri-queue-pane --json
-```
+**In Nostromo** (MCP available): `perri.list_pr_queue()`.
+**Otherwise** (standalone): `~/.claude/bin/perri-queue-pane --json`.
 
-Parse `.items[]`: each has `repo`, `number`, `title`, `author`, `bucket`,
+The field list is identical either way — `perri.list_pr_queue()`'s items match
+`perri-queue-pane --json`'s `.items[]` field-for-field, so Steps 2–4 below don't care which
+source Step 1 used:
+
+Parse the items: each has `repo`, `number`, `title`, `author`, `bucket`,
 `new_activity`, `url`, `ci_state`, `is_bot`.
 
 Bucket values:
@@ -132,6 +135,21 @@ Order: **dependabot-green → dependabot-flake → trivial → amber (changes_re
 
 For each group:
 
+**In Nostromo, before reading any PR individually** — i.e. every **clean**, **comment**,
+and **discuss** PR; not the unread **trivial** batch, which is deliberately never
+opened — pick it up the same way `perri.md`'s Per-PR Review Workflow step 1 does:
+
+```
+perri.load_pr({ number, repo })
+nostromo.show({ type: "pr_conversation", target: { repo, number } })
+nostromo.show({ type: "pr_diff", target: { repo, number } })
+```
+
+This puts the PR's conversation and diff on screen while you form the verdict, and tells
+the daemon which PR is under review (drives pinning and the reset rule). Never pass
+`highlights` to `load_pr` on this path — see `perri.md` for why. Standalone (no
+Nostromo), skip straight to reading the PR the existing way.
+
 ### dependabot-green
 - Enumerate the PRs (number, repo, title).
 - One batch approval request: "Approve **and merge** these N dependabot PRs: …?"
@@ -162,11 +180,18 @@ For each group:
 - On yes: loop `gh pr review <n> --repo <r> --approve`, then `perri-refresh.sh --clear`.
 
 ### comment
+- **In Nostromo**, when raising a specific finding, show it rather than narrating it —
+  `nostromo.show({ type: "file", target: { path }, anchor: { kind: "line", line }, emphasis: [...], reason: "<short phrase>" })`,
+  same as `perri.md`'s Per-PR Review Workflow step 3. `reason` is required in practice: it
+  becomes the tab's caption. Say what's wrong; let the shown file carry the code.
 - Draft the full comment body and show it before asking.
-- Invoke the `submit-review` skill per PR (it provides the confirmation UI). Never call
-  `gh pr review` directly for a comment/request-changes.
+- Invoke the `submit-review` skill per PR (it provides the confirmation UI, and inside
+  Nostromo poses the decision via `nostromo.ask_decision`). Never call `gh pr review`
+  directly for a comment/request-changes.
 
 ### discuss
+- **In Nostromo**, same as **comment** above: show the file at the line (or the ticket, for
+  an acceptance-criteria question) instead of quoting it back, with a `reason`.
 - Summarize the concern, your recommendation, and the options. Take no action until the
   user decides. If the verdict becomes request-changes, route through `submit-review`.
 
