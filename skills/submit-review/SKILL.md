@@ -53,7 +53,7 @@ Inline comments (N):
 Instead, output a `CONFIRM:` line (alone on its own line, no backticks, no fencing) containing the confirmation JSON. Reflect the inline count in the option descriptions when relevant:
 
 ```
-CONFIRM:{"q":"Submit review for #<number>?","h":"PR #<number>","opts":[{"l":"Approve","d":"Post approval, no comment"},{"l":"Skip","d":"Do nothing, move on"}]}
+CONFIRM:{"q":"Submit review for #<number>?","h":"PR #<number>","opts":[{"l":"Approve","d":"Post approval, no comment","r":true},{"l":"Skip","d":"Do nothing, move on"}]}
 ```
 
 Include only the relevant options:
@@ -62,6 +62,8 @@ Include only the relevant options:
 - Add `{"l":"Approve + N inline","d":"Post approval with N inline comment(s)"}` if there are inline findings on an approve verdict
 - Add `{"l":"Request changes","d":"Post request-changes with N inline comment(s) + summary"}` if there are issues
 - Omit options that don't apply
+
+Mark **exactly one** option as Perri's recommendation with `"r":true` (omit `"r"` on every other option — it defaults to false). The recommended option is whichever matches the verdict from Step 1 — e.g. if the verdict is "Approve", `"r":true` goes on the `Approve` option (or `Approve + N inline` if that's the one being offered for an approve verdict with inline findings), not on `Skip`. The GUI renders this as a "(recommended)" suffix on that option's label.
 
 After outputting the CONFIRM line, **your response ends here**. Output nothing else — no text, no tool calls, no `gh` commands. Stop completely. The user's next message is their answer; Step 3 runs only after that message arrives.
 
