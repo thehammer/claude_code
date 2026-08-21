@@ -23,7 +23,7 @@ Before invoking this skill, Perri may have **inline findings** — line-specific
 - **Inline** — `{path, line, body}` for a specific diff line. Body can contain a ` ```suggestion ``` ` block for one-click application.
 - **Body** — overall summary, architectural concerns, or anything without a precise diff location.
 
-Both are presented to the user before the CONFIRM step. If there are no inline findings, the simple `gh pr review` path is used.
+Both are presented to the user before the decision is posed (Step 2). If there are no inline findings, the simple `gh pr review` path is used.
 
 **Line constraint**: Only use an inline comment if the target line appears in `gh pr diff` output for this PR. Lines outside the diff will cause a 422 from the API. When in doubt, put the finding in the body instead.
 
@@ -46,14 +46,52 @@ Inline comments (N):
 • `path/to/other.vue:17` [HIGH] — <one-line summary>
 ```
 
-### Step 2 — Output confirmation block
+### Step 2 — Pose the decision
 
-**Do NOT call `AskUserQuestion`** — it does not work in non-interactive mode and will always error immediately before the user can respond.
+The option set is the same either way — always `Approve` and `Skip`, plus whichever of
+`Approve with comment`, `Approve + N inline`, `Request changes` apply to this verdict —
+only the mechanism differs.
 
-Instead, output a `CONFIRM:` line (alone on its own line, no backticks, no fencing) containing the confirmation JSON. Reflect the inline count in the option descriptions when relevant:
+**Inside Nostromo (MCP available)** — call `nostromo.ask_decision`, not the `CONFIRM:`
+block:
 
 ```
-CONFIRM:{"q":"Submit review for #<number>?","h":"PR #<number>","opts":[{"l":"Approve","d":"Post approval, no comment"},{"l":"Skip","d":"Do nothing, move on"}]}
+nostromo.ask_decision({
+  prompt: "Submit review for #<number>?",
+  detail: "PR #<number>",
+  choices: [
+    { id: "approve", label: "Approve", detail: "Post approval, no comment" },
+    { id: "skip", label: "Skip", detail: "Do nothing, move on" }
+  ]
+})
+```
+
+Build `choices` from the same option list as the `CONFIRM:` block below — same members,
+same order, same descriptions, just addressed by `id`/`label`/`detail` instead of
+`l`/`d`/`r`. `ask_decision`'s choice schema has no `"r"` recommendation flag, so mark the
+recommended choice by appending `" (recommended)"` to that one choice's `label` instead
+(the same choice Step 1's verdict points at — never `Skip`).
+
+The call blocks until the operator answers, and returns one of:
+
+- `{"ok": true, "choice_id": "<id>"}` — the operator's pick. That `id` **is** the answer —
+  go straight to Step 3, no waiting on a following message.
+- `{"ok": true, "outcome": "dismissed"}` — treat as **Skip**.
+- `{"error": "timeout"}` — treat as **Skip**.
+- `{"error": "no_operator"}` — no client was there to render it; fall through to the
+  `CONFIRM:` block below, same turn, same options.
+
+A dismissed or timed-out decision is never an implicit approval — it is always Skip, same
+as the fallback path below.
+
+**Otherwise, or on `no_operator`** — do NOT call `AskUserQuestion`: it does not work in
+non-interactive mode and will always error immediately before the user can respond.
+Output a `CONFIRM:` line (alone on its own line, no backticks, no fencing) containing the
+confirmation JSON instead. Reflect the inline count in the option descriptions when
+relevant:
+
+```
+CONFIRM:{"q":"Submit review for #<number>?","h":"PR #<number>","opts":[{"l":"Approve","d":"Post approval, no comment","r":true},{"l":"Skip","d":"Do nothing, move on"}]}
 ```
 
 Include only the relevant options:
@@ -63,13 +101,20 @@ Include only the relevant options:
 - Add `{"l":"Request changes","d":"Post request-changes with N inline comment(s) + summary"}` if there are issues
 - Omit options that don't apply
 
+Mark **exactly one** option as Perri's recommendation with `"r":true` (omit `"r"` on every other option — it defaults to false). The recommended option is whichever matches the verdict from Step 1 — e.g. if the verdict is "Approve", `"r":true` goes on the `Approve` option (or `Approve + N inline` if that's the one being offered for an approve verdict with inline findings), not on `Skip`. The GUI renders this as a "(recommended)" suffix on that option's label.
+
 After outputting the CONFIRM line, **your response ends here**. Output nothing else — no text, no tool calls, no `gh` commands. Stop completely. The user's next message is their answer; Step 3 runs only after that message arrives.
 
 **If you are tempted to call `gh pr review` in the same turn as the CONFIRM block: do not. End your response. Wait.**
 
-### Step 2a — Handle the user's reply
+### Step 2a — Resolve the answer
 
-The user's **next message** is their confirmation answer. Parse it case-insensitively:
+**From `nostromo.ask_decision`** — you already have it. The returned `choice_id` (or the
+`dismissed`/`timeout` mapping to Skip, above) is the answer. Proceed straight to Step 3 —
+there is no following message to wait for on this path.
+
+**From the `CONFIRM:` fallback** — the user's **next message** is their confirmation
+answer. Parse it case-insensitively:
 
 - Contains "approve" (and not "comment" or "inline") → Approve without comment
 - Contains "approve" and ("comment" or "inline") → Approve with comment/inline
@@ -176,9 +221,10 @@ only Approve (and Approve with inline) trigger suppression.
 
 ## Rules
 
-- **Never use `AskUserQuestion` in this skill** — it always errors in the GUI and the confirmation never reaches the user. Use the `CONFIRM:` text block format instead.
+- **Never use `AskUserQuestion` in this skill** — it always errors in the GUI and the confirmation never reaches the user. Inside Nostromo, pose the decision with `nostromo.ask_decision`; otherwise (or on `no_operator`), use the `CONFIRM:` text block format.
+- **A dismissed or timed-out `ask_decision` is Skip, never an implicit approval** — same as the fallback path, where an unanswered `CONFIRM:` simply never proceeds to Step 3.
 - **Never call `gh pr review` without going through Step 2 first.** No exceptions — not for trivial PRs, not when the user says "just approve them all".
-- If the user says "approve all" or "batch approve", output a `CONFIRM:` block for each PR individually, one at a time. A single pass through five PRs is five confirmation prompts.
+- If the user says "approve all" or "batch approve", pose the decision for each PR individually, one at a time — `ask_decision` call or `CONFIRM:` block, whichever path applies. A single pass through five PRs is five confirmation prompts.
 - The body and inline comments must be prepared before Step 2. If you have not drafted them yet, draft them first, then invoke this skill.
 - After a Skip, do NOT refresh the dashboard — the PR stays in the queue.
 - If the script reports a comment was moved to the body, that comment's line number was outside the diff. This is handled automatically — no manual retry needed. Mention it to the user so they're aware.
