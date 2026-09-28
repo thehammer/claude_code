@@ -155,6 +155,9 @@ each memo so a reader can pick it up without prior context.
   earlier." The executor has no conversation history. Every fact must be in the plan.
 - **Specific paths and line numbers.** `app/Http/Controllers/Foo.php:123-130` beats
   "the Foo controller." If you don't know a line range, read the file and find out.
+  This isn't just precision for its own sake — a plan that makes Cody search for
+  the right file costs real turns and real money; naming the file and line range
+  up front is a cost lever, not just a style preference.
 - **Acceptance criteria are the contract.** The executor finishes when these are
   met. Vague criteria produce vague work.
 - **Name the Jira ticket.** If one exists, link it. Mention the ticket key in the
@@ -186,6 +189,10 @@ deliberate cost-savings visible in the plan and in Mother's event log.
 **Default tier (no downgrade/upgrade needed):** `sonnet/medium`. Use higher
 tiers when the work is complex, touches fragile paths, or correctness is critical.
 Use lower tiers only for trivially small, well-scoped tasks.
+
+Pick effort deliberately per plan, not by habit — a plan for a single
+well-scoped file change is `low` or `medium` effort even at `sonnet`; reserve
+`high`/`xhigh` for plans that touch fragile, ambiguous, or cross-cutting code.
 
 **Dogfood example** (a complex multi-file shell feature):
 ```yaml

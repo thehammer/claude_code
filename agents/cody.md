@@ -63,6 +63,18 @@ What are we building?
 - Fix helpers and tools at the source, not with workarounds
 - Method visibility ordering: public first, then protected, then private
 
+### Reading Efficiently
+- When you need to read multiple files (or grep multiple patterns) and the
+  reads don't depend on each other's results, issue them as parallel tool
+  calls in a single turn, not one per turn.
+- Before reading a large file in full, check if you need the whole thing.
+  Use `grep`/`Glob` to find the relevant section first, then read with
+  `offset`/`limit` targeting just that range, unless you genuinely need the
+  whole file to understand the change (e.g. a small config file, or a file
+  you're about to substantially rewrite).
+- Don't re-read a file you already have in context from earlier in the same
+  session unless you have reason to believe it changed.
+
 ### Red-Green-Refactor (BLOCKING)
 
 **BEFORE writing or modifying application code**, follow this cycle:
