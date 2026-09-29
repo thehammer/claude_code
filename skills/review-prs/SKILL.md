@@ -38,8 +38,8 @@ Corollaries:
 **Single source** — the Perri daemon queue is now the unified source of truth for all
 PRs, including dependabot. Fetch it the same way `perri.md`'s Startup does:
 
-**In Nostromo** (MCP available): `perri.list_pr_queue()`.
-**Otherwise** (standalone): `~/.claude/bin/perri-queue-pane --json`.
+**In Nostromo** (when available — not currently wired up): `perri.list_pr_queue()`.
+**Otherwise** (standalone, the live path today): `~/.claude/bin/perri-queue-pane --json`.
 
 The field list is identical either way — `perri.list_pr_queue()`'s items match
 `perri-queue-pane --json`'s `.items[]` field-for-field, so Steps 2–4 below don't care which
@@ -135,7 +135,9 @@ Order: **dependabot-green → dependabot-flake → trivial → amber (changes_re
 
 For each group:
 
-**In Nostromo, before reading any PR individually** — i.e. every **clean**, **comment**,
+> Nostromo's MCP server is not currently registered for `claude` sessions, so `nostromo.*` and `perri.*` tools are normally absent; the standalone path is the live one today.
+
+**In Nostromo (not currently wired up), before reading any PR individually** — i.e. every **clean**, **comment**,
 and **discuss** PR; not the unread **trivial** batch, which is deliberately never
 opened — pick it up the same way `perri.md`'s Per-PR Review Workflow step 1 does:
 
@@ -156,7 +158,7 @@ Nostromo), skip straight to reading the PR the existing way.
 - On yes: `gh pr review --approve` then merge per repo convention:
   - **admin-portal** uses a merge queue → `gh pr merge <n> --repo <r> --auto`
   - **family-portal / payments** → `gh pr merge <n> --repo <r> --squash --auto`
-- Refresh: `~/.claude/lib/perri-refresh.sh --clear`
+- Refresh: `~/.claude/lib/perri-refresh.sh --clear` (not currently installed — skip this step if the script is absent)
 
 ### dependabot-flake
 - Rerun failed `iac-plan` jobs (`gh run rerun <run-id> --failed --repo <r>`).
@@ -177,20 +179,20 @@ Nostromo), skip straight to reading the PR the existing way.
 - For **clean**, show the per-PR verdict first (one or two lines each) so the user sees
   what they're approving.
 - One batch approval request enumerating the exact PRs + "Approve (no comment)?".
-- On yes: loop `gh pr review <n> --repo <r> --approve`, then `perri-refresh.sh --clear`.
+- On yes: loop `gh pr review <n> --repo <r> --approve`, then `perri-refresh.sh --clear` (not currently installed — skip this step if the script is absent).
 
 ### comment
-- **In Nostromo**, when raising a specific finding, show it rather than narrating it —
+- **In Nostromo (not currently wired up)**, when raising a specific finding, show it rather than narrating it —
   `nostromo.show({ type: "file", target: { path }, anchor: { kind: "line", line }, emphasis: [...], reason: "<short phrase>" })`,
   same as `perri.md`'s Per-PR Review Workflow step 3. `reason` is required in practice: it
   becomes the tab's caption. Say what's wrong; let the shown file carry the code.
 - Draft the full comment body and show it before asking.
 - Invoke the `submit-review` skill per PR (it provides the confirmation UI, and inside
-  Nostromo poses the decision via `nostromo.ask_decision`). Never call `gh pr review`
+  Nostromo, when available, poses the decision via `nostromo.ask_decision`; otherwise it uses the `CONFIRM:` card). Never call `gh pr review`
   directly for a comment/request-changes.
 
 ### discuss
-- **In Nostromo**, same as **comment** above: show the file at the line (or the ticket, for
+- **In Nostromo (not currently wired up)**, same as **comment** above: show the file at the line (or the ticket, for
   an acceptance-criteria question) instead of quoting it back, with a `reason`.
 - Summarize the concern, your recommendation, and the options. Take no action until the
   user decides. If the verdict becomes request-changes, route through `submit-review`.
