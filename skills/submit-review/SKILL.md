@@ -52,7 +52,9 @@ The option set is the same either way — always `Approve` and `Skip`, plus whic
 `Approve with comment`, `Approve + N inline`, `Request changes` apply to this verdict —
 only the mechanism differs.
 
-**Inside Nostromo (MCP available)** — call `nostromo.ask_decision`, not the `CONFIRM:`
+> Nostromo's MCP server is not currently registered for `claude` sessions, so `nostromo.*` and `perri.*` tools are normally absent; the standalone path is the live one today. The `CONFIRM:` card is the path that works today.
+
+**Inside Nostromo (when available — not currently wired up)** — call `nostromo.ask_decision`, not the `CONFIRM:`
 block:
 
 ```
@@ -109,7 +111,7 @@ After outputting the CONFIRM line, **your response ends here**. Output nothing e
 
 ### Step 2a — Resolve the answer
 
-**From `nostromo.ask_decision`** — you already have it. The returned `choice_id` (or the
+**From `nostromo.ask_decision`** (Nostromo only, when available) — you already have it. The returned `choice_id` (or the
 `dismissed`/`timeout` mapping to Skip, above) is the answer. Proceed straight to Step 3 —
 there is no following message to wait for on this path.
 
@@ -221,7 +223,7 @@ only Approve (and Approve with inline) trigger suppression.
 
 ## Rules
 
-- **Never use `AskUserQuestion` in this skill** — it always errors in the GUI and the confirmation never reaches the user. Inside Nostromo, pose the decision with `nostromo.ask_decision`; otherwise (or on `no_operator`), use the `CONFIRM:` text block format.
+- **Never use `AskUserQuestion` in this skill** — it always errors in the GUI and the confirmation never reaches the user. Use the `CONFIRM:` text block format (the path that works today); inside Nostromo, when available, `nostromo.ask_decision` is an alternative.
 - **A dismissed or timed-out `ask_decision` is Skip, never an implicit approval** — same as the fallback path, where an unanswered `CONFIRM:` simply never proceeds to Step 3.
 - **Never call `gh pr review` without going through Step 2 first.** No exceptions — not for trivial PRs, not when the user says "just approve them all".
 - If the user says "approve all" or "batch approve", pose the decision for each PR individually, one at a time — `ask_decision` call or `CONFIRM:` block, whichever path applies. A single pass through five PRs is five confirmation prompts.

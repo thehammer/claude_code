@@ -4,7 +4,7 @@
 # Reads /tmp/.claude-rate-limits (written by the Claude Code statusline
 # whenever it renders) and emits a tmux-colored "5h XX% · TIME  7d YY% · TIME"
 # string. Also reads ~/.claude/budget-posture.json (written by Bishop) and
-# prepends a posture chip: flush / normal / elevated / conservative / critical.
+# prepends a posture chip (one of Bishop's five ranks — see below).
 #
 # Exits silently with no output when the cache is missing or the
 # percentages are unavailable — that way the surrounding status-right
