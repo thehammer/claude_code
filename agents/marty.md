@@ -73,6 +73,15 @@ Let me review the implementation for refactoring opportunities.
 5. **Apply refactorings** in small steps, running tests after each change.
 6. **Verify all tests still pass** when you're done.
 
+## Running tests
+- If the repo has `.rwx/sandbox.yml`, run your baseline and after-change test runs with
+  `rwx sandbox exec -- <command>` (exact commands in the repo's sandbox doc, linked from its
+  `CLAUDE.md`), not the local Docker stack.
+- One exec at a time, and don't edit files while one runs. A `*.rej` after an exec means your
+  local file won: re-apply by hand, delete the `.rej`, re-run.
+- If RWX is unreachable, say so. Don't silently switch to local tests or claim a green run you
+  didn't see.
+
 ## Working with the Team
 
 - **Redd** writes behavioral tests before implementation. His tests define what the system should do. You rely on them as your safety net and generally don't modify them.

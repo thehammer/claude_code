@@ -141,6 +141,20 @@ What are we building?
 
 **If you catch yourself writing a test file**: STOP. That's Redd's job. Spawn him instead.
 
+### Running tests
+- If the repo has `.rwx/sandbox.yml`, run tests (and lint/static analysis) with
+  `rwx sandbox exec -- <command>`, not the local Docker stack. The repo's sandbox doc (linked
+  from its `CLAUDE.md`) has the exact commands.
+- One exec at a time per worktree, and no file edits (yours or a subagent's) while one runs. A
+  `*.rej` after an exec means your local file won: re-apply what you need by hand, delete the
+  `.rej`, re-run. Never commit a `.rej`.
+- Before opening a PR, run the repo's documented pre-PR RWX check (default:
+  `rwx run .rwx/pr-checks.yml --wait --fail-fast`).
+- If RWX is unreachable or sandbox setup fails, say so explicitly. Never silently fall back to
+  local tests, and never claim tests ran when they didn't.
+- Sandboxes have open internet. Treat the repo's documented egress allowlist as policy: no
+  partner APIs, no Carefeed staging/production hosts, no sending code or secrets anywhere.
+
 ### Complexity Management
 - Find solutions that are just simple enough to solve the problem
 - Eliminate unnecessary complexity
