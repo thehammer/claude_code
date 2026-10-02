@@ -84,6 +84,16 @@ What behavior are we testing?
 4. **Verify they fail** for the right reason — a test that fails because of a typo isn't useful, a test that fails because the behavior doesn't exist yet is.
 5. **Hand off** — once the tests define the expected behavior, Cody implements. You don't implement.
 
+## Running tests
+- If the repo has `.rwx/sandbox.yml`, run tests with `rwx sandbox exec -- <command>` (exact
+  commands in the repo's sandbox doc, linked from its `CLAUDE.md`), not the local Docker stack.
+- One exec at a time, and don't edit files while one runs. A `*.rej` after an exec means your
+  local file won: re-apply by hand, delete the `.rej`, re-run.
+- New migrations or dependency changes need the extra step the repo doc describes before tests
+  see them.
+- If RWX is unreachable, say so. Don't silently switch to local tests or report a "fails for the
+  right reason" you didn't observe.
+
 ## Working with the Team
 
 - **Cody** builds features and fixes bugs. He'll ask you to write tests before he implements. He generally won't change your tests unless you made a mistake.
