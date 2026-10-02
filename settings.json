@@ -55,6 +55,13 @@
       "Bash(sudo rmdir:*)"
     ]
   },
+  "skillOverrides": {
+    "fusionauth-setup": "off",
+    "m365-setup": "off",
+    "teams": "off",
+    "terraform": "off",
+    "staging-monitor-db": "off"
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -127,17 +134,17 @@
   "enabledPlugins": {
     "feature-dev@claude-plugins-official": true,
     "hookify@claude-plugins-official": true,
-    "code-review@claude-plugins-official": true,
+    "code-review@claude-plugins-official": false,
     "pr-review-toolkit@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": false,
     "swift-lsp@claude-plugins-official": true,
     "mother@thehammer-mother": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": false,
     "teri@thehammer-teri": true,
-    "frontend-design@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": false,
     "security-guidance@claude-plugins-official": true,
-    "php-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
+    "php-lsp@claude-plugins-official": false,
+    "typescript-lsp@claude-plugins-official": false
   },
   "extraKnownMarketplaces": {
     "thehammer-teri": {

@@ -14,6 +14,14 @@
 
 STATSIG_API_BASE="https://statsigapi.net/console/v1"
 
+# URL-encode a single path segment (gate/config IDs are interpolated
+# directly into request paths — encode them so a value containing "/",
+# "?", "#", etc. can't redirect the request to a different endpoint).
+# Usage: _statsig_urlencode "some id"
+function _statsig_urlencode() {
+    python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$1"
+}
+
 # Make authenticated Statsig Console API request
 # Usage: statsig_request GET "/gates"
 #        statsig_request POST "/gates" '{"name":"my_gate","idType":"userID"}'
@@ -31,7 +39,6 @@ function statsig_request() {
     local args=(
         -s
         -X "$method"
-        -H "statsig-api-key: ${STATSIG_CONSOLE_API_KEY}"
         -H "Content-Type: application/json"
     )
 
@@ -39,7 +46,10 @@ function statsig_request() {
         args+=(-d "$body")
     fi
 
-    /usr/bin/curl "${args[@]}" "$url"
+    # API key goes through curl's stdin config (-K -) rather than -H on the
+    # argv, so it never shows up in `ps` output for other local users.
+    printf 'header = "statsig-api-key: %s"\n' "$STATSIG_CONSOLE_API_KEY" \
+        | /usr/bin/curl -K - "${args[@]}" "$url"
 }
 
 # ==============================================================================
@@ -56,7 +66,7 @@ function statsig_list_gates() {
 # Usage: statsig_get_gate "my_gate_id"
 function statsig_get_gate() {
     local gate_id="${1:?Usage: statsig_get_gate GATE_ID}"
-    statsig_request GET "/gates/${gate_id}"
+    statsig_request GET "/gates/$(_statsig_urlencode "$gate_id")"
 }
 
 # Create a new gate
@@ -71,14 +81,14 @@ function statsig_create_gate() {
 function statsig_update_gate() {
     local gate_id="${1:?Usage: statsig_update_gate GATE_ID JSON_BODY}"
     local body="${2:?}"
-    statsig_request PATCH "/gates/${gate_id}" "$body"
+    statsig_request PATCH "/gates/$(_statsig_urlencode "$gate_id")" "$body"
 }
 
 # Delete a gate
 # Usage: statsig_delete_gate "my_gate_id"
 function statsig_delete_gate() {
     local gate_id="${1:?Usage: statsig_delete_gate GATE_ID}"
-    statsig_request DELETE "/gates/${gate_id}"
+    statsig_request DELETE "/gates/$(_statsig_urlencode "$gate_id")"
 }
 
 # Add a rule to a gate
@@ -86,7 +96,7 @@ function statsig_delete_gate() {
 function statsig_add_gate_rule() {
     local gate_id="${1:?Usage: statsig_add_gate_rule GATE_ID JSON_BODY}"
     local body="${2:?}"
-    statsig_request POST "/gates/${gate_id}/rule" "$body"
+    statsig_request POST "/gates/$(_statsig_urlencode "$gate_id")/rule" "$body"
 }
 
 # Update gate rules
@@ -94,7 +104,7 @@ function statsig_add_gate_rule() {
 function statsig_update_gate_rules() {
     local gate_id="${1:?Usage: statsig_update_gate_rules GATE_ID JSON_BODY}"
     local body="${2:?}"
-    statsig_request PATCH "/gates/${gate_id}/rules" "$body"
+    statsig_request PATCH "/gates/$(_statsig_urlencode "$gate_id")/rules" "$body"
 }
 
 # ==============================================================================
@@ -111,7 +121,7 @@ function statsig_list_configs() {
 # Usage: statsig_get_config "my_config_id"
 function statsig_get_config() {
     local config_id="${1:?Usage: statsig_get_config CONFIG_ID}"
-    statsig_request GET "/dynamic_configs/${config_id}"
+    statsig_request GET "/dynamic_configs/$(_statsig_urlencode "$config_id")"
 }
 
 # Create a dynamic config
@@ -126,14 +136,14 @@ function statsig_create_config() {
 function statsig_update_config() {
     local config_id="${1:?Usage: statsig_update_config CONFIG_ID JSON_BODY}"
     local body="${2:?}"
-    statsig_request PATCH "/dynamic_configs/${config_id}" "$body"
+    statsig_request PATCH "/dynamic_configs/$(_statsig_urlencode "$config_id")" "$body"
 }
 
 # Delete a dynamic config
 # Usage: statsig_delete_config "my_config_id"
 function statsig_delete_config() {
     local config_id="${1:?Usage: statsig_delete_config CONFIG_ID}"
-    statsig_request DELETE "/dynamic_configs/${config_id}"
+    statsig_request DELETE "/dynamic_configs/$(_statsig_urlencode "$config_id")"
 }
 
 # ==============================================================================
