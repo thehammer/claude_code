@@ -156,3 +156,16 @@ state/perri/
 tmp-plans/
 chrome/
 backups/
+
+# Runtime state written by Claude Code, plugins and Bishop (not config)
+security/
+plugins/store/
+plugins/synced/
+plugins/.last_inuse_sweep
+skills/synced/
+state/
+scheduled_tasks.lock
+budget-posture.events.jsonl
+
+# Layer-generated hook symlinks (like the skills/agents symlinks the layer sync ignores)
+hooks/_carefeed_*.sh

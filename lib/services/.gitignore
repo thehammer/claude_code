@@ -9,10 +9,11 @@ sentry.sh
 slack.sh
 _bash/aws.sh
 _bash/bitbucket.sh
+_bash/carefeed-db.sh
 _bash/confluence.sh
 _bash/github.sh
 _bash/metabase.sh
 _bash/onepassword.sh
-_bash/portal-db.sh
 _bash/staging-db.sh
 _bash/staging-monitor-db.sh
+_bash/tickets.sh
