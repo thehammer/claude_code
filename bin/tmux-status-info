@@ -22,25 +22,33 @@ mother_seg=""
 if [ -f "$MOTHER_STATUSLINE_CACHE" ]; then
     _m_age=$(( $(date +%s) - $(stat -f %m "$MOTHER_STATUSLINE_CACHE" 2>/dev/null || echo 0) ))
     if [ "$_m_age" -ge "$MOTHER_STATUSLINE_TTL" ]; then
-        ( source "$HOME/Software Development/Open Source/mother/plugins/mother/statusline/segment.sh" \
+        ( source "$HOME/Code/mother/plugins/mother/statusline/segment.sh" \
             && mother_statusline_refresh "$MOTHER_STATUSLINE_CACHE" >/dev/null 2>&1 ) &
     fi
-    IFS=: read -r _mr _mq _mf _ma < "$MOTHER_STATUSLINE_CACHE" 2>/dev/null \
-        || { _mr=0; _mq=0; _mf=0; _ma=0; }
-    : "${_mr:=0}" "${_mq:=0}" "${_mf:=0}" "${_ma:=0}"
+    # Cache schema is "RUNNING:QUEUED:FAILED:AWAITING:TOKEN_ALERTS:ATTENTION"
+    # (6 fields as of Mother's operator-surfacing work, PR #38 — ATTENTION is
+    # new) — read all 6 so the trailing field doesn't get glommed onto _mt
+    # by `read`.
+    IFS=: read -r _mr _mq _mf _ma _mt _mn < "$MOTHER_STATUSLINE_CACHE" 2>/dev/null \
+        || { _mr=0; _mq=0; _mf=0; _ma=0; _mt=0; _mn=0; }
+    : "${_mr:=0}" "${_mq:=0}" "${_mf:=0}" "${_ma:=0}" "${_mt:=0}" "${_mn:=0}"
     if { [ "${_mr:-0}" -gt 0 ] \
       || [ "${_mq:-0}" -gt 0 ] \
       || [ "${_mf:-0}" -gt 0 ] \
-      || [ "${_ma:-0}" -gt 0 ]; } 2>/dev/null; then
+      || [ "${_ma:-0}" -gt 0 ] \
+      || [ "${_mt:-0}" -gt 0 ] \
+      || [ "${_mn:-0}" -gt 0 ]; } 2>/dev/null; then
         mother_seg=" ${D}🏭"
         [ "$_mr" -gt 0 ] && mother_seg="${mother_seg} #[fg=colour220]▶${_mr}${D}"
         [ "$_mq" -gt 0 ] && mother_seg="${mother_seg} #[fg=colour75]⏸${_mq}${D}"
         [ "$_ma" -gt 0 ] && mother_seg="${mother_seg} #[fg=colour208]?${_ma}${D}"
         [ "$_mf" -gt 0 ] && mother_seg="${mother_seg} #[fg=colour203]!${_mf}${D}"
+        [ "$_mt" -gt 0 ] && mother_seg="${mother_seg} #[fg=colour170]\$!${_mt}${D}"
+        [ "$_mn" -gt 0 ] && mother_seg="${mother_seg} #[fg=colour208]⚑${_mn}${D}"
         mother_seg="${mother_seg} │"
     fi
 else
-    ( source "$HOME/Software Development/Open Source/mother/plugins/mother/statusline/segment.sh" \
+    ( source "$HOME/Code/mother/plugins/mother/statusline/segment.sh" \
         && mother_statusline_refresh "$MOTHER_STATUSLINE_CACHE" >/dev/null 2>&1 ) &
 fi
 
