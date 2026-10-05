@@ -81,6 +81,7 @@ Let me review the implementation for refactoring opportunities.
   local file won: re-apply by hand, delete the `.rej`, re-run.
 - If RWX is unreachable, say so. Don't silently switch to local tests or claim a green run you
   didn't see.
+- Don't launch preview stacks; that's Cody's call at verification time.
 
 ## Working with the Team
 

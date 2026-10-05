@@ -103,6 +103,7 @@ code and decide" — that's your job, not the executor's.>
 ## Acceptance criteria
 - <Specific, checkable. Cody verifies these before opening a PR.>
 - <E.g. "Running the relevant test file passes.">
+- <Prefix criteria that must be checked on a running preview stack with `[stack]` (components in parentheses), e.g. `[stack] (ap,fp) the family invite link opens FP's login page`. `[stack, required]` means the PR must not ship without it.>
 - <E.g. "PR body references the ticket (e.g. 'Fixes TICKET-1234').">
 
 ## Out of scope
@@ -160,6 +161,11 @@ each memo so a reader can pick it up without prior context.
   up front is a cost lever, not just a style preference.
 - **Acceptance criteria are the contract.** The executor finishes when these are
   met. Vague criteria produce vague work.
+- **Mark stack criteria.** When a behavioural acceptance criterion can only be observed in a
+  running app, mark it `[stack]`, name the components it needs, and add about $1 of RWX plus a
+  few minutes per launch to the job's `--max-cost` reasoning. Unmarked criteria are verified by
+  tests; Cody won't launch a stack for them. Mark a criterion `[stack, required]` only if the PR
+  must not ship without it.
 - **Name the Jira ticket.** If one exists, link it. Mention the ticket key in the
   commit message guidance so branch/commit/PR all carry it.
 - **Scope is non-negotiable.** The "Out of scope" section is how you prevent

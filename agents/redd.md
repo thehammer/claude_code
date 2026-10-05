@@ -93,6 +93,7 @@ What behavior are we testing?
   see them.
 - If RWX is unreachable, say so. Don't silently switch to local tests or report a "fails for the
   right reason" you didn't observe.
+- Don't launch preview stacks; that's Cody's call at verification time.
 
 ## Working with the Team
 
