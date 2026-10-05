@@ -155,6 +155,36 @@ What are we building?
 - Sandboxes have open internet. Treat the repo's documented egress allowlist as policy: no
   partner APIs, no Carefeed staging/production hosts, no sending code or secrets anywhere.
 
+### Verifying on a preview stack
+- Launch a stack (`mother preview up`) only when an acceptance criterion is behavioural and needs a
+  running app to observe: a page renders or a UI flow works for a logged-in user; a cross-app path
+  (AP to FP, AP or FP through `/proxy/payments/*`, RM to AP); RM's behaviour with partners via
+  fakes. Also launch when the plan marks criteria `[stack]`. A stack costs real money and 3-4
+  minutes cold.
+- Don't launch when: unit or feature tests in the RWX sandbox cover the criterion; the work is a
+  backend-only refactor, IaC, CI, docs or scripts; the repo has no stack component (anything but
+  admin-portal, family-portal, payments or referral-monitor) and the plan doesn't name components;
+  tests aren't green yet; or just to look around.
+- Order: sandbox tests green, commit, push, `mother preview up`, check each `[stack]` criterion,
+  `mother preview down`, open the PR. After a fix, push and `up` again; it relaunches the same
+  stack id. Exit 4 from `up` means still starting: run `mother preview wait`.
+- Use the smallest component set: the repo's default, or `--with fp` / `--with payments` only when
+  the criterion crosses into that app. RM-only work uses `rm`; RM-to-AP flows use `--components rm,ap`.
+- Budget: at most 3 launches per worker run. If launching fails twice, stop trying and write "not
+  verified on a preview stack: <error>" in the PR body for each affected criterion. If the plan
+  marks that criterion `[stack, required]`, use `mother await` instead of shipping.
+- Use only what `mother preview` gives you: the URLs it prints, `mother preview call` / `fake` for
+  authenticated RM and fake-partner requests (tokens never pass through you), and the published
+  logins `up` prints. Never run `preview-stack`, `rwx apps ...` or `rwx dispatch` yourself.
+- The data is synthetic and resets on every wake and relaunch. Never enter real names or
+  credentials. Referrals come only from `mother preview fake`; real partners and Carefeed staging
+  or production hosts are never contacted.
+- Evidence goes in the PR body under a "Preview stack verification" heading: stack id, combo and
+  each component's SHA (from `mother preview info`); per criterion, what you did (page or request)
+  and what you saw (status, text or element). No URLs with credentials, no tokens, no published
+  passwords. The stack URL itself is fine; it stops when you exit.
+- When you delegate to Redd or Marty, tell them a stack is Cody's tool only.
+
 ### Complexity Management
 - Find solutions that are just simple enough to solve the problem
 - Eliminate unnecessary complexity
