@@ -38,8 +38,8 @@ Corollaries:
 **Single source** — the Perri daemon queue is now the unified source of truth for all
 PRs, including dependabot. Fetch it the same way `perri.md`'s Startup does:
 
-**In Nostromo** (when available — not currently wired up): `perri.list_pr_queue()`.
-**Otherwise** (standalone, the live path today): `~/.claude/bin/perri-queue-pane --json`.
+**In Nostromo** (`[ -n "$NOSTROMO_MCP_SOCKET" ]` is true — see the detection note below; load the deferred `mcp__nostromo__*` tools via ToolSearch first): `perri.list_pr_queue()`.
+**Otherwise** (standalone, no Nostromo): `~/.claude/bin/perri-queue-pane --json`.
 
 The field list is identical either way — `perri.list_pr_queue()`'s items match
 `perri-queue-pane --json`'s `.items[]` field-for-field, so Steps 2–4 below don't care which
@@ -135,9 +135,9 @@ Order: **dependabot-green → dependabot-flake → trivial → amber (changes_re
 
 For each group:
 
-> Nostromo's MCP server is not currently registered for `claude` sessions, so `nostromo.*` and `perri.*` tools are normally absent; the standalone path is the live one today.
+> **Nostromo detection (deterministic):** run `[ -n "$NOSTROMO_MCP_SOCKET" ] && echo nostromo || echo standalone` once at startup. If it prints `nostromo`, you ARE inside Nostromo — the `nostromo` MCP server is registered (`--mcp-config`), its tools appear as `mcp__nostromo__*` and are usually **deferred**: load them with `ToolSearch` (`select:mcp__nostromo__nostromo_get_self,...`), then use the Nostromo path. Never fall back to the standalone path in that case; if the tools still won't load, say so and stop rather than silently degrading. If it prints `standalone`, use the fallback path.
 
-**In Nostromo (not currently wired up), before reading any PR individually** — i.e. every **clean**, **comment**,
+**In Nostromo (MCP available), before reading any PR individually** — i.e. every **clean**, **comment**,
 and **discuss** PR; not the unread **trivial** batch, which is deliberately never
 opened — pick it up the same way `perri.md`'s Per-PR Review Workflow step 1 does:
 
@@ -158,7 +158,7 @@ Nostromo), skip straight to reading the PR the existing way.
 - On yes: `gh pr review --approve` then merge per repo convention:
   - **admin-portal** uses a merge queue → `gh pr merge <n> --repo <r> --auto`
   - **family-portal / payments** → `gh pr merge <n> --repo <r> --squash --auto`
-- Refresh: `~/.claude/lib/perri-refresh.sh --clear` (not currently installed — skip this step if the script is absent)
+- Refresh: under Nostromo, `nostromo.show({ type: "review_queue" })` after every submitted review; standalone, re-run `perri-queue-pane --json`.
 
 ### dependabot-flake
 - Rerun failed `iac-plan` jobs (`gh run rerun <run-id> --failed --repo <r>`).
@@ -179,10 +179,10 @@ Nostromo), skip straight to reading the PR the existing way.
 - For **clean**, show the per-PR verdict first (one or two lines each) so the user sees
   what they're approving.
 - One batch approval request enumerating the exact PRs + "Approve (no comment)?".
-- On yes: loop `gh pr review <n> --repo <r> --approve`, then `perri-refresh.sh --clear` (not currently installed — skip this step if the script is absent).
+- On yes: loop `gh pr review <n> --repo <r> --approve`, then, under Nostromo, re-show the queue with `nostromo.show({ type: "review_queue" })` (standalone: re-run `perri-queue-pane --json`). Do this after EVERY submitted review — individual or batch — so the queue pane never lags.
 
 ### comment
-- **In Nostromo (not currently wired up)**, when raising a specific finding, show it rather than narrating it —
+- **In Nostromo (MCP available)**, when raising a specific finding, show it rather than narrating it —
   `nostromo.show({ type: "file", target: { path }, anchor: { kind: "line", line }, emphasis: [...], reason: "<short phrase>" })`,
   same as `perri.md`'s Per-PR Review Workflow step 3. `reason` is required in practice: it
   becomes the tab's caption. Say what's wrong; let the shown file carry the code.
@@ -192,7 +192,7 @@ Nostromo), skip straight to reading the PR the existing way.
   directly for a comment/request-changes.
 
 ### discuss
-- **In Nostromo (not currently wired up)**, same as **comment** above: show the file at the line (or the ticket, for
+- **In Nostromo (MCP available)**, same as **comment** above: show the file at the line (or the ticket, for
   an acceptance-criteria question) instead of quoting it back, with a `reason`.
 - Summarize the concern, your recommendation, and the options. Take no action until the
   user decides. If the verdict becomes request-changes, route through `submit-review`.
