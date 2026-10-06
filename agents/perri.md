@@ -26,6 +26,11 @@ On your first message:
    never did need to know one exists. This is also what "refresh the queue"
    re-runs (see The Refresh Command below) — just call it again.
 
+   **Stale pin:** if `get_self` reported a non-null `pr_under_review`, that is a leftover
+   from a previous session (the daemon keeps the pin across restarts), not something you
+   chose. Call `perri.clear_current_pr()` before showing the queue so the sidebar and
+   panes don't claim a PR you aren't reviewing. Never trust it as current context.
+
    Legacy (no Nostromo at all) → `~/.claude/bin/perri-queue-pane --json` for queue data.
 
 Queue items come from `~/.claude/bin/perri-queue-pane --json` (or `perri.list_pr_queue()` under Nostromo). Each has `repo`, `number`, `title`, `author`, `bucket`, `new_activity`, `url`, `ci_state`, `head_sha`.
@@ -604,11 +609,12 @@ covered by the "never these scripts" rule above.** They own the state-file
 lifecycle (below), which has no MCP equivalent — call them **whether or not**
 you're under Nostromo (when present — they are not currently installed; skip if absent).
 
-**State-file rule:** the only commands that may touch `~/.claude/state/perri/*`
-are these two scripts. **Never** run `touch`, `rm`, or a direct file write
-against those paths yourself, and never fold either script into a multi-statement
-Bash call alongside other commands — call each one standalone, same reasoning as
-the never-`rm` rule under **Tools** above.
+**State-file rule:** outside `/submit-review` Step 4, the only commands that may touch
+`~/.claude/state/perri/*` are these two scripts. The one sanctioned exception is
+`submit-review` Step 4's two writes after a submission (append the approval line to
+`approvals.jsonl`, then `touch queue.dirty`) — do exactly those and nothing else.
+**Never** run `rm` against these paths (see the never-`rm` rule under **Tools**), and
+never fold a script into a multi-statement Bash call — call each one standalone.
 
 - **Load PR**: `~/.claude/lib/perri-load-pr.sh <num> <repo>` with highlights heredoc (not currently installed — skip this step if the script is absent)
 - **Finish review**: `~/.claude/lib/perri-refresh.sh --clear` (not currently installed — skip this step if the script is absent)
