@@ -211,9 +211,14 @@ Then trigger the dashboard refresh (all submissions, not just approvals):
 
 ```bash
 touch ~/.claude/state/perri/queue.dirty
-rm -f ~/.claude/state/perri/current-pr.json
-touch ~/.claude/state/perri/current-pr.dirty
 ```
+
+**Under Nostromo, that is the whole state-file step.** Then call `perri.clear_current_pr()`
+and `nostromo.show({ type: "review_queue" })` — those replace the `current-pr.json` /
+`current-pr.dirty` dance, which is for the standalone path only. **Never `rm`
+`current-pr.json`**: a bare `rm` is refused headless (`Bash(rm:*)` ask rule). Standalone
+(no Nostromo), `touch ~/.claude/state/perri/current-pr.dirty` is the refresh trigger; skip
+the removal.
 
 Do **NOT** write the approvals line for Request changes, Comment, or Skip —
 only Approve (and Approve with inline) trigger suppression.
