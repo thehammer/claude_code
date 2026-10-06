@@ -48,6 +48,8 @@ Inline comments (N):
 
 ### Step 2 — Pose the decision
 
+**Self-authored PR check (do this first).** GitHub rejects approving or requesting changes on your own PR ("Review Can not approve your own pull request" — found in live QA, 2026-10-06, on the `thehammer`-authored fixture PR). Compare the PR author to the account you post as — `gh pr view <number> --repo <repo> --json author -q .author.login` vs `gh api user -q .login` — and if they match, **omit `Approve`, `Approve with comment`, `Approve + N inline` and `Request changes`**: offer only `Comment` (and `Skip`), and say in the prompt detail that approval isn't possible on your own PR. Never offer an option you already know will fail after the operator picks it.
+
 The option set is the same either way — always `Approve` and `Skip`, plus whichever of
 `Approve with comment`, `Approve + N inline`, `Request changes` apply to this verdict —
 only the mechanism differs.
