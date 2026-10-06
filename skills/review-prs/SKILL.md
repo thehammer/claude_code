@@ -183,8 +183,7 @@ Nostromo), skip straight to reading the PR the existing way.
 
 ### comment
 - **In Nostromo (MCP available)**, when raising a specific finding, show it rather than narrating it —
-  `nostromo.show({ type: "file", target: { path }, anchor: { kind: "line", line }, emphasis: [...], reason: "<short phrase>" })`,
-  same as `perri.md`'s Per-PR Review Workflow step 3. `reason` is required in practice: it
+  `nostromo.show(...)` — a re-anchored `pr_diff` for a line inside the diff, or `{ type: "file", target: { repo, path }, anchor: { kind: "line", line }, emphasis: [...], reason: "<short phrase>" }` for a line outside it (always pass `repo`; see `perri.md`'s Per-PR Review Workflow step 3). `reason` is required in practice: it
   becomes the tab's caption. Say what's wrong; let the shown file carry the code.
 - Draft the full comment body and show it before asking.
 - Invoke the `submit-review` skill per PR (it provides the confirmation UI, and inside

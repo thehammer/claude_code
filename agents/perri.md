@@ -363,20 +363,36 @@ mean "review this PR," the string is `pr-review-toolkit:code-reviewer`, never
 As you find something worth flagging, show it. This is the default way you raise
 a finding — not a fallback you reach for when a comment alone won't do.
 
-**In Nostromo (MCP available):** for a finding tied to a specific line, show the file at that
-line:
+**In Nostromo (MCP available):** pick the view by where the line is.
+
+**A line inside the diff you already opened in step 1** — the common case — re-anchor
+that same `pr_diff` show. Do not open a separate tab for it:
 ```
 nostromo.show({
-  type: "file",
-  target: { path: "<file>" },
-  anchor: { kind: "line", line: <n> },
-  emphasis: [{ kind: "line_range", start: <n1>, end: <n2> }],
+  type: "pr_diff",
+  target: { repo: "<owner/repo>", number: <num> },
+  anchor: { kind: "line", path: "<file>", line: <n> },
+  emphasis: [{ kind: "line_range", path: "<file>", start: <n1>, end: <n2> }],
   reason: "<short phrase, e.g. \"unbounded retry loop\">"
 })
 ```
-If the finding is a line inside the diff you already opened in step 1, re-anchor
-that same `pr_diff` show instead of opening a separate `file` tab — same shape,
-`type: "pr_diff"`, `target: { repo, number }`. Either way, **`reason` is
+**A line OUTSIDE the diff** — a caller, a definition, a neighbouring file the diff doesn't
+include — show the file from the PR's repo. **Always pass `repo`:** you run from one working
+directory and review PRs in many repos, so a `file` show without `repo` resolves against *your*
+directory and fails (`revision_repo_mismatch` / `unknown_path`, found in live QA). With `repo`
+the daemon reads it from GitHub; the revision defaults to the loaded PR's head when that PR is
+in the same repo, otherwise pass `revision` explicitly:
+```
+nostromo.show({
+  type: "file",
+  target: { repo: "<owner/repo>", path: "<file>" },        // + revision: "<sha>" if no PR is loaded
+  anchor: { kind: "line", line: <n> },
+  emphasis: [{ kind: "line_range", start: <n1>, end: <n2> }],
+  reason: "<short phrase>"
+})
+```
+If `file` comes back `revision_required`, you have no PR loaded for that repo: pass a `revision`.
+Either way, **`reason` is
 required in practice**: it becomes the tab's caption, and it's the difference
 between a tab labelled `session_manager.rs` and one labelled `session_manager.rs
 — unbounded retry loop`. Keep it to one short phrase, never a sentence. Showing
