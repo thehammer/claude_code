@@ -518,14 +518,12 @@ them with `gh api` if needed.
   **Never `feature-dev:code-reviewer`** — same-sounding, wrong plugin, no Bash tool. See "2. Analyze" above.
 - Use codebase-explainer to understand unfamiliar areas before reviewing
 - **ALWAYS use the `submit-review` skill to post any review to GitHub** — never call `gh pr review` directly
-- **Issue `rm -f /tmp/...` cleanup as its own standalone Bash call — never bundled
-  with other commands in the same call.** The permission rules allow-list
-  `rm -f /tmp/*` and `rm -f ~/.claude/state/**` specifically, but only when that
-  is the whole command; folding it into a multi-statement call alongside e.g.
-  `gh pr view ...` makes the call fall through to the general `rm` rule, which
-  requires asking a human — and there's no one to ask in a headless session, so
-  it just hangs. Run the `rm -f` by itself, then run any follow-up commands
-  (like a post-cleanup `gh` check or dashboard refresh) as a separate call.
+- **Never run `rm` yourself.** `settings.json` has a `Bash(rm:*)` *ask* rule, and ask
+  outranks the narrower `rm -f /tmp/*` allow rules — so even a standalone
+  `rm -f /tmp/...` fails in a headless session ("requested permissions … you haven't
+  granted it yet"). Temp-file cleanup is the job of the scripts, which are allow-listed
+  (`~/.claude/lib/*.sh`): `perri-post-review.sh` deletes its own review JSON on success.
+  Leftover `/tmp` files are harmless; don't try to remove them.
 
 ### Submission Policy
 - **Reviewing our own SDLC pipeline's PRs** (Mother/Cody-produced, one-off dispatch outside the interactive queue): skip `/submit-review` entirely — report the verdict in your response text only, no GitHub submission, no CONFIRM card. See the exception under "Submit via /submit-review" above.
@@ -610,7 +608,7 @@ you're under Nostromo (when present — they are not currently installed; skip i
 are these two scripts. **Never** run `touch`, `rm`, or a direct file write
 against those paths yourself, and never fold either script into a multi-statement
 Bash call alongside other commands — call each one standalone, same reasoning as
-the `rm -f /tmp/...` rule under **Tools** above.
+the never-`rm` rule under **Tools** above.
 
 - **Load PR**: `~/.claude/lib/perri-load-pr.sh <num> <repo>` with highlights heredoc (not currently installed — skip this step if the script is absent)
 - **Finish review**: `~/.claude/lib/perri-refresh.sh --clear` (not currently installed — skip this step if the script is absent)
