@@ -1,5 +1,123 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "agentPushNotifEnabled": true,
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "medium",
+  "enabledPlugins": {
+    "claude-md-management@claude-plugins-official": false,
+    "code-review@claude-plugins-official": false,
+    "feature-dev@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": false,
+    "hookify@claude-plugins-official": true,
+    "mother@thehammer-mother": true,
+    "php-lsp@claude-plugins-official": false,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": false,
+    "security-guidance@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true,
+    "teri@thehammer-teri": true,
+    "typescript-lsp@claude-plugins-official": false
+  },
+  "extraKnownMarketplaces": {
+    "thehammer-mother": {
+      "source": {
+        "repo": "thehammer/mother",
+        "source": "github"
+      }
+    },
+    "thehammer-teri": {
+      "source": {
+        "path": "/Users/hammer/Code/teri",
+        "source": "directory"
+      }
+    }
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "~/.claude/hooks/typescript-check.sh",
+            "timeout": 30,
+            "type": "command"
+          },
+          {
+            "command": "~/.claude/hooks/console-log-warning.sh",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "Edit|Write"
+      },
+      {
+        "hooks": [
+          {
+            "command": "/Users/hammer/.cargo/bin/nostromo-activity-hook",
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "~/.claude/hooks/doc-file-guard.sh",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "Write"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "~/.claude/layers/carefeed/hooks/people-registry-hint.sh",
+            "timeout": 3,
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "command": "/Users/hammer/.cargo/bin/nostromo-activity-hook",
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "command": "/Users/hammer/.cargo/bin/nostromo-activity-hook",
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "~/.claude/hooks/inject-time.sh",
+            "timeout": 3,
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash",
@@ -38,13 +156,6 @@
       "Bash(rm -f /tmp/*:*)",
       "Bash(git push:*)"
     ],
-    "deny": [
-      "Bash(DROP DATABASE:*)",
-      "Bash(git push --force:*)",
-      "Bash(rm -rf /:*)",
-      "Bash(rm -rf /*:*)",
-      "Bash(rm -rf ~:*)"
-    ],
     "ask": [
       "Bash(mv /dev/null:*)",
       "Bash(rm:*)",
@@ -53,117 +164,27 @@
       "Bash(sudo /dev/null:*)",
       "Bash(sudo rm:*)",
       "Bash(sudo rmdir:*)"
+    ],
+    "deny": [
+      "Bash(DROP DATABASE:*)",
+      "Bash(git push --force:*)",
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf /*:*)",
+      "Bash(rm -rf ~:*)"
     ]
   },
   "skillOverrides": {
     "fusionauth-setup": "off",
     "m365-setup": "off",
+    "staging-monitor-db": "off",
     "teams": "off",
-    "terraform": "off",
-    "staging-monitor-db": "off"
+    "terraform": "off"
   },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/doc-file-guard.sh",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/pr-base-check.sh",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/typescript-check.sh",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/console-log-warning.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/inject-time.sh",
-            "timeout": 3
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/layers/carefeed/hooks/people-registry-hint.sh",
-            "timeout": 3
-          }
-        ]
-      }
-    ]
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "~/.claude/statusline.sh"
-  },
-  "enabledPlugins": {
-    "feature-dev@claude-plugins-official": true,
-    "hookify@claude-plugins-official": true,
-    "code-review@claude-plugins-official": false,
-    "pr-review-toolkit@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": false,
-    "swift-lsp@claude-plugins-official": true,
-    "mother@thehammer-mother": true,
-    "rust-analyzer-lsp@claude-plugins-official": false,
-    "teri@thehammer-teri": true,
-    "frontend-design@claude-plugins-official": false,
-    "security-guidance@claude-plugins-official": true,
-    "php-lsp@claude-plugins-official": false,
-    "typescript-lsp@claude-plugins-official": false
-  },
-  "extraKnownMarketplaces": {
-    "thehammer-teri": {
-      "source": {
-        "source": "directory",
-        "path": "/Users/hammer/Code/teri"
-      }
-    },
-    "thehammer-mother": {
-      "source": {
-        "source": "github",
-        "repo": "thehammer/mother"
-      }
-    }
-  },
-  "viewMode": "focus",
-  "alwaysThinkingEnabled": true,
-  "effortLevel": "medium",
-  "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
-  "agentPushNotifEnabled": true
+  "statusLine": {
+    "command": "~/.claude/statusline.sh",
+    "type": "command"
+  },
+  "tui": "fullscreen",
+  "viewMode": "focus"
 }
