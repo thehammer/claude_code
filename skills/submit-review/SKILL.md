@@ -185,10 +185,7 @@ Write to `/tmp/perri-review-<number>.json`. The file must be valid JSON matching
 
 The script handles posting, 422 recovery (individual comment retry), and appending any failed inline comments to the body. Watch its output for success/failure per comment.
 
-**Step 3c — Clean up:**
-```bash
-rm -f /tmp/perri-review-<number>.json
-```
+**Step 3c — Clean up:** nothing to do. `perri-post-review.sh` deletes `/tmp/perri-review-<number>.json` itself on success. **Do not run `rm`** — a bare `rm` in the Bash tool matches the `Bash(rm:*)` ask rule (ask outranks the narrower `rm -f /tmp/*` allow), and a headless session has no one to answer, so it fails with "requested permissions … haven't granted". If the script fails, the file is left in place for inspection.
 
 **Skip:** Do nothing. Inform the user briefly ("Skipped — moving on.") and continue.
 
