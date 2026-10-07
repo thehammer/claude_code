@@ -225,3 +225,13 @@ queue-management signal. WIP folders are renamed or deleted manually.
 ---
 
 **This file is automatically read by Claude Code on every message.**
+
+---
+
+## Time zones
+
+I'm in Chicago (America/Chicago — Central, CDT/CST). When you report a time to me:
+- Lead with Central time, e.g. "2:47 pm CT". Add UTC in parentheses when it's a timestamp I may search for in logs or CI, e.g. "2:47 pm CT (19:47 UTC)".
+- Convert source timestamps before reporting them. Most tools (AWS, Datadog, GitHub, CI) are UTC. The Carefeed portal MySQL database's NOW() runs on US Eastern, so subtract 1 hour for Central.
+- For relative times ("in about five hours"), anchor on the current local time from `date`.
+- Keep queries and commands in the source system's own timezone; convert only what you tell me.
