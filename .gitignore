@@ -169,3 +169,6 @@ budget-posture.events.jsonl
 
 # Layer-generated hook symlinks (like the skills/agents symlinks the layer sync ignores)
 hooks/_carefeed_*.sh
+
+# Huey sample interests file (personal; Huey keeps its real files in ~/.nostromo/huey/)
+huey/
