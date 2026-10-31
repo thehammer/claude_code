@@ -370,3 +370,24 @@ This will recreate all 97 scripts with updated dependencies.
 **Generated:** 2025-10-23
 **Total Scripts:** 97
 **Version:** 2.0 (Script-based architecture)
+
+---
+
+## Session handoff (`handoff`)
+
+`bin/handoff` refuses a session handoff unless every state claim carries a check command, then re-runs the checks on receipt and reports drift. A handoff is the first ```` ```handoff ```` YAML block in `<repo>/.claude/wip/<topic>/index.md` (`handoff template <topic>` prints a skeleton).
+
+**Enforced rule (`state_as_of`):** each claim needs a unique `id`, a read-only `check`, `checked_at` (ISO 8601 with offset), and a baseline (`observed` or `expect`). Refusal codes: `no_claims`, `missing_id`, `duplicate_id`, `missing_check`, `missing_checked_at`, `missing_baseline`, `not_read_only`, `unknown_claim`. Other fields only warn.
+
+**Read-only allowlist** (`ALLOWLIST_TABLE` in the script; nothing runs through a shell): no `; && || > < & `` ` `` $(` or newlines; pipes allowed. Segments may be `gh pr|run|release view|list` (plus `pr checks|status`), `git [-C dir] log|show|status|rev-parse|diff|ls-files|describe|merge-base|cat-file|for-each-ref|rev-list`, `mother list|status|plan|peek` (no `--watch`), `cat head tail wc ls stat test date which shasum readlink sort uniq cut tr grep jq`, and `<tool> --version`.
+
+**Two-command demo** (offline, git only):
+
+```bash
+handoff demo /tmp/hd
+cd /tmp/hd && handoff receive handoff-demo   # REFUSED missing_check pr-389; add the printed 3 lines; run again: head changed (exit 3)
+```
+
+**Other commands:** `stamp <path>` fills `observed`/`checked_at` (rewrites only the fence; YAML comments inside it are lost); `receive <path|dir|topic> [--record]` exits 0 clean, 3 drift, 1 refused, 2 IO error.
+
+**Hook:** run `handoff install-hook` once (idempotent; `--dry-run` previews). A prompt whose first line is `handoff: <path-or-topic>` is then blocked if refused, or gets the receipt plus receiver obligations as context.
