@@ -1,0 +1,786 @@
+#!/usr/bin/env python3
+"""handoff: refuse a session handoff unless every state claim carries a check command.
+
+A handoff is the first ```handoff fenced YAML block in <repo>/.claude/wip/<topic>/index.md.
+The enforced field is `state_as_of`: every claim needs a read-only `check`, a `checked_at`
+timestamp and a baseline (`observed` or `expect`). `receive` re-runs the checks and reports drift.
+"""
+import argparse
+import difflib
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+import time
+from datetime import datetime
+
+SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
+POINTER_RE = re.compile(r"^handoff:\s*(\S+)\s*$")
+HOOK_COMMAND = "~/.claude/bin/handoff hook"
+CHECK_TIMEOUT = 10
+HOOK_BUDGET = 45
+MAX_OUTPUT = 2000
+HINT = "add a read-only check: and checked_at: to each claim, or run: handoff stamp <path>"
+
+REQUESTED_FIELDS = ("goal", "decisions", "open_questions", "working_agreement",
+                    "constraints", "artifacts", "next_actions", "done_when")
+
+# ---------------------------------------------------------------------------
+# Read-only allowlist. One table; nothing ever runs through a shell.
+# ---------------------------------------------------------------------------
+FORBIDDEN_SUBSTRINGS = ("&&", "||", ";", ">", "<", "`", "$(", "&", "\n", "\r")
+
+GH_ALLOWED = {"pr": {"view", "list", "checks", "status"},
+              "run": {"view", "list"},
+              "release": {"view", "list"}}
+GIT_ALLOWED = {"log", "show", "status", "rev-parse", "diff", "ls-files", "describe", "merge-base",
+               "cat-file", "for-each-ref", "rev-list"}
+MOTHER_ALLOWED = {"list", "status", "plan", "peek"}
+MOTHER_DENIED_FLAGS = {"peek": {"--watch"}}
+PLAIN_TOOLS = {"cat", "head", "tail", "wc", "ls", "stat", "test", "date", "which", "shasum",
+               "readlink", "sort", "uniq", "cut", "tr", "grep", "jq"}
+VERSION_ONLY_EXTRA = {"nostromd", "claude", "python3", "node", "bats"}
+# Flags that make an otherwise read-only tool write somewhere.
+DENIED_FLAG_PREFIXES = {"git": ("--output",), "sort": ("-o", "--output"), "date": ("-s", "--set")}
+
+ALLOWLIST_TABLE = {
+    "gh": GH_ALLOWED,
+    "git": GIT_ALLOWED,
+    "mother": MOTHER_ALLOWED,
+    "plain": PLAIN_TOOLS,
+    "--version only": PLAIN_TOOLS | {"gh", "git", "mother"} | VERSION_ONLY_EXTRA,
+}
+
+
+def _split_pipeline(cmd):
+    """Return list of argv lists for a pipeline, or (None, reason)."""
+    for bad in FORBIDDEN_SUBSTRINGS:
+        if bad in cmd:
+            return None, "contains forbidden shell syntax %r" % bad
+    lex = shlex.shlex(cmd, posix=True, punctuation_chars="|")
+    lex.whitespace_split = True
+    try:
+        tokens = list(lex)
+    except ValueError as e:
+        return None, "cannot parse: %s" % e
+    segments, cur = [], []
+    for tok in tokens:
+        if tok == "|":
+            segments.append(cur)
+            cur = []
+        elif set(tok) == {"|"}:
+            return None, "contains forbidden shell syntax %r" % tok
+        else:
+            cur.append(tok)
+    segments.append(cur)
+    if any(not s for s in segments):
+        return None, "empty pipeline segment"
+    return segments, None
+
+
+def _segment_allowed(argv):
+    name, args = argv[0], argv[1:]
+    if args == ["--version"] and name in ALLOWLIST_TABLE["--version only"]:
+        return True
+    for flag in args:
+        if any(flag.startswith(p) for p in DENIED_FLAG_PREFIXES.get(name, ())):
+            return False
+    if name == "gh":
+        return len(args) >= 2 and args[1] in GH_ALLOWED.get(args[0], ())
+    if name == "git":
+        if args[:1] == ["-C"]:
+            args = args[2:]
+        return bool(args) and args[0] in GIT_ALLOWED
+    if name == "mother":
+        if not args or args[0] not in MOTHER_ALLOWED:
+            return False
+        return not (set(args) & MOTHER_DENIED_FLAGS.get(args[0], set()))
+    if name == "uniq":  # a second positional argument is an output file
+        return len([a for a in args if not a.startswith("-")]) <= 1
+    return name in PLAIN_TOOLS
+
+
+def check_command_problem(cmd):
+    """None if `cmd` is allowed, otherwise a one-line reason."""
+    if not isinstance(cmd, str) or not cmd.strip():
+        return "empty check"
+    segments, reason = _split_pipeline(cmd)
+    if segments is None:
+        return reason
+    for seg in segments:
+        if not _segment_allowed(seg):
+            return "%r is not on the read-only allowlist" % " ".join(seg)
+    return None
+
+
+def is_read_only(cmd):
+    return check_command_problem(cmd) is None
+
+
+# ---------------------------------------------------------------------------
+# Running checks (shell=False, chained pipes)
+# ---------------------------------------------------------------------------
+def _expand(arg):
+    return os.path.expanduser(arg)
+
+
+def run_check(cmd, cwd, timeout=CHECK_TIMEOUT):
+    """Return ("ok", stdout) or ("error", reason). Assumes cmd already passed the allowlist."""
+    segments, reason = _split_pipeline(cmd)
+    if segments is None:
+        return "error", reason
+    if not os.path.isdir(cwd):
+        return "error", "cwd does not exist: %s" % cwd
+    procs = []
+    try:
+        prev = None
+        for i, seg in enumerate(segments):
+            last = i == len(segments) - 1
+            p = subprocess.Popen([_expand(a) for a in seg], cwd=cwd, stdin=prev,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE if last else subprocess.DEVNULL)
+            if prev is not None:
+                prev.close()
+            prev = p.stdout
+            procs.append(p)
+        try:
+            out, err = procs[-1].communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            return "error", "timed out after %ss" % timeout
+        for p in procs[:-1]:
+            p.wait(timeout=1)
+    except FileNotFoundError as e:
+        return "error", "binary not found: %s" % (e.filename or seg[0])
+    except OSError as e:
+        return "error", "cannot run: %s" % e
+    finally:
+        for p in procs:
+            if p.poll() is None:
+                p.kill()
+                p.wait()
+    if procs[-1].returncode != 0:
+        msg = err.decode("utf-8", "replace").strip().splitlines()
+        return "error", "exit %d%s" % (procs[-1].returncode, (": " + msg[-1]) if msg else "")
+    text = out.decode("utf-8", "replace").rstrip()
+    if len(text) > MAX_OUTPUT:
+        text = text[:MAX_OUTPUT] + "…[truncated]"
+    return "ok", text
+
+
+# ---------------------------------------------------------------------------
+# Parsing and validation
+# ---------------------------------------------------------------------------
+def _yaml():
+    try:
+        import yaml
+    except ImportError:
+        print("handoff: needs PyYAML (python3 -m pip install pyyaml)", file=sys.stderr)
+        sys.exit(2)
+    return yaml
+
+
+def find_fence(text):
+    """Return (start, end) char offsets of the first ```handoff block body, or None."""
+    pos, start = 0, None
+    for line in text.splitlines(keepends=True):
+        stripped = line.rstrip()
+        if start is None:
+            if stripped == "```handoff":
+                start = pos + len(line)
+        elif stripped == "```":
+            return start, pos
+        pos += len(line)
+    return None
+
+
+def parse_ts(value):
+    """Aware datetime from a YAML value, or None."""
+    if isinstance(value, datetime):
+        return value if value.tzinfo is not None else None
+    if isinstance(value, str):
+        try:
+            dt = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return dt if dt.tzinfo is not None else None
+    return None
+
+
+def base_dir_for(path):
+    """Repo root: parent of the .claude dir holding the file; falls back to the file's dir."""
+    cur = os.path.dirname(os.path.realpath(path))
+    while True:
+        if os.path.basename(cur) == ".claude":
+            return os.path.dirname(cur)
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            return os.path.dirname(os.path.realpath(path))
+        cur = parent
+
+
+class Handoff:
+    def __init__(self, path):
+        self.path = path
+        self.base = base_dir_for(path)
+        self.refusals = []  # (code, id, reason)
+        self.warnings = []
+        self.data = None
+        self.text = ""
+        self.fence = None
+
+    def refuse(self, code, ident, reason):
+        self.refusals.append((code, ident, reason))
+
+    @property
+    def claims(self):
+        return [c for c in (self.data or {}).get("state_as_of") or [] if isinstance(c, dict)]
+
+
+def load(path, skip=()):
+    """Read and validate. `skip` lists refusal codes to ignore (used by stamp)."""
+    yaml = _yaml()
+    h = Handoff(path)
+    with open(path, "rb") as f:
+        h.text = f.read().decode("utf-8")
+    h.fence = find_fence(h.text)
+    if h.fence is None:
+        h.refuse("no_handoff", "-", "no ```handoff fenced block found in %s" % path)
+        return h
+    try:
+        data = yaml.safe_load(h.text[h.fence[0]:h.fence[1]])
+    except yaml.YAMLError as e:
+        mark = getattr(e, "problem_mark", None)
+        where = " (line %d)" % (mark.line + 1) if mark else ""
+        h.refuse("yaml_error", "-", "YAML parse error%s: %s" % (where, str(e).splitlines()[0]))
+        return h
+    if not isinstance(data, dict):
+        h.refuse("yaml_error", "-", "handoff block must be a YAML mapping")
+        return h
+    h.data = data
+    _validate(h)
+    h.refusals = [r for r in h.refusals if r[0] not in skip]
+    return h
+
+
+def _validate(h):
+    d = h.data
+    if d.get("handoff") != 1 or isinstance(d.get("handoff"), bool):
+        h.refuse("bad_version", "-", "handoff: must be 1")
+    topic = d.get("topic")
+    if not isinstance(topic, str) or not SLUG_RE.match(topic):
+        h.refuse("bad_topic", "-", "topic must match %s" % SLUG_RE.pattern)
+    if parse_ts(d.get("written_at")) is None:
+        h.refuse("bad_written_at", "-", "written_at must be ISO 8601 with an offset")
+
+    raw = d.get("state_as_of")
+    if not isinstance(raw, list) or not raw:
+        h.refuse("no_claims", "-", "state_as_of is missing or empty; nothing to enforce")
+        raw = []
+    seen = set()
+    for i, c in enumerate(raw):
+        label = str(i)
+        if not isinstance(c, dict):
+            h.refuse("bad_claim", label, "claim must be a mapping")
+            continue
+        cid = c.get("id")
+        if not isinstance(cid, str) or not SLUG_RE.match(cid):
+            h.refuse("missing_id", label, "claim needs an id matching %s" % SLUG_RE.pattern)
+        elif cid in seen:
+            h.refuse("duplicate_id", cid, "id used more than once")
+            label = cid
+        else:
+            seen.add(cid)
+            label = cid
+        check = c.get("check")
+        if not isinstance(check, str) or not check.strip():
+            h.refuse("missing_check", label, "claim has no check command")
+        else:
+            problem = check_command_problem(check)
+            if problem:
+                h.refuse("not_read_only", label, problem)
+        if parse_ts(c.get("checked_at")) is None:
+            h.refuse("missing_checked_at", label, "checked_at is absent or not ISO 8601 with an offset")
+        if "observed" not in c and "expect" not in c:
+            h.refuse("missing_baseline", label, "neither observed nor expect is present")
+
+    for i, a in enumerate(d.get("next_actions") or []):
+        if not isinstance(a, dict):
+            continue
+        deps = a.get("depends_on") or []
+        if isinstance(deps, str):
+            deps = [deps]
+        for dep in deps:
+            if dep not in seen:
+                h.refuse("unknown_claim", a.get("id", str(i)),
+                         "depends_on %r matches no state_as_of id" % (dep,))
+
+    for field in REQUESTED_FIELDS:
+        if not d.get(field):
+            h.warnings.append("%s is missing or empty" % field)
+
+
+def refusal_lines(h):
+    return ["REFUSED %s %s: %s" % r for r in h.refusals]
+
+
+def refusal_text(h):
+    return "\n".join(refusal_lines(h) + [HINT])
+
+
+# ---------------------------------------------------------------------------
+# Resolution and helpers
+# ---------------------------------------------------------------------------
+def resolve_target(arg, cwd):
+    p = os.path.expanduser(arg)
+    if not os.path.isabs(p):
+        p = os.path.join(cwd, p)
+    if os.path.isfile(p):
+        return p
+    if os.path.isdir(p):
+        return os.path.join(p, "index.md")
+    if "/" not in arg:
+        return os.path.join(cwd, ".claude", "wip", arg, "index.md")
+    return p
+
+
+def norm(s):
+    return " ".join(s.split())
+
+
+def baseline_of(claim):
+    v = claim["observed"] if "observed" in claim else claim.get("expect")
+    if v is None:
+        return ""
+    if isinstance(v, bool):
+        return str(v).lower()
+    return str(v)
+
+
+def age(ts, now):
+    secs = int((now - ts).total_seconds())
+    if secs < 60:
+        return "<1m ago" if secs >= 0 else "in the future"
+    mins = secs // 60
+    if mins < 60:
+        return "%dm ago" % mins
+    hrs, mins = divmod(mins, 60)
+    if hrs < 24:
+        return "%dh%02dm ago" % (hrs, mins)
+    days, hrs = divmod(hrs, 24)
+    return "%dd%dh ago" % (days, hrs)
+
+
+def claim_cwd(h, claim):
+    cwd = os.path.expanduser(str(claim.get("cwd") or h.base))
+    return cwd if os.path.isabs(cwd) else os.path.join(h.base, cwd)
+
+
+def now_local():
+    return datetime.now().astimezone().replace(microsecond=0)
+
+
+def cell(s):
+    return norm(str(s)).replace("|", "\\|")
+
+
+# ---------------------------------------------------------------------------
+# receive
+# ---------------------------------------------------------------------------
+def evaluate(h, deadline=None):
+    """Re-run every check. Returns list of dicts with id, claim, status, detail, diff."""
+    results = []
+    now = now_local()
+    for c in h.claims:
+        remaining = CHECK_TIMEOUT if deadline is None else min(CHECK_TIMEOUT, deadline - time.monotonic())
+        if remaining <= 0:
+            status, value = "error", "hook time budget"
+        else:
+            status, value = run_check(c["check"], claim_cwd(h, c), remaining)
+        when = "checked " + age(parse_ts(c["checked_at"]), now)
+        r = {"id": c["id"], "claim": c.get("claim", ""), "diff": None}
+        if status == "error":
+            r.update(status="could not verify", detail="%s (%s)" % (value, when))
+        else:
+            claimed = baseline_of(c)
+            if norm(claimed) == norm(value):
+                r.update(status="unchanged", detail=when)
+            else:
+                r.update(status="changed")
+                if "\n" in claimed.strip() or "\n" in value:
+                    diff = list(difflib.unified_diff(claimed.splitlines(), value.splitlines(),
+                                                     "claimed", "now", lineterm=""))
+                    r["diff"] = diff[:20] + (["…"] if len(diff) > 20 else [])
+                    r["detail"] = "see diff below (%s)" % when
+                else:
+                    r["detail"] = "%s → %s (%s)" % (claimed, value, when)
+        results.append(r)
+    return results
+
+
+def artifact_lines(d):
+    out = []
+    for a in d.get("artifacts") or []:
+        if not isinstance(a, dict):
+            continue
+        role = a.get("role", "")
+        if "path" in a:
+            ok = os.path.exists(os.path.expanduser(str(a["path"])))
+            out.append("- %s (%s): %s" % (a["path"], role, "reachable" if ok else "MISSING"))
+        elif "url" in a:
+            out.append("- %s (%s): not checked (url)" % (a["url"], role))
+    return out
+
+
+def build_receipt(h, results):
+    d = h.data
+    L = ["Handoff %s written %s by %s" % (d.get("topic"), d.get("written_at"), d.get("from") or "unknown"),
+         "", "## State as of", "", "| id | claim | status | detail |", "|---|---|---|---|"]
+    for r in results:
+        L.append("| %s | %s | %s | %s |" % (r["id"], cell(r["claim"]), r["status"], cell(r["detail"])))
+    for r in results:
+        if r["diff"]:
+            L += ["", "Diff for %s:" % r["id"], "```diff"] + r["diff"] + ["```"]
+    drifted = {r["id"]: r["status"] for r in results if r["status"] != "unchanged"}
+
+    held = []
+    for a in d.get("next_actions") or []:
+        if not isinstance(a, dict):
+            continue
+        deps = a.get("depends_on") or []
+        deps = [deps] if isinstance(deps, str) else deps
+        bad = ["%s: %s" % (x, drifted[x]) for x in deps if x in drifted]
+        if bad:
+            held.append("- %s: %s. HOLD: re-confirm with the operator before starting (%s)"
+                        % (a.get("id", "?"), a.get("action", ""), "; ".join(bad)))
+    L += ["", "## Held actions", ""] + (held or ["- none"])
+    for title, key in (("Constraints / will not do", "constraints"), ("Not verified", "not_verified")):
+        items = d.get(key) or []
+        L += ["", "## " + title, ""] + (["- %s" % i for i in items] or ["- none"])
+    L += ["", "## Sources", ""] + (artifact_lines(d) or ["- none"])
+    if h.warnings:
+        L += ["", "## Warnings", ""] + ["- %s" % w for w in h.warnings]
+    return "\n".join(L)
+
+
+def record_line(text, line):
+    """Insert `line` at the end of the `## Log` section (creating it if absent)."""
+    lines = text.splitlines(keepends=True)
+    heading = None
+    for i, ln in enumerate(lines):
+        if ln.rstrip() == "## Log":
+            heading = i
+    if heading is None:
+        if text and not text.endswith("\n"):
+            text += "\n"
+        return text + "\n## Log\n\n" + line + "\n"
+    end = len(lines)
+    for j in range(heading + 1, len(lines)):
+        if lines[j].startswith("## "):
+            end = j
+            break
+    at = end
+    while at > heading + 1 and not lines[at - 1].strip():
+        at -= 1
+    if at > 0 and not lines[at - 1].endswith("\n"):
+        lines[at - 1] += "\n"
+    lines.insert(at, line + "\n")
+    return "".join(lines)
+
+
+def receive_core(target, cwd, record=False, deadline=None):
+    """Returns (exit_code, text)."""
+    path = resolve_target(target, cwd)
+    try:
+        h = load(path)
+    except (OSError, UnicodeDecodeError) as e:
+        return 2, "handoff: cannot read %s: %s" % (path, e)
+    if h.refusals:
+        return 1, refusal_text(h)
+    results = evaluate(h, deadline)
+    text = build_receipt(h, results)
+    counts = {s: sum(1 for r in results if r["status"] == s) for s in ("unchanged", "changed", "could not verify")}
+    if record:
+        line = "- %s handoff received: %d unchanged, %d changed, %d unverified" % (
+            datetime.now().strftime("%H:%M"), counts["unchanged"], counts["changed"], counts["could not verify"])
+        try:
+            with open(path, "rb") as f:
+                original = f.read().decode("utf-8")
+            with open(path, "wb") as f:
+                f.write(record_line(original, line).encode("utf-8"))
+        except OSError as e:
+            text += "\n\n(could not record to %s: %s)" % (path, e)
+    drift = counts["changed"] or counts["could not verify"]
+    return (3 if drift else 0), text
+
+
+# ---------------------------------------------------------------------------
+# stamp
+# ---------------------------------------------------------------------------
+def dump_block(data):
+    return _yaml().safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False, width=10 ** 6)
+
+
+def stamp_claims(h):
+    """Fill observed/checked_at in place. Returns list of (id, reason) errors."""
+    errors = []
+    for c in h.claims:
+        status, value = run_check(c["check"], claim_cwd(h, c))
+        if status == "error":
+            errors.append((c["id"], value))
+            continue
+        c["observed"] = value
+        c["checked_at"] = now_local()
+        c.pop("expect", None)
+    return errors
+
+
+def cmd_stamp(args):
+    try:
+        h = load(args.path, skip=("missing_baseline", "missing_checked_at"))
+    except (OSError, UnicodeDecodeError) as e:
+        print("handoff: cannot read %s: %s" % (args.path, e), file=sys.stderr)
+        return 2
+    if h.refusals:
+        print(refusal_text(h))
+        return 1
+    errors = stamp_claims(h)
+    body = dump_block(h.data)
+    new = h.text[:h.fence[0]] + body + h.text[h.fence[1]:]
+    with open(args.path, "wb") as f:
+        f.write(new.encode("utf-8"))
+    for cid, reason in errors:
+        print("could not stamp %s: %s" % (cid, reason))
+    print("stamped %d of %d claims" % (len(h.claims) - len(errors), len(h.claims)))
+    return 1 if errors else 0
+
+
+# ---------------------------------------------------------------------------
+# template and demo
+# ---------------------------------------------------------------------------
+TEMPLATE = """# {topic}
+
+```handoff
+handoff: 1
+topic: {topic}
+written_at: {now}
+from: "describe the sending session"
+supersedes: null
+goal: "One-paragraph thesis: what this work is for."
+decisions:
+  - "A decision already made."
+open_questions:
+  - "A question still open."
+working_agreement:
+  - "A rule of engagement for the receiver."
+constraints:
+  - "Something the receiver must NOT do."
+not_verified:
+  - "Something the writer believes but did not check."
+artifacts:
+  - {{ path: "~/path/to/source.md", role: "synthesis" }}
+  - {{ url: "https://example.com/pr/1", role: "PR under review" }}
+state_as_of:
+  - id: head
+    claim: "The repo is at the commit I saw"
+    check: "git rev-parse --short HEAD"
+    observed: "abc1234"
+    checked_at: {now}
+next_actions:
+  - {{ id: a1, action: "Do the next thing", owner: agent, depends_on: [head] }}
+done_when:
+  - "What done looks like."
+```
+"""
+
+
+def cmd_template(args):
+    sys.stdout.write(TEMPLATE.format(topic=args.topic, now=now_local().isoformat()))
+    return 0
+
+
+def _git(cwd, *argv):
+    subprocess.run(["git", "-c", "user.name=demo", "-c", "user.email=demo@example.com",
+                    "-c", "commit.gpgsign=false", "-C", cwd] + list(argv),
+                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def cmd_demo(args):
+    d = os.path.abspath(os.path.expanduser(args.dir))
+    if os.path.exists(d) and (not os.path.isdir(d) or os.listdir(d)):
+        print("handoff: %s exists and is not empty" % d, file=sys.stderr)
+        return 2
+    os.makedirs(d, exist_ok=True)
+    _git(d, "init", "-q")
+    with open(os.path.join(d, "README.md"), "w") as f:
+        f.write("# handoff demo\n")
+    _git(d, "add", "README.md")
+    _git(d, "commit", "-q", "-m", "initial commit")
+    wip = os.path.join(d, ".claude", "wip", "handoff-demo")
+    os.makedirs(wip)
+    path = os.path.join(wip, "index.md")
+    data = {"handoff": 1, "topic": "handoff-demo", "written_at": now_local(), "from": "demo writer",
+            "goal": "Show a handoff being refused, fixed, then accepted with drift.",
+            "constraints": ["Do not act on pr-389 without re-confirming."],
+            "state_as_of": [
+                {"id": "head", "claim": "The repo is at the first commit", "check": "git rev-parse --short HEAD"},
+                {"id": "readme", "claim": "README is the demo README", "check": "cat README.md"},
+                {"id": "pr-389", "claim": "PR 389 is open"}],
+            "next_actions": [{"id": "a1", "action": "Merge 389", "owner": "agent", "depends_on": ["head", "pr-389"]}],
+            "done_when": ["The audience has seen the drift report."]}
+    h = Handoff(path)
+    h.data = data
+    for c in h.claims:
+        if "check" in c:
+            status, value = run_check(c["check"], d)
+            c["observed"], c["checked_at"] = value, now_local()
+    with open(path, "w") as f:
+        f.write("# handoff-demo\n\n```handoff\n%s```\n" % dump_block(data))
+    _git(d, "commit", "-q", "--allow-empty", "-m", "second commit")
+    print("Demo ready in %s\n" % d)
+    print("1. cd %s" % d)
+    print("2. Send the prompt line:  handoff: handoff-demo")
+    print("   (or run: handoff receive handoff-demo)   Expect: REFUSED missing_check pr-389")
+    print("3. In .claude/wip/handoff-demo/index.md, add these three lines to the pr-389 claim:")
+    print('     check: "git log -1 --format=%s"')
+    print('     expect: "second commit"')
+    print("     checked_at: %s" % now_local().isoformat())
+    print("4. Send it again. Expect: head changed (drift), exit 3.")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# hook
+# ---------------------------------------------------------------------------
+OBLIGATIONS = """Handoff obligations. Make your first reply, before doing anything else:
+(1) Acknowledge this handoff by topic.
+(2) List what you will not do (the constraints above).
+(3) Confirm which sources are reachable (the Sources section above).
+(4) Restate the state drift: every claim that is changed or could not be verified.
+(5) Do not start any HOLD action until the operator re-confirms it.
+(6) Treat the "Not verified" items as questions, not facts."""
+
+
+def cmd_hook(args):
+    try:
+        payload = json.load(sys.stdin)
+        prompt = payload.get("prompt") or ""
+        cwd = payload.get("cwd") or os.getcwd()
+    except (ValueError, AttributeError):
+        return 0
+    first = next((ln for ln in prompt.splitlines() if ln.strip()), "")
+    m = POINTER_RE.match(first)
+    if not m:
+        return 0
+    try:
+        code, text = receive_core(m.group(1), cwd, record=True,
+                                  deadline=time.monotonic() + HOOK_BUDGET)
+    except SystemExit:
+        code, text = 1, "handoff hook error: PyYAML is not installed (python3 -m pip install pyyaml)"
+    except Exception as e:  # fail closed for handoff prompts only
+        code, text = 1, "handoff hook error: %s: %s" % (type(e).__name__, e)
+    if code in (1, 2):
+        out = {"decision": "block", "reason": text}
+    else:
+        out = {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
+                                      "additionalContext": text + "\n\n" + OBLIGATIONS}}
+    print(json.dumps(out, ensure_ascii=False))
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# install-hook
+# ---------------------------------------------------------------------------
+def cmd_install_hook(args):
+    path = os.path.realpath(os.path.expanduser(args.settings))
+    settings = {}
+    if os.path.exists(path):
+        with open(path) as f:
+            settings = json.load(f)
+    entries = settings.setdefault("hooks", {}).setdefault("UserPromptSubmit", [])
+    entry = next((e for e in entries if e.get("matcher") == ""), None)
+    if entry is None:
+        entry = {"matcher": "", "hooks": []}
+        entries.append(entry)
+    hooks = entry.setdefault("hooks", [])
+    if not any(h.get("command") == HOOK_COMMAND for h in hooks):
+        hooks.append({"type": "command", "command": HOOK_COMMAND, "timeout": 60})
+    out = json.dumps(settings, indent=2, ensure_ascii=False) + "\n"
+    if args.dry_run:
+        sys.stdout.write(out)
+        return 0
+    tmp = path + ".handoff-tmp"
+    with open(tmp, "w") as f:
+        f.write(out)
+    os.replace(tmp, path)
+    print("handoff hook registered in %s" % path)
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# check / receive commands
+# ---------------------------------------------------------------------------
+def cmd_check(args):
+    path = resolve_target(args.target, os.getcwd())
+    try:
+        h = load(path)
+    except (OSError, UnicodeDecodeError) as e:
+        print("handoff: cannot read %s: %s" % (path, e), file=sys.stderr)
+        return 2
+    if h.refusals:
+        print(refusal_text(h))
+        return 1
+    print("ok: %d claims carry checks" % len(h.claims))
+    for w in h.warnings:
+        print("warning: %s" % w)
+    return 0
+
+
+def cmd_receive(args):
+    code, text = receive_core(args.target, os.getcwd(), record=args.record)
+    print(text, file=sys.stderr if code == 2 else sys.stdout)
+    return code
+
+
+def build_parser():
+    p = argparse.ArgumentParser(prog="handoff", description=__doc__.strip().splitlines()[0],
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = p.add_subparsers(dest="cmd", metavar="{template,check,stamp,receive,hook,install-hook,demo}")
+    s = sub.add_parser("template", help="print a skeleton index.md with the handoff block")
+    s.add_argument("topic", nargs="?", default="my-topic")
+    s.set_defaults(fn=cmd_template)
+    s = sub.add_parser("check", help="validate a handoff without running its checks")
+    s.add_argument("target")
+    s.set_defaults(fn=cmd_check)
+    s = sub.add_parser("stamp", help="run checks, write observed + checked_at back into the block "
+                       "(only the handoff fence is rewritten; YAML comments inside it are lost)")
+    s.add_argument("path")
+    s.set_defaults(fn=cmd_stamp)
+    s = sub.add_parser("receive", help="validate, re-run checks, report drift (exit 0 clean, 3 drift, 1 refused)")
+    s.add_argument("target", help="file, directory, or topic slug")
+    s.add_argument("--record", action="store_true", help="append a line under ## Log")
+    s.set_defaults(fn=cmd_receive)
+    s = sub.add_parser("hook", help="UserPromptSubmit adapter (reads hook JSON on stdin)")
+    s.set_defaults(fn=cmd_hook)
+    s = sub.add_parser("install-hook", help="register the hook in settings.json (idempotent)")
+    s.add_argument("--settings", default="~/.claude/settings.json")
+    s.add_argument("--dry-run", action="store_true")
+    s.set_defaults(fn=cmd_install_hook)
+    s = sub.add_parser("demo", help="build an offline demo repo for the talk")
+    s.add_argument("dir")
+    s.set_defaults(fn=cmd_demo)
+    return p
+
+
+def main(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if not args.cmd:
+        parser.print_help()
+        return 2
+    return args.fn(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
