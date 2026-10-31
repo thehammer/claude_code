@@ -13,6 +13,7 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 from importlib.machinery import SourceFileLoader
+sys.dont_write_bytecode = True
 from pathlib import Path
 
 import yaml

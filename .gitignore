@@ -172,3 +172,7 @@ hooks/_carefeed_*.sh
 
 # Huey sample interests file (personal; Huey keeps its real files in ~/.nostromo/huey/)
 huey/
+
+# Python bytecode
+__pycache__/
+*.pyc
